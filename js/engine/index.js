@@ -70,10 +70,13 @@ import { wilsonDiabetes } from './formulas/wilson-diabetes.js';
 import { adaDiabetes } from './formulas/ada-diabetes.js';
 import { hisayama } from './formulas/hisayama.js';
 import { bdsi } from './formulas/bdsi.js';
+import { GROUPS } from './groups.js';
 
 export { runChecks } from './checks.js';
 
-const ALL = [fsrp, chinShanStroke, findrisc, caide, wilsonDiabetes, adaDiabetes, hisayama, bdsi];
+// The first eight formulas, then every formula group (issue #69), in GROUPS order.
+const ALL = [fsrp, chinShanStroke, findrisc, caide, wilsonDiabetes, adaDiabetes, hisayama, bdsi,
+  ...GROUPS.flatMap((g) => g.formulas)];
 
 // Static description of each formula (no person needed), e.g. for the evidence page.
 export const FORMULAS = ALL.map((f) => ({
