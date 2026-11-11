@@ -10,8 +10,18 @@
 //    into the record. Measurements printed on the report (height, weight, waist, blood
 //    pressure) go to the profile with ctx.store.setProfile().
 //
-// Saved report: { date, source, labs, measurements, items, lab, demo }
-//   labs: Person.labs keys; items: [{ key, label, value, unit, range, flag }] as checked.
+// Units (#42): a value printed in another known unit (for example cholesterol in mmol/L) is
+// converted to the unit the app stores, and the printed value and unit stay on the saved item.
+// A value in a unit the app cannot convert blocks Save until it is corrected; ticking the row
+// does not override that.
+// Dates (#42): an older report never overwrites newer values. For each value on the report, if
+// another report of the same person (or the sample person's own latest report) is more recent,
+// the current value is kept and the older report is saved as history only.
+//
+// Saved report: { date, source, labs, measurements, items, lab, demo, personId }
+//   labs: Person.labs keys; items: [{ key, label, value, unit, range, flag,
+//   printedValue?, printedUnit?, converted? }] as checked; personId: the sample person the
+//   record belongs to, so reports of different people are not mixed.
 // Everything that comes from a file or the API is written with textContent.
 
 const MEASUREMENTS = {
@@ -35,6 +45,38 @@ const SHORT = {
   egfrMlMin: 'eGFR', uacrMgG: 'UACR', astUL: 'AST', altUL: 'ALT', plateletsK: 'Platelets'
 };
 const KEYS = { ...MEASUREMENTS, ...LABS, ...SHOWN_ONLY };
+// Conversions to the unit the app stores (the unit is part of each key, docs/interfaces.md).
+// Keys are unit spellings as normalised by unitKey(). mg/dL per mmol/L follows from molar mass:
+//   cholesterol (total, HDL, LDL) × 38.67, the factor CAIDE already uses in js/engine/formulas/caide.js
+//   triglycerides × 88.57; glucose × 18.016; creatinine µmol/L ÷ 88.4
+//   UACR mg/mmol × 8.84 (creatinine 113.12 g/mol)
+//   HbA1c IFCC mmol/mol → NGSP % = 0.0915 × IFCC + 2.15 (IFCC–NGSP master equation,
+//     Hoelzel W, et al. Clin Chem 2004;50:166–174)
+//   weight lb × 0.45359237; height and waist in × 2.54 (exact by definition)
+const CHOL = { 'mmol/l': [(v) => v * 38.67, '× 38.67'] };
+const INCH = [(v) => v * 2.54, '× 2.54'];
+const POUND = [(v) => v * 0.45359237, '× 0.4536'];
+const CONVERT = {
+  totalCholMgDl: CHOL, hdlMgDl: CHOL, ldlMgDl: CHOL,
+  tgMgDl: { 'mmol/l': [(v) => v * 88.57, '× 88.57'] },
+  fastingGlucoseMgDl: { 'mmol/l': [(v) => v * 18.016, '× 18.016'] },
+  creatinineMgDl: { 'umol/l': [(v) => v / 88.4, '÷ 88.4'] },
+  uacrMgG: { 'mg/mmol': [(v) => v * 8.84, '× 8.84'] },
+  hba1cPct: { 'mmol/mol': [(v) => 0.0915 * v + 2.15, '0.0915 × value + 2.15'] },
+  weightKg: { lb: POUND, lbs: POUND },
+  heightCm: { in: INCH, inch: INCH, inches: INCH },
+  waistCm: { in: INCH, inch: INCH, inches: INCH }
+};
+// How a convertible unit is written in messages.
+const UNIT_NAME = { 'mmol/l': 'mmol/L', 'umol/l': 'µmol/L', lb: 'lb', lbs: 'lb', in: 'in', inch: 'in', inches: 'in' };
+// Other spellings of the unit the app stores (same number, nothing to convert).
+const SAME = {
+  astUL: ['iu/l'], altUL: ['iu/l'],
+  plateletsK: ['109/l', 'k/ul', '1000/ul'],
+  egfrMlMin: ['ml/min'],
+  uacrMgG: ['mg/gcr', 'mg/gcreatinine', 'ug/mg'],
+  hba1cPct: ['%ngsp']
+};
 const READ = {
   high: ['Clear', 'Read clearly'],
   medium: ['Check', 'Read through blur or an unusual layout. Compare it with your paper.'],
@@ -95,6 +137,10 @@ const CSS = `
   color: var(--rr-muted); white-space: nowrap; }
 .rr-chip.is-high { color: var(--rr-good); border-color: color-mix(in srgb, var(--rr-good) 40%, transparent); }
 .rr-chip.is-medium, .rr-chip.is-low, .rr-chip.is-flag { color: var(--rr-warn); border-color: color-mix(in srgb, var(--rr-warn) 45%, transparent); }
+.rr-chip.is-conv { color: var(--rr-accent); border-color: color-mix(in srgb, var(--rr-accent) 40%, transparent); }
+.rr-item.is-blocked { box-shadow: inset 4px 0 0 var(--rr-warn); border-color: color-mix(in srgb, var(--rr-warn) 55%, var(--rr-line)); }
+.rr-done .rr-note { margin: 12px 0 16px; }
+.rr-done ul { margin: 0 0 16px; padding-left: 20px; }
 .rr-spacer { flex: 1; }
 .rr-item-head .link { margin-left: auto; } /* stays on the right when the header wraps */
 .rr-grid, .rr-cols { display: grid; grid-template-columns: 110px 150px minmax(0, .9fr) minmax(0, 1.4fr) 128px; gap: 12px; align-items: center; }
@@ -212,10 +258,14 @@ export function render(root, ctx) {
 
     allBtn.addEventListener('click', () => {
       state.dateChecked = true;
-      state.rows.forEach((row) => { if (complete(row)) row.checked = true; });
+      state.rows.forEach((row) => { if (complete(row) && unitReady(row)) row.checked = true; });
       draw();
-      const left = state.rows.filter((row) => !row.checked).length;
-      say(left ? `${left} row${left === 1 ? ' needs' : 's need'} a value or a test name first.` : 'Everything is checked.', left ? 'warn' : 'is-good');
+      const units = state.rows.filter((row) => complete(row) && !unitReady(row)).length;
+      const left = state.rows.filter((row) => !row.checked).length - units;
+      const parts = [];
+      if (left) parts.push(`${left} row${left === 1 ? ' needs' : 's need'} a value or a test name first.`);
+      if (units) parts.push(`${units} row${units === 1 ? ' has' : 's have'} a unit the app cannot use; fix ${units === 1 ? 'it' : 'them'} before saving.`);
+      say(parts.length ? parts.join(' ') : 'Everything is checked.', parts.length ? 'warn' : 'is-good');
     });
     addBtn.addEventListener('click', () => {
       state.rows.push({ id: Date.now(), key: 'totalCholMgDl', label: KEYS.totalCholMgDl[0], value: '', unit: KEYS.totalCholMgDl[1],
@@ -242,9 +292,12 @@ export function render(root, ctx) {
     function update() {
       const count = state.rows.filter((row) => row.checked).length + (state.dateChecked ? 1 : 0);
       const total = state.rows.length + 1;
-      progressText.textContent = `${count} of ${total} checked: ${state.rows.length} value${state.rows.length === 1 ? '' : 's'} and the date`;
+      const blocked = state.rows.filter((row) => complete(row) && !unitReady(row)).length;
+      progressText.textContent = `${count} of ${total} checked: ${state.rows.length} value${state.rows.length === 1 ? '' : 's'} and the date` +
+        (blocked ? ` · ${blocked} unit${blocked === 1 ? '' : 's'} to fix` : '');
       bar.style.width = `${Math.round((count / total) * 100)}%`;
-      saveBtn.disabled = !(state.rows.length && count === total && state.date && state.rows.every(complete));
+      // A wrong unit blocks Save even when its row is ticked (#42).
+      saveBtn.disabled = !(state.rows.length && count === total && state.date && state.rows.every(complete) && !blocked);
     }
     state.update = update;
     update();
@@ -281,8 +334,17 @@ export function render(root, ctx) {
     item.classList.toggle('is-checked', row.checked);
 
     const sync = () => {
-      const expected = KEYS[row.key]?.[1];
-      unitWarn.textContent = expected && row.unit && unitKey(row.unit) !== unitKey(expected) ? `Unit: expected ${expected}` : '';
+      const check = unitCheck(row);
+      const stored = (LABS[row.key] || MEASUREMENTS[row.key])?.[1];
+      unitWarn.textContent = check.state === 'convert' ? `Saved as ${check.value} ${stored} (${row.value} ${row.unit} ${check.factor})`
+        : check.state === 'blocked' ? check.message : '';
+      unitWarn.classList.toggle('is-flag', check.state === 'blocked');
+      unitWarn.classList.toggle('is-conv', check.state === 'convert');
+      unitWarn.title = check.state === 'convert' ? 'Converted to the unit the app stores; the printed value is kept with the report'
+        : 'The app cannot use this unit as it is';
+      item.classList.toggle('is-blocked', check.state === 'blocked');
+      unit.setAttribute('aria-invalid', String(check.state === 'blocked' && /unit/i.test(check.message)));
+      value.setAttribute('aria-invalid', String(check.state === 'blocked' && !/unit/i.test(check.message)));
       value.classList.toggle('is-empty', String(row.value ?? '').trim() === '');
       state.update?.();
     };
@@ -303,24 +365,72 @@ export function render(root, ctx) {
     return item;
   }
 
-  function save() {
+  async function save() {
     if (!state) return;
     const ready = state.rows.length && state.date && state.dateChecked && state.rows.every((row) => row.checked && complete(row));
     if (!ready) return say('Check every row and the report date first.', 'warn');
-    const items = state.rows.map(({ key, label, value, unit, range, flag }) => ({ key, label, value, unit, range, flag }));
+    const blocked = state.rows.filter((row) => !unitReady(row));
+    if (blocked.length) return say(`Fix the unit on ${blocked.map((row) => row.label).join(', ')} first.`, 'warn');
+
+    // Store each value in the app's unit; a converted value keeps what was printed (#42).
+    const items = state.rows.map((row) => {
+      const { key, label, value, unit, range, flag } = row;
+      const check = unitCheck(row);
+      if (check.state !== 'convert') return { key, label, value, unit, range, flag };
+      const stored = (LABS[key] || MEASUREMENTS[key])[1];
+      return { key, label, value: check.value, unit: stored, range, flag, printedValue: value, printedUnit: unit, converted: check.factor };
+    });
     const pick = (table) => Object.fromEntries(items.filter((it) => table[it.key] && typeof it.value === 'number').map((it) => [it.key, it.value]));
     const labs = pick(LABS);
     const measurements = pick(MEASUREMENTS);
     const { result } = state;
-    ctx.store.addReport({ date: state.date, source: result.source, labs, measurements, items, lab: result.lab || '', demo: result.demo });
-    if (Object.keys(measurements).length) ctx.store.setProfile(measurements);
+
+    // Which values are newer elsewhere: other reports of this person, or the sample person's own
+    // latest report (the values loadPersona copied). Read before the new report is added.
+    const record = ctx.store.get();
+    const personId = record.personaId || null;
+    const before = { ...record.labs };
+    const others = await datedSources(record, personId);
+    const date = String(state.date);
+    const newerFor = (key, part) => others.find((s) => typeof s[part][key] === 'number' && s.date > date);
+
+    ctx.store.addReport({ date: state.date, source: result.source, labs, measurements, items, lab: result.lab || '',
+      demo: result.demo, ...(personId ? { personId } : {}) });
+
+    // addReport merges every lab value; put back the ones a newer report already gives.
+    const keepLabs = {};
+    const applyMeasurements = {};
+    let kept = 0;
+    for (const key of Object.keys(labs)) {
+      const newer = newerFor(key, 'labs');
+      if (!newer) continue;
+      keepLabs[key] = key in before ? before[key] : newer.labs[key];
+      kept++;
+    }
+    for (const [key, value] of Object.entries(measurements)) {
+      if (newerFor(key, 'measurements')) kept++;
+      else applyMeasurements[key] = value;
+    }
+    if (Object.keys(keepLabs).length) ctx.store.setLabs(keepLabs);
+    if (Object.keys(applyMeasurements).length) ctx.store.setProfile(applyMeasurements);
+
     const saved = Object.keys(labs).length + Object.keys(measurements).length;
+    const applied = saved - kept;
+    const latest = others.map((s) => s.date).filter(Boolean).sort().pop() || '';
+    const older = Boolean(latest && date && date < latest);
+    const conversions = items.filter((it) => it.converted);
     form.hidden = true;
     note.hidden = true;
     say('');
     done.replaceChildren(
-      el('h2', {}, `Saved ${saved} value${saved === 1 ? '' : 's'} from the report dated ${state.date}`),
-      el('p', { class: 'muted' }, `${Object.keys(labs).length} lab value${Object.keys(labs).length === 1 ? '' : 's'} and ` +
+      el('h2', {}, older ? `Saved the report dated ${state.date} as history` : `Saved ${saved} value${saved === 1 ? '' : 's'} from the report dated ${state.date}`),
+      older ? el('p', { class: 'rr-note' }, el('span', { class: 'rr-tag' }, 'Older report'),
+        applied ? `This report (${state.date}) is older than your latest (${latest}). It is saved as history; ` +
+          `${applied} value${applied === 1 ? ' that no newer report has was' : 's that no newer report has were'} added to your record.`
+          : `This report (${state.date}) is older than your latest (${latest}). It is saved as history and does not change your current values.`) : null,
+      conversions.length ? el('ul', {}, ...conversions.map((it) =>
+        el('li', {}, `${it.label}: printed ${it.printedValue} ${it.printedUnit}, saved as ${it.value} ${it.unit} (${it.converted})`))) : null,
+      older ? null : el('p', { class: 'muted' }, `${Object.keys(labs).length} lab value${Object.keys(labs).length === 1 ? '' : 's'} and ` +
         `${Object.keys(measurements).length} measurement${Object.keys(measurements).length === 1 ? '' : 's'} are now in your record` +
         `${result.demo ? ' (from a fictional sample report)' : ''}. Other tests stay with the report.`),
       el('div', { class: 'row' }, el('a', { class: 'btn', href: '#/results' }, 'See your results'),
@@ -409,6 +519,50 @@ function newest(reports) {
 
 function complete(row) {
   return String(row.value ?? '').trim() !== '';
+}
+
+// Can this row be saved as it is? 'ok' and 'na' (BMI, other tests) save as they are; 'convert'
+// saves the converted value; 'blocked' stops Save with a message; 'empty' waits for a value.
+function unitCheck(row) {
+  const stored = (LABS[row.key] || MEASUREMENTS[row.key])?.[1];
+  if (!stored) return { state: 'na' };
+  if (!complete(row)) return { state: 'empty' };
+  if (typeof row.value !== 'number') return { state: 'blocked', message: 'Type the value as a number' };
+  const unit = unitKey(row.unit || '');
+  if (!unit) return { state: 'blocked', message: `Add the unit printed on the report (the app stores ${stored})` };
+  if (unit === unitKey(stored) || (SAME[row.key] || []).includes(unit)) return { state: 'ok' };
+  const conversion = CONVERT[row.key]?.[unit];
+  if (conversion) return { state: 'convert', value: round2(conversion[0](row.value)), factor: conversion[1] };
+  const convertible = [...new Set(Object.keys(CONVERT[row.key] || {}).map((u) => UNIT_NAME[u] || u))];
+  return { state: 'blocked', message: `Unit ${row.unit} cannot be used for ${SHORT[row.key] || row.label}: change it to ${stored}` +
+    `${convertible.length ? ` or ${convertible.join(', ')}` : ''}` };
+}
+
+function unitReady(row) {
+  return unitCheck(row).state !== 'blocked';
+}
+
+function round2(x) {
+  return Math.round(x * 100) / 100;
+}
+
+// Dated sources of current values for one person: their saved reports (reports of another sample
+// person are left out, #42 / F08), plus the sample person's own latest sample report, which is
+// what loadPersona copied into the record (js/data/reports.js, #5).
+async function datedSources(record, personId) {
+  const sources = (record.reports || [])
+    .filter((r) => !personId || !r.personId || r.personId === personId)
+    .map((r) => ({ date: String(r.date || ''), labs: r.labs || {}, measurements: r.measurements || {} }));
+  if (!personId) return sources;
+  try {
+    const [{ reportsFor }, { PERSONAS }] = await Promise.all([import('../data/reports.js'), import('../data/personas.js')]);
+    const latest = reportsFor(personId).slice(-1)[0];
+    const persona = PERSONAS.find((p) => p.id === personId);
+    if (latest && persona) {
+      sources.push({ date: String(latest.date || ''), labs: { ...persona.labs }, measurements: pickKeys(persona.profile || {}, MEASUREMENTS) });
+    }
+  } catch { /* no sample data: only the saved reports count */ }
+  return sources;
 }
 
 function asValue(value) {
