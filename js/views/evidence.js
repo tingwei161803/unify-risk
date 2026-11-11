@@ -37,6 +37,12 @@ const CHECKED = new Set(['D', 'V', 'R', 'C', 'P']);
 
 let showAll = false;      // false: only the formulas this app computes
 let picked = null;        // { formulaId, populationId } of the cell whose details are open
+// Three switches, as on the research heat map: which disease, which groups of people, and
+// whether the formula needs a lab report (the `lab` field of js/data/evidence.js).
+let onlyDisease = 'all';  // 'all' | 'stroke' | 'dementia' | 'diabetes'
+let onlyGroups = 'all';   // 'all' | 'place' (populations) | 'sexage' (sex and age rows)
+let onlyLab = 'all';      // 'all' | 'none' (no lab report needed) | 'lab' (lab report needed)
+const SEX_AGE = new Set(['women', 'men', '65plus', '80plus']);
 
 function isNum(v) { return typeof v === 'number' && Number.isFinite(v); }
 // Our value at the precision the paper prints (0.0099, not 0.01); full precision when a check fails.
@@ -125,17 +131,40 @@ function groupSummaries(appEntries, mine) {
   return lines.length ? h('ul.plain-list', { 'aria-label': 'Summary for the groups that describe you' }, lines) : null;
 }
 
-function matrix(entries, mine, redraw) {
-  const head = h('tr', h('th', { scope: 'col' }, h('span.sr', 'Formula')), POPULATIONS.map((pop) =>
+// The formulas and the groups the three switches leave on screen. A formula with both a clinical
+// and a lab version ('B') counts on both sides of the lab switch; an unconfirmed one ('?') only under All.
+function shownEntries(entries) {
+  return entries.filter((e) => (onlyDisease === 'all' || e.disease === onlyDisease)
+    && (onlyLab === 'all' || (onlyLab === 'none' ? e.lab === 'N' || e.lab === 'B' : e.lab === 'Y' || e.lab === 'B')));
+}
+function shownPopulations() {
+  return POPULATIONS.filter((pop) => onlyGroups === 'all' || (onlyGroups === 'sexage') === SEX_AGE.has(pop.id));
+}
+
+function switches(shown, redraw) {
+  const seg = (label, key, value, options, set) => h('div.row', { style: { gap: '8px' } },
+    h('span.small', label),
+    h('div.seg', { role: 'group', 'aria-label': label }, options.map(([v, text]) =>
+      h('button' + (value === v ? '.on' : ''), { type: 'button', 'data-key': 'sw-' + key + '-' + v, 'aria-pressed': String(value === v),
+        onclick: () => { set(v); picked = null; redraw(); } }, text))));
+  return h('div.row', { style: { gap: '10px 24px', 'margin-bottom': '12px' } },
+    seg('Disease', 'disease', onlyDisease, [['all', 'All'], ['stroke', 'Stroke'], ['dementia', 'Dementia'], ['diabetes', 'Type 2 diabetes']], (v) => { onlyDisease = v; }),
+    seg('Groups', 'groups', onlyGroups, [['all', 'All'], ['place', 'Populations'], ['sexage', 'Sex and age']], (v) => { onlyGroups = v; }),
+    seg('Lab report', 'lab', onlyLab, [['all', 'All'], ['none', 'Not needed'], ['lab', 'Needed']], (v) => { onlyLab = v; }),
+    h('span.small.dim', shown + (shown === 1 ? ' formula shown' : ' formulas shown')));
+}
+
+function matrix(entries, pops, mine, redraw) {
+  const head = h('tr', h('th', { scope: 'col' }, h('span.sr', 'Formula')), pops.map((pop) =>
     h('th.col' + (mine.has(pop.id) ? '.you' : ''), { scope: 'col' }, h('span', pop.label + (mine.has(pop.id) ? ' (you)' : '')))));
   const bodies = [];
   DISEASE_ORDER.forEach((disease) => {
     const group = entries.filter((e) => e.disease === disease);
     if (!group.length) return;
-    const body = [h('tr.grp', h('th', { colspan: String(POPULATIONS.length + 1), scope: 'rowgroup' }, DISEASE_LABEL[disease] || disease))];
+    const body = [h('tr.grp', h('th', { colspan: String(pops.length + 1), scope: 'rowgroup' }, DISEASE_LABEL[disease] || disease))];
     group.forEach((entry) => body.push(h('tr',
       h('th.rowh', { scope: 'row' }, entry.name),
-      POPULATIONS.map((pop) => {
+      pops.map((pop) => {
         const cell = entry.cells[pop.id] || {}, st = STATUS[cell.status] || { tone: 'mute', label: 'Not reviewed' };
         const on = picked && picked.formulaId === entry.id && picked.populationId === pop.id;
         return h('td' + (mine.has(pop.id) ? '.you' : ''), h('button.cell.' + (TONE_CLASS[st.tone] || 'mute') + (on ? '.on' : ''),
@@ -193,6 +222,7 @@ function draw(root, ctx) {
   const all = Object.values(EVIDENCE);
   const appIds = appFormulaIds();
   const entries = showAll ? all : appIds.map((id) => EVIDENCE[id]);
+  const visible = shownEntries(entries), pops = shownPopulations();
   const everything = counts(all);
   const pickedEntry = picked ? EVIDENCE[picked.formulaId] : null;
   const pickedPop = picked ? POPULATIONS.find((p) => p.id === picked.populationId) : null;
@@ -217,7 +247,9 @@ function draw(root, ctx) {
           h('button' + (showAll ? '' : '.on'), { type: 'button', 'data-key': 'seg-app', 'aria-pressed': String(!showAll), onclick: () => { showAll = false; picked = null; redraw(); } }, 'In this app'),
           h('button' + (showAll ? '.on' : ''), { type: 'button', 'data-key': 'seg-all', 'aria-pressed': String(showAll), onclick: () => { showAll = true; picked = null; redraw(); } }, 'All ' + all.length))),
       groupSummaries(appIds.map((id) => EVIDENCE[id]), person.ids),
-      matrix(entries, person.ids, redraw),
+      switches(visible.length, redraw),
+      visible.length ? matrix(visible, pops, person.ids, redraw)
+        : h('div.callout', 'No formula matches these three switches. Set one of them back to All.'),
       h('div', { style: { 'margin-top': '12px' } }, legend()),
       pickedEntry && pickedPop ? h('div.ev-float', cellDetails(pickedEntry, pickedPop))
         : h('p.small.dim', { style: { 'margin-top': '12px' } }, 'Select a cell to see the figures and the paper behind it.'
