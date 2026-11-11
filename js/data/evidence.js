@@ -3,7 +3,7 @@
 //
 // Where has each published formula been checked, and how well did it do?
 // 57 stroke, dementia and type 2 diabetes formulas x 18 population rows.
-// Status counts: D 14, V 23, G 873, R 13, P 26, N 2, C 75.
+// Status counts: D 13, V 23, G 871, R 13, P 27, N 2, C 77.
 //
 // Cell fields (all optional except status):
 //   status     one of STATUS below
@@ -17,6 +17,9 @@
 //   studies    number of studies behind this cell
 //   events     outcome events behind the calibration figure
 //   doi        representative paper
+//
+// Model fields: id, name, disease, lab ('N' questionnaire only | 'Y' needs a lab
+// report | 'B' clinical and lab versions | '?' unconfirmed), cells.
 
 export const STATUS = {
   D: { label: 'Developed in this group', tone: 'good' },
@@ -25,7 +28,9 @@ export const STATUS = {
   C: { label: 'Only discrimination reported', tone: 'neutral' },
   P: { label: 'Checked, poorly calibrated', tone: 'warn' },
   G: { label: 'No validation found', tone: 'gap' },
-  N: { label: 'Not applicable', tone: 'mute' }
+  N: { label: 'Not applicable', tone: 'mute' },
+  U: { label: 'Not stratified in the papers', tone: 'mute' },
+  S: { label: 'Single-sex model', tone: 'mute' }
 };
 
 export const POPULATIONS = [
@@ -108,6 +113,7 @@ export const EVIDENCE = {
     "id": "fsrp",
     "name": "Revised FSRP",
     "disease": "stroke",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "D",
@@ -230,6 +236,7 @@ export const EVIDENCE = {
     "id": "chin-shan-stroke",
     "name": "Chin-Shan stroke (Chien 2010)",
     "disease": "stroke",
+    "lab": "B",
     "cells": {
       "us-white": {
         "status": "G"
@@ -295,6 +302,7 @@ export const EVIDENCE = {
     "id": "findrisc",
     "name": "FINDRISC",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "C",
@@ -409,6 +417,7 @@ export const EVIDENCE = {
     "id": "ada-risk-test-bang-2009",
     "name": "ADA risk test (Bang 2009)",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -429,7 +438,11 @@ export const EVIDENCE = {
         "status": "G"
       },
       "hk-sg": {
-        "status": "G"
+        "status": "C",
+        "c": 0.725,
+        "studies": 1,
+        "events": 95,
+        "doi": "10.1371/journal.pone.0184840"
       },
       "jp": {
         "status": "G"
@@ -489,6 +502,7 @@ export const EVIDENCE = {
     "id": "chin-shan-diabetes-chien-2008",
     "name": "Chin-Shan diabetes (Chien 2008)",
     "disease": "diabetes",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -554,6 +568,7 @@ export const EVIDENCE = {
     "id": "qdiabetes-2018",
     "name": "QDiabetes-2018",
     "disease": "diabetes",
+    "lab": "B",
     "cells": {
       "us-white": {
         "status": "G"
@@ -639,6 +654,7 @@ export const EVIDENCE = {
     "id": "caide",
     "name": "CAIDE",
     "disease": "dementia",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "P",
@@ -662,7 +678,11 @@ export const EVIDENCE = {
         "status": "G"
       },
       "asian-american": {
-        "status": "P"
+        "status": "P",
+        "c": 0.645,
+        "studies": 1,
+        "events": 189,
+        "doi": "10.1159/000504801"
       },
       "tw": {
         "status": "G"
@@ -671,7 +691,10 @@ export const EVIDENCE = {
         "status": "P"
       },
       "hk-sg": {
-        "status": "G"
+        "status": "C",
+        "c": 0.71,
+        "studies": 1,
+        "doi": "10.1159/000447448"
       },
       "jp": {
         "status": "G"
@@ -705,10 +728,11 @@ export const EVIDENCE = {
         "doi": "10.1038/s44400-026-00095-7"
       },
       "men": {
-        "status": "D",
-        "c": 0.73,
-        "studies": 3,
-        "doi": "10.1038/s44400-026-00095-7"
+        "status": "P",
+        "c": 0.645,
+        "studies": 4,
+        "events": 189,
+        "doi": "10.1159/000504801"
       },
       "65plus": {
         "status": "P",
@@ -726,6 +750,7 @@ export const EVIDENCE = {
     "id": "bdsi",
     "name": "BDSI",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "D",
@@ -807,6 +832,7 @@ export const EVIDENCE = {
     "id": "ukbdrs",
     "name": "UKBDRS",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -872,6 +898,7 @@ export const EVIDENCE = {
     "id": "demport",
     "name": "DemPoRT",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -945,6 +972,7 @@ export const EVIDENCE = {
     "id": "hisayama-dementia-equation",
     "name": "Hisayama dementia equation",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1014,6 +1042,7 @@ export const EVIDENCE = {
     "id": "li-2018-dementia-score-taiwanese-adults-with-diabetes",
     "name": "Li 2018 dementia score (Taiwanese adults with diabetes)",
     "disease": "dementia",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1075,6 +1104,7 @@ export const EVIDENCE = {
     "id": "walters-drs",
     "name": "Walters DRS",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "P",
@@ -1158,6 +1188,7 @@ export const EVIDENCE = {
     "id": "china-par-stroke",
     "name": "China-PAR (stroke)",
     "disease": "stroke",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1256,6 +1287,7 @@ export const EVIDENCE = {
     "id": "jphc-ischemic-stroke-risk-equation",
     "name": "JPHC ischemic stroke risk equation",
     "disease": "stroke",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1320,6 +1352,7 @@ export const EVIDENCE = {
     "id": "korean-stroke-risk-prediction-ksrp",
     "name": "Korean Stroke Risk Prediction (KSRP)",
     "disease": "stroke",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1393,6 +1426,7 @@ export const EVIDENCE = {
     "id": "model-1-korea-developed-10y-stroke-model",
     "name": "Model 1 (Korea-developed 10y stroke model)",
     "disease": "stroke",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1466,6 +1500,7 @@ export const EVIDENCE = {
     "id": "model-2-china-developed-10y-stroke-model",
     "name": "Model 2 (China-developed 10y stroke model)",
     "disease": "stroke",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1539,6 +1574,7 @@ export const EVIDENCE = {
     "id": "pce-stroke-outcome",
     "name": "PCE (stroke outcome)",
     "disease": "stroke",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "R",
@@ -1636,6 +1672,7 @@ export const EVIDENCE = {
     "id": "qrisk3-stroke-outcome",
     "name": "QRISK3 (stroke outcome)",
     "disease": "stroke",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1711,6 +1748,7 @@ export const EVIDENCE = {
     "id": "qstroke",
     "name": "QStroke",
     "disease": "stroke",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1786,6 +1824,7 @@ export const EVIDENCE = {
     "id": "regards-self-report-model",
     "name": "REGARDS self-report model",
     "disease": "stroke",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "V",
@@ -1871,6 +1910,7 @@ export const EVIDENCE = {
     "id": "suita-stroke-score",
     "name": "Suita stroke score",
     "disease": "stroke",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -1936,6 +1976,7 @@ export const EVIDENCE = {
     "id": "china-8-2-stroke-risk-score",
     "name": "China \"8+2\" stroke risk score",
     "disease": "stroke",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2000,6 +2041,7 @@ export const EVIDENCE = {
     "id": "aric-drs",
     "name": "ARIC DRS",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2064,6 +2106,7 @@ export const EVIDENCE = {
     "id": "ausdrisk",
     "name": "AUSDRISK",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2135,6 +2178,7 @@ export const EVIDENCE = {
     "id": "african-diabetes-risk-score-adrs",
     "name": "African Diabetes Risk Score (ADRS)",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2203,6 +2247,7 @@ export const EVIDENCE = {
     "id": "asian-indian-drs",
     "name": "Asian Indian DRS",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2267,6 +2312,7 @@ export const EVIDENCE = {
     "id": "cambridge-drs",
     "name": "Cambridge DRS",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2335,6 +2381,7 @@ export const EVIDENCE = {
     "id": "chinese-score",
     "name": "Chinese score",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2399,6 +2446,7 @@ export const EVIDENCE = {
     "id": "desir-french-drs",
     "name": "DESIR (French) DRS",
     "disease": "diabetes",
+    "lab": "B",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2463,6 +2511,7 @@ export const EVIDENCE = {
     "id": "danish-drs",
     "name": "Danish DRS",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2533,6 +2582,7 @@ export const EVIDENCE = {
     "id": "dutch-drs",
     "name": "Dutch DRS",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2597,6 +2647,7 @@ export const EVIDENCE = {
     "id": "framingham-offspring-diabetes-wilson-2007",
     "name": "Framingham Offspring diabetes (Wilson 2007)",
     "disease": "diabetes",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "C",
@@ -2670,6 +2721,7 @@ export const EVIDENCE = {
     "id": "idrs-india",
     "name": "IDRS (India)",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2738,6 +2790,7 @@ export const EVIDENCE = {
     "id": "indian-risk-score-irs",
     "name": "Indian Risk Score (IRS)",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2806,6 +2859,7 @@ export const EVIDENCE = {
     "id": "indian-score",
     "name": "Indian score",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2870,6 +2924,7 @@ export const EVIDENCE = {
     "id": "japanese-score-doi-et-al",
     "name": "Japanese score (Doi et al.)",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2934,6 +2989,7 @@ export const EVIDENCE = {
     "id": "japanese-score-topics-10",
     "name": "Japanese score (TOPICS-10)",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -2998,6 +3054,7 @@ export const EVIDENCE = {
     "id": "korean-risk-score-krs",
     "name": "Korean Risk Score (KRS)",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3062,6 +3119,7 @@ export const EVIDENCE = {
     "id": "oman-drs",
     "name": "Oman DRS",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3126,6 +3184,7 @@ export const EVIDENCE = {
     "id": "procam-diabetes-risk-score-von-eckardstein-2000",
     "name": "PROCAM diabetes risk score (von Eckardstein 2000)",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3191,6 +3250,7 @@ export const EVIDENCE = {
     "id": "qdscore-qdiabetes-2017",
     "name": "QDScore / QDiabetes-2017",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3276,6 +3336,7 @@ export const EVIDENCE = {
     "id": "san-antonio-diabetes-model",
     "name": "San Antonio diabetes model",
     "disease": "diabetes",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3347,6 +3408,7 @@ export const EVIDENCE = {
     "id": "thai-drs",
     "name": "Thai DRS",
     "disease": "diabetes",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3414,6 +3476,7 @@ export const EVIDENCE = {
     "id": "10-66-lmic-5-factor-score-new",
     "name": "10/66 LMIC 5-factor score (new)",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3487,6 +3550,7 @@ export const EVIDENCE = {
     "id": "anu-adri",
     "name": "ANU-ADRI",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "C",
@@ -3567,6 +3631,7 @@ export const EVIDENCE = {
     "id": "cogdrisk",
     "name": "CogDrisk",
     "disease": "dementia",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3640,6 +3705,7 @@ export const EVIDENCE = {
     "id": "demncd",
     "name": "DemNCD",
     "disease": "dementia",
+    "lab": "Y",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3709,6 +3775,7 @@ export const EVIDENCE = {
     "id": "framingham-risk-score-cvd-applied-to-dementia",
     "name": "Framingham Risk Score (CVD) applied to dementia",
     "disease": "dementia",
+    "lab": "B",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3774,6 +3841,7 @@ export const EVIDENCE = {
     "id": "jpsc-ad",
     "name": "JPSC-AD",
     "disease": "dementia",
+    "lab": "B",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3839,6 +3907,7 @@ export const EVIDENCE = {
     "id": "libra",
     "name": "LIBRA",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3913,6 +3982,7 @@ export const EVIDENCE = {
     "id": "radar",
     "name": "RADaR",
     "disease": "dementia",
+    "lab": "?",
     "cells": {
       "us-white": {
         "status": "G"
@@ -3977,6 +4047,7 @@ export const EVIDENCE = {
     "id": "rotterdam-bdrm-licher",
     "name": "Rotterdam BDRM (Licher)",
     "disease": "dementia",
+    "lab": "B",
     "cells": {
       "us-white": {
         "status": "G"
@@ -4045,6 +4116,7 @@ export const EVIDENCE = {
     "id": "rxdx-dementia-risk-index",
     "name": "RxDx-Dementia risk index",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
@@ -4109,6 +4181,7 @@ export const EVIDENCE = {
     "id": "slas-risk-index",
     "name": "SLAS Risk Index",
     "disease": "dementia",
+    "lab": "B",
     "cells": {
       "us-white": {
         "status": "G"
@@ -4173,6 +4246,7 @@ export const EVIDENCE = {
     "id": "eradar-ehr-risk-of-alzheimer-s-and-dementia-assessment-rule",
     "name": "eRADAR (EHR Risk of Alzheimer's and Dementia Assessment Rule)",
     "disease": "dementia",
+    "lab": "N",
     "cells": {
       "us-white": {
         "status": "G"
