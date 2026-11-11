@@ -12,6 +12,7 @@ Our entry for the c0mpiled-18 YC Startup School Hackathon (Taipei, 2026-11-11), 
 
 - **`main` must always run and be demo-ready.** Do not merge anything broken.
 - **No tests, no test suites, no type checks, no code review.** After a change, start the app, walk through the demo flow once, and report what you saw.
+- **Open an issue before you build anything.** Give it a short title, what will be visible when it is done, and the files you expect to touch, then assign it to yourself. The issue list is how everyone sees who is building what, so check it before you start (`gh issue list`) to avoid doing the same thing twice.
 - **Edit only the files you own.** One branch does one thing; merge as soon as it works.
 - Agree on the data format between modules before you build, and do not change a shared format on your own; ask first.
 - Ask before touching shared files: `index.html`, the app entry point, shared styles, `README.md`, `AGENTS.md`.
@@ -34,7 +35,8 @@ Our entry for the c0mpiled-18 YC Startup School Hackathon (Taipei, 2026-11-11), 
 
 ```mermaid
 flowchart LR
-    A[Branch from latest main] --> B[Build and commit]
+    I[Open an issue] --> A[Branch from latest main]
+    A --> B[Build and commit]
     B --> C{Has main moved?}
     C -- yes --> D[Merge main into the branch]
     C -- no --> E[Walk the demo flow once]
@@ -49,6 +51,7 @@ flowchart LR
 - Always merge with `gh pr merge <n> --merge`. No squash, no rebase. No review is required: walk the demo flow yourself, then merge.
 - When `main` moves, merge `main` into your branch. Do not rebase a pushed branch.
 - No `git push --force`. No `git reset --hard origin/main`.
+- Name the branch after the issue, for example `feat/12-inputs`, and put `Closes #12` in the PR description so the issue closes on merge.
 - PR descriptions follow `.github/pull_request_template.md`. **If you did not verify something, write "Not verified".**
 - Commit messages: first line in the imperative says what changed, for example `Add FSRP stroke model`; the body says why.
 - No AI attribution in commits or PRs: no `Co-Authored-By: ...`, no "Generated with ...".
