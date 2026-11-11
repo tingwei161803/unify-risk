@@ -1,5 +1,7 @@
 <!-- Time is short: one or two sentences per section. Write "None" if a section does not apply. Rules: AGENTS.md. -->
 
+Closes #
+
 ## What changed
 
 <!-- Which files, what was added, and why. -->
