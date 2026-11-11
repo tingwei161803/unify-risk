@@ -3,7 +3,7 @@
 
 import { store } from './store.js';
 import { runAll } from './engine/run.js';
-import { callApi } from './api.js';
+import { callApi, listProviders, chosenProvider, chooseProvider, lastAiAnswer, onAiAnswer } from './api.js';
 import { currentUser, signOut } from './auth.js';
 
 const ROUTES = [
@@ -64,5 +64,35 @@ async function render() {
   }
 }
 
+// AI provider selector in the header. Lists only the providers whose key is set on the server.
+async function drawAiPicker() {
+  const box = document.getElementById('ai');
+  const providers = await listProviders();
+  box.replaceChildren();
+  if (!providers.length) {
+    box.textContent = 'AI: demo data (no API key set)';
+    return;
+  }
+  // Forget a remembered choice whose key is no longer set.
+  if (chosenProvider() && !providers.some((p) => p.name === chosenProvider())) chooseProvider('');
+
+  const select = document.createElement('select');
+  select.className = 'field field-small';
+  select.setAttribute('aria-label', 'AI provider');
+  select.append(new Option('Auto', ''));
+  for (const p of providers) select.append(new Option(`${p.name} · ${p.model}`, p.name));
+  select.value = chosenProvider();
+  select.addEventListener('change', () => chooseProvider(select.value));
+
+  const answered = document.createElement('span');
+  const showAnswer = (answer) => {
+    answered.textContent = answer ? ` Last answer: ${answer.provider} · ${answer.model}` : '';
+  };
+  showAnswer(lastAiAnswer());
+  onAiAnswer(showAnswer);
+  box.append('AI: ', select, answered);
+}
+
 window.addEventListener('hashchange', render);
+drawAiPicker();
 render();

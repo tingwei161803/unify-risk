@@ -192,7 +192,7 @@ const { report, demo } = await ctx.callApi('recognize', { filename, dataUrl });
 
 - `callApi` throws on any failure (network, non-200, an exception in `handle`). The caller catches it and falls back to demo data, with a small "demo data" note on screen. The flow never blocks.
 - Set `"demo": True` in the response whenever the values did not come from the real service.
-- `GET /api/health` returns `{"ok": true, "providers": ["claude", ...]}`: the names of the providers whose key is set, never the keys.
+- `GET /api/health` returns `{"ok": true, "providers": [{"name": "claude", "model": "...", "accepts": ["image", "pdf"]}, ...]}`: the providers whose key is set, never the keys.
 - Only `index.html` and files under `css/`, `js/` and `assets/` are served; anything else is a 404.
 - `POST /api/*` must send `Content-Type: application/json` and come from this server's own pages (`callApi` already does both). Other origins get 403.
 
@@ -212,3 +212,4 @@ reply["text"], reply["provider"], reply["model"]
 - Only the two Claude keys read PDFs; the others read images. A provider that cannot read the attachment is skipped.
 - With no key set, or when every provider fails, `chat` raises `NoProviderError`; the caller falls back to demo data.
 - From a page: `await ctx.callApi('chat', { prompt, system, attachment })` returns the same `{ text, provider, model }`.
+- **The user can pick the provider.** The header has a selector (Auto, or one configured provider). `callApi` adds the choice to every payload as `provider`; a server module honours it by passing it on: `chat(prompt, env, attachment=..., provider=payload.get("provider") or "")`. A named provider is used alone, with no fallback. Return `provider` and `model` from `chat()` in your response so the header can show who answered.
