@@ -4,7 +4,7 @@
 // Rows are formulas, columns are groups. A dashed cell is a gap: no published validation found.
 // The data comes from js/data/evidence.js (generated; this view only reads it).
 
-import { h, mount, disclaimer, focusHeading, regionOf, formulasOnScreen } from './inputs.js';
+import { h, mount, disclaimer, focusHeading, regionOf } from './inputs.js';
 import { EVIDENCE, POPULATIONS, STATUS } from '../data/evidence.js';
 import { PERSONAS } from '../data/personas.js';
 
@@ -53,10 +53,17 @@ function likePrinted(c) {
 }
 function num(x, digits) { return isNum(x) ? String(Number(x.toFixed(digits))) : '—'; }
 
+// Every formula the app can compute: the engine's first ones and the ones it gives on request.
+// This page counts them all, whichever way the switch on the results page is set.
+function everyFormula() {
+  const list = engine ? (Array.isArray(engine.ALL_FORMULAS) ? engine.ALL_FORMULAS : engine.FORMULAS) : null;
+  return Array.isArray(list) ? list : [];
+}
+
 function appFormulaIds() {
   // score-only formulas give no estimate and get no result card (the engine keeps them out of runAll)
-  const onScreen = formulasOnScreen(engine);   // the first formulas, or every one in "all formulas" mode
-  const ids = onScreen.length ? onScreen.filter((f) => f.kind !== 'score').map((f) => f.id) : FIRST_FORMULAS;
+  const every = everyFormula();
+  const ids = every.length ? every.map((f) => f.id) : FIRST_FORMULAS;   // the ones that give a points score count too
   return ids.filter((id) => EVIDENCE[id]);
 }
 
@@ -125,7 +132,7 @@ function groupSummaries(appEntries, mine) {
     });
     const total = appEntries.length;
     return h('li', h('strong', pop.label + ': '),
-      checked + ' of your ' + total + (total === 1 ? ' formula ' : ' formulas ') + (checked === 1 ? 'has' : 'have')
+      checked + ' of the ' + total + (total === 1 ? ' formula' : ' formulas') + ' in this app ' + (checked === 1 ? 'has' : 'have')
       + ' been built or checked in this group; ' + gaps + (gaps === 1 ? ' has' : ' have') + ' no validation found.'
       + (na ? ' ' + na + (na === 1 ? ' does' : ' do') + ' not apply.' : ''));
   });
@@ -227,7 +234,8 @@ function draw(root, ctx) {
   const all = Object.values(EVIDENCE);
   const appIds = appFormulaIds();
   // formulas with a result card; some are for diseases the validation map does not cover
-  const withCard = formulasOnScreen(engine).filter((f) => f.kind !== 'score').length || appIds.length;
+  const withCard = everyFormula().length || appIds.length;
+  const scoreOnly = everyFormula().filter((f) => f.kind === 'score').length;
   const entries = showAll ? all : appIds.map((id) => EVIDENCE[id]);
   const visible = shownEntries(entries), pops = shownPopulations();
   const everything = counts(all);
@@ -254,7 +262,7 @@ function draw(root, ctx) {
           h('button' + (showAll ? '' : '.on'), { type: 'button', 'data-key': 'seg-app', 'aria-pressed': String(!showAll), onclick: () => { showAll = false; picked = null; redraw(); } }, 'In this app'),
           h('button' + (showAll ? '.on' : ''), { type: 'button', 'data-key': 'seg-all', 'aria-pressed': String(showAll), onclick: () => { showAll = true; picked = null; redraw(); } }, 'All ' + all.length))),
       withCard > appIds.length ? h('p.small', { style: { 'margin-bottom': '10px' } },
-        'The app computes ' + withCard + ' formulas in all. ' + (withCard - appIds.length)
+        'The app computes ' + withCard + ' formulas in all' + (scoreOnly ? ', ' + scoreOnly + ' of them as a points score only' : '') + '. ' + (withCard - appIds.length)
         + ' of them are not in this map yet: it covers stroke, dementia and type 2 diabetes formulas.') : null,
       groupSummaries(appIds.map((id) => EVIDENCE[id]), person.ids),
       switches(visible.length, redraw),
