@@ -31,7 +31,7 @@ export const QUESTIONS = [
     options: [{ value: 'female', label: 'Female' }, { value: 'male', label: 'Male' }] },
   { id: 'region', section: 'About you', title: 'Where do you live?',
     help: 'Used to show whether each formula has been checked in people where you live. Skip it if neither fits.',
-    path: 'region', label: 'Where you live',
+    path: 'record.region', label: 'Where you live',   // kept on the record, not in the profile; a formula may use 'region' for something else
     options: [{ value: 'TW', label: 'Taiwan' }, { value: 'US', label: 'United States' }] },
   { id: 'body', section: 'About you', title: 'How tall are you, and how much do you weigh?',
     help: 'Used together as body-mass index.',
@@ -196,7 +196,7 @@ export function regionOf(state) {
 export function readAnswer(state, path) {
   const person = personFrom(state);
   if (path.startsWith('labs.')) return person.labs[path.slice(5)];
-  if (path === 'region') return regionOf(state);
+  if (path === 'record.region') return regionOf(state);
   return getPath(person.profile, path);
 }
 
@@ -225,6 +225,11 @@ export function answerText(path, value) {
   if (value === true) return 'Yes';
   if (value === false) return 'No';
   return String(value);
+}
+
+/** Whether the questionnaire has a question that asks for `path`. */
+export function hasQuestionFor(path) {
+  return QUESTIONS.some((q) => pathsOf(q).includes(path));
 }
 
 /** Make the questionnaire open at the question that asks for `path`. Returns false if none does. */
@@ -280,7 +285,7 @@ function isAnswered(q, state) { return pathsOf(q).every((p) => has(readAnswer(st
 function save(path, value) {
   const store = host.ctx.store;
   if (path.startsWith('labs.')) store.setLabs({ [path.slice(5)]: value });
-  else if (path === 'region') store.set({ region: value });   // kept on the record, not in the profile
+  else if (path === 'record.region') store.set({ region: value });   // kept on the record, not in the profile
   else store.setProfile({ [path]: value });
 }
 function go(hash) {

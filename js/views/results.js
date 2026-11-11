@@ -8,7 +8,7 @@
 //
 // #/results?open=fsrp opens the "show the math" drawer for that formula.
 
-import { h, mount, fieldLabel, answerText, readAnswer, personFrom, regionOf, openQuestionFor, disclaimer, focusHeading } from './inputs.js';
+import { h, mount, fieldLabel, answerText, readAnswer, personFrom, regionOf, openQuestionFor, hasQuestionFor, disclaimer, focusHeading } from './inputs.js';
 import { EVIDENCE, POPULATIONS, STATUS as EVIDENCE_STATUS } from '../data/evidence.js';
 import { PERSONAS } from '../data/personas.js';
 import { whatIfSection } from './results-whatif.js';
@@ -24,7 +24,10 @@ const DISEASES = {
   dementia: { label: 'Dementia', event: 'develop dementia' },
   diabetes: { label: 'Type 2 diabetes', event: 'develop type 2 diabetes' },
   cvd: { label: 'Cardiovascular disease', event: 'have a heart attack, stroke or heart failure' },
-  kidney: { label: 'Kidney function', event: null }
+  kidney: { label: 'Kidney function', event: null },
+  // no fixed wording for these two: each formula counts different events, and its card says which
+  cardiovascular: { label: 'Cardiovascular disease', event: null },
+  mortality: { label: 'Death from any cause', event: null }
 };
 // The interface document says ok / missing / not_applicable; the engine says computed / missing / not-applicable.
 const STATUS = { ok: 'computed', computed: 'computed', missing: 'missing',
@@ -81,11 +84,29 @@ function diseaseLabel(r) {
   return r.disease ? r.disease.charAt(0).toUpperCase() + r.disease.slice(1) : 'Estimate';
 }
 function horizon(r) { return r.horizonYears ? ' within ' + r.horizonYears + ' years' : ''; }
+// What a formula estimates, in the engine's own words ('First stroke within 10 years'). run.js passes
+// on only the disease name, so the sentence is read from the engine's formula list when it is there.
+function outcomeOf(r) {
+  if (typeof r.outcome === 'string' && /\s/.test(r.outcome)) return r.outcome;
+  const id = r.modelId || r.id;
+  const f = engine && Array.isArray(engine.FORMULAS) ? engine.FORMULAS.find((x) => x && x.id === id) : null;
+  return f && typeof f.outcome === 'string' && /\s/.test(f.outcome) ? f.outcome : '';
+}
+// Two formulas are compared only when they count the same thing. 'First stroke within 10 years' and
+// 'Stroke within 10 years' do; 'Heart failure ...' and 'First heart attack or stroke ...' do not.
+function sameEvent(text) {
+  return String(text || '').toLowerCase().replace(/\([^)]*\)/g, ' ').split(' within ')[0].replace(/^first\s+/, '').replace(/\s+/g, ' ').trim();
+}
 function sentence(r) {
   const d = DISEASES[r.disease];
   const words = outOf100(r).words;
-  if (!d || !d.event) return capital(words) + ' in 100 people with the same answers' + horizon(r) + '.';
-  return 'Of 100 people with the same answers, ' + words + ' would ' + d.event + horizon(r) + '.';
+  if (d && d.event) return 'Of 100 people with the same answers, ' + words + ' would ' + d.event + horizon(r) + '.';
+  // no fixed wording for this disease: say what this formula counts, in the engine's own words
+  if (r.outcomeText) {
+    const counted = /^[A-Z][a-z]/.test(r.outcomeText) ? r.outcomeText.charAt(0).toLowerCase() + r.outcomeText.slice(1) : r.outcomeText;
+    return capital(words) + ' in 100 people with the same answers. Counted: ' + counted + '.';
+  }
+  return capital(words) + ' in 100 people with the same answers' + horizon(r) + '.';
 }
 // Our value at the precision the paper prints (0.0099, not 0.01); full precision when a check fails.
 function likePrinted(c) {
@@ -124,7 +145,7 @@ function normalise(raw) {
       name: r.name || id || 'Formula',
       status: STATUS[r.status],
       disease: slug(r.disease) || slug(r.outcome),
-      outcomeText: typeof r.outcome === 'string' && /\s/.test(r.outcome) ? r.outcome : '',
+      outcomeText: outcomeOf(r),
       horizonYears: r.horizonYears,
       value: isNum(r.value) && (!r.kind || r.kind === 'risk') ? r.value : null,
       display: r.display || '',
@@ -318,7 +339,7 @@ function openDrawer(r, person, state, opener) {
       h('button.btn.sm.ghost', { type: 'button', onclick: close }, 'Close')),
     h('div.drawer-body',
       h('div', h('h4', 'What this number means'), h('p', meaning),
-        r.outcomeText ? h('p.small', { style: { 'margin-top': '6px' } }, 'What the formula estimates: ' + r.outcomeText.toLowerCase() + '.') : null,
+        r.outcomeText ? h('p.small', { style: { 'margin-top': '6px' } }, 'What the formula estimates: ' + r.outcomeText + '.') : null,
         r.placeholder ? h('p.small.warn', { style: { 'margin-top': '6px' } }, 'Placeholder number: the real formula is not connected yet.') : null),
       r.status === 'computed' && (r.equation || r.terms.length) ? h('div', h('h4', 'The arithmetic'),
         r.equation ? h('div.formula', r.equation) : null,
@@ -392,15 +413,22 @@ function computedCard(r, person, open) {
 }
 
 function missingCard(r, person, open, go) {
-  const answer = () => { r.missing.some((m) => openQuestionFor(m.field)); go('#/inputs'); };
+  // A formula can need an answer the questionnaire has no question for yet (the engine lists its
+  // questions in js/engine/run.js). Such an answer is named, but it is not a link to nowhere.
+  const askable = r.missing.filter((m) => hasQuestionFor(m.field));
+  const answer = () => { openQuestionFor(askable[0].field); go('#/inputs'); };
   return cardOpens(h('article.panel.risk.locked', { 'data-model': r.id, 'data-status': r.status },
     cardHead(r), cardTitle(r),
     h('p.cap', r.missing.length ? 'Not computed yet. Still needed:' : 'Not computed yet: some answers are missing.'),
-    r.missing.length ? h('div.need-list', r.missing.map((m) => h('button.pill.plain.mute.need', { type: 'button',
-      'aria-label': 'Answer: ' + m.label, onclick: () => { openQuestionFor(m.field); go('#/inputs'); } }, m.label))) : null,
+    r.missing.length ? h('div.need-list', r.missing.map((m) => (hasQuestionFor(m.field)
+      ? h('button.pill.plain.mute.need', { type: 'button',
+        'aria-label': 'Answer: ' + m.label, onclick: () => { openQuestionFor(m.field); go('#/inputs'); } }, m.label)
+      : h('span.pill.plain.mute', { title: 'The questionnaire does not ask for this yet' }, m.label)))) : null,
+    r.missing.length && askable.length < r.missing.length ? h('p.small.dim', { style: { 'margin-top': '8px' } },
+      askable.length ? 'The questionnaire does not ask for some of these yet.' : 'The questionnaire does not ask for these yet.') : null,
     h('div.ev', evidenceChip(r, person), h('span.grow'),
       h('div.row.acts', mathButton(r, open, 'Show the source'),
-        h('button.btn.sm', { type: 'button', onclick: answer }, 'Answer these')))), r, open);
+        askable.length || !r.missing.length ? h('button.btn.sm', { type: 'button', onclick: askable.length ? answer : () => go('#/inputs') }, 'Answer these') : null))), r, open);
 }
 
 function naCard(r, person, open) {
@@ -414,7 +442,7 @@ function naCard(r, person, open) {
 function comparisons(computed, open, person) {
   const groups = new Map();
   computed.filter((r) => r.value !== null && r.disease).forEach((r) => {
-    const key = r.disease + '|' + (r.horizonYears || '');
+    const key = r.disease + '|' + (r.horizonYears || '') + '|' + sameEvent(r.outcomeText);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(r);
   });
