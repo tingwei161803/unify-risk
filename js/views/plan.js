@@ -1,7 +1,7 @@
-// Next steps page: follow-up tests and services the person appears to qualify for.
+// Next steps page: follow-up tests, and services whose published rules the person's values meet or may meet.
 // Rules live in js/data/services.js; this file only draws them.
 
-import { followUpTests, matchingServices, REGION_NAMES } from '../data/services.js';
+import { followUpTests, matchingServices, FOLLOW_UP_ORDER, SERVICE_STATUS, REGION_NAMES } from '../data/services.js';
 import { assess } from '../engine/run.js';
 import { getPersona } from '../data/personas.js';
 
@@ -37,7 +37,7 @@ export function render(root, ctx) {
   root.replaceChildren();
   root.append(
     el('h1', null, 'Next steps'),
-    el('p', 'lead', 'What you could do with these numbers: tests worth repeating or adding, and public services whose published rules your own values meet.')
+    el('p', 'lead', 'What you could do with these numbers: tests worth repeating or adding, and public services whose published rules your own values meet or may meet. Each card says which parts of a rule were checked and which were not.')
   );
 
   // Region switch: the same person, the other country's services.
@@ -68,7 +68,7 @@ export function render(root, ctx) {
   if (!tests.length) {
     root.append(el('p', 'muted', 'Every formula could be computed and no reading is outside its standard, so no test is suggested.'));
   }
-  for (const test of tests) {
+  const testCard = (test) => {
     const card = el('div', 'card');
     card.append(el('h2', null, test.name));
     // Keep the card readable when many answers are missing.
@@ -77,20 +77,38 @@ export function render(root, ctx) {
       : test.reasons;
     card.append(el('div', 'muted', 'Why for you'), list(reasons));
     card.append(labelled('What it adds:', test.adds), labelled('Where:', test.where));
-    root.append(card);
+    return card;
+  };
+  if (tests.length) root.append(el('p', 'muted', FOLLOW_UP_ORDER));
+  // The first three are open; the rest sit under a visible line that opens in place. Nothing is dropped.
+  const OPEN = 3;
+  for (const test of tests.slice(0, OPEN)) root.append(testCard(test));
+  const rest = tests.slice(OPEN);
+  if (rest.length) {
+    const more = el('details');
+    const summary = el('summary', 'btn secondary', `${rest.length} more follow-up test${rest.length === 1 ? '' : 's'}: ${rest.map((t) => t.name).join('; ')}`);
+    summary.style.marginBottom = '12px';
+    more.append(summary);
+    for (const test of rest) more.append(testCard(test));
+    root.append(more);
   }
 
   // Services
   root.append(el('h2', 'section-title', `Services in ${REGION_NAMES[region]}`));
   const services = matchingServices(context);
   if (!services.length) {
-    root.append(el('p', 'muted', 'None of the service rules listed here is met by your current answers.'));
+    root.append(el('p', 'muted', 'None of the service rules listed here is met, or may be met, by your current answers.'));
   }
   for (const service of services) {
     const card = el('div', 'card');
     card.append(el('h2', null, service.name), el('p', null, service.what));
     card.append(labelled('Published rule:', service.rule));
-    card.append(el('div', 'muted', 'Your values that meet it'), list(service.matched));
+    // The status is said in words, not by colour alone.
+    const status = el('p', service.status === 'meets' ? null : 'warn');
+    status.append(el('strong', null, SERVICE_STATUS[service.status]));
+    card.append(status);
+    if (service.meets.length) card.append(el('div', 'muted', 'Your values that meet it'), list(service.meets));
+    if (service.confirm.length) card.append(el('div', 'muted', 'Still to confirm (not checked here)'), list(service.confirm));
     card.append(labelled('How:', service.how));
     const source = el('p', 'muted');
     const link = el('a', null, service.source.name);
@@ -102,7 +120,7 @@ export function render(root, ctx) {
     root.append(card);
   }
 
-  root.append(el('p', 'muted', 'These are published eligibility rules matched against your own answers. They are not a referral and not medical advice. Decisions about tests and care are for you and a clinician.'));
+  root.append(el('p', 'muted', 'These are published eligibility rules matched against your own answers. Only the parts of a rule that this app collects are checked: "Still to confirm" lists the parts that were not, and a service that is not listed may still apply to you. They are not a referral and not medical advice. Decisions about tests and care are for you and a clinician.'));
 
   const back = el('div', 'row');
   const results_ = el('a', 'btn secondary', 'Back to results');

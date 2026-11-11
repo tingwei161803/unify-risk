@@ -9,12 +9,16 @@
 ```text
 index.html             Peter    the only HTML file; loads js/app.js
 server.py              Peter    serves the app and forwards /api/*
+api/router.py          Peter    chat(): one entry point for every model provider (#18)
+api/chat.py            Peter    POST /api/chat
 js/app.js              Peter    router: maps the hash to a view
 js/store.js            Peter    reads and writes localStorage
 js/api.js              Peter    callApi(name, payload)
 js/auth.js             Peter    demo sign-in (#3)
 js/views/home.js       Peter
 js/views/login.js      Peter
+js/views/plan.js       Peter    next steps: follow-up tests and services (#39)
+js/data/services.js    Peter    the written rules behind the next steps page
 css/app.css            Robert   shared styles (Peter wrote the first version)
 js/views/inputs.js     Robert   questionnaire
 js/views/results.js    Robert   one card per formula
@@ -22,8 +26,9 @@ js/views/evidence.js   Robert   validation matrix and check table
 api/recognize.py       Matt     report recognition (#6)
 js/views/report.js     Matt     upload, confirm field by field
 js/data/evidence.js    Matt     generated; do not edit by hand
-js/engine/**           Matt and Andrew   formulas (#9)
+js/engine/**           Matt and Andrew   formulas and lab standards (#9); pages import run.js only
 js/data/personas.js    Andrew   fictional sample people (#5)
+js/data/reports.js     Andrew   fictional dated lab reports (#5)
 assets/sample-reports/ Andrew   fictional report files
 ```
 
@@ -228,11 +233,14 @@ import { assess } from '../engine/run.js';
 const { results, labs: labRows, metabolicSyndrome: mets } = assess({ profile, labs, region });
 const context = { profile, labs, results, labRows, mets, region };   // region: 'TW' | 'US'
 
-followUpTests(context);     // at most 3: [{ id, name, reasons: [string], adds, where }]
-matchingServices(context);  // [{ id, name, what, rule, how, source: { name, url }, matched: [string] }]
+followUpTests(context);     // all of them, in order: [{ id, name, reasons: [string], adds, where }]
+matchingServices(context);  // [{ id, name, what, rule, how, source: { name, url },
+                            //    status: 'meets' | 'may-apply', meets: [string], confirm: [string] }]
 ```
 
 - A test is suggested when a lab reading is outside its standard (repeat it) or when a formula lists an input as missing.
-- A service is listed only when the person's own values meet its published rule; `matched` holds those values.
+- `followUpTests` returns every test and never cuts the list (an optional second argument `limit` cuts it for a caller that asks). The order is the rule printed on the page (`FOLLOW_UP_ORDER`): readings outside their standard first, furthest band first by the lab row's `status` (`very-high`, then `high` or `low`, then `borderline`); then missing formula inputs; then the metabolic syndrome count; ties keep the order blood pressure, lipids, glucose, kidney, waist, questionnaire. The page opens the first three and puts the rest under an "N more follow-up tests" line.
+- A service match has two parts. `meets` holds the person's own values that meet a part of the published rule (this field was called `matched`). `confirm` holds the parts of the rule that were not checked, because the app does not collect them or the answer is missing. `status` is `'meets'` only when `confirm` is empty, otherwise `'may-apply'`; `meets` services come first. A reader must not present a `may-apply` service as met: show `confirm` with it.
+- A service is not listed when a collected value rules it out or nothing relevant is known. A missing answer is never read as "no".
 - The record now carries an optional `region` (`'TW'` | `'US'`), set by the switch on the page. When absent, the region of the account's sample person is used.
-- To add a service, append to `SERVICES.TW` or `SERVICES.US` with its `rule` in words, a `match(ctx)` function and an official `source`. Never add a medicine, dose or supplement.
+- To add a service, append to `SERVICES.TW` or `SERVICES.US` with its `rule` in words, a `match(view)` function returning `{ meets, confirm }` or `null`, and an official `source`. Never add a medicine, dose or supplement.
