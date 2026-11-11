@@ -14,6 +14,12 @@ import { PERSONAS } from '../data/personas.js';
 
 // Optional: which formulas read each answer. js/engine/run.js lists it once the engine is wired in.
 const engineQuestions = await import('../engine/run.js').then((m) => (Array.isArray(m.QUESTIONS) ? m.QUESTIONS : [])).catch(() => []);
+// Optional: the engine's formula list and its own input check. Together they tell which other
+// answers the formulas read, and whether each one is a number or a yes/no.
+const engineIndex = await import('../engine/index.js').catch(() => null);
+const engineUtil = await import('../engine/util.js').catch(() => null);
+const formulaList = engineIndex && Array.isArray(engineIndex.FORMULAS)
+  ? engineIndex.FORMULAS.filter((f) => f && f.kind !== 'score' && Array.isArray(f.inputs)) : [];
 
 const STEP_KEY = 'unify-risk:inputs-step';
 const DISCLAIMER = 'Not a diagnosis. Not medical advice.';
@@ -31,7 +37,7 @@ export const QUESTIONS = [
     options: [{ value: 'female', label: 'Female' }, { value: 'male', label: 'Male' }] },
   { id: 'region', section: 'About you', title: 'Where do you live?',
     help: 'Used to show whether each formula has been checked in people where you live. Skip it if neither fits.',
-    path: 'region', label: 'Where you live',
+    path: 'record.region', label: 'Where you live',   // kept on the record, not in the profile; a formula may use 'region' for something else
     options: [{ value: 'TW', label: 'Taiwan' }, { value: 'US', label: 'United States' }] },
   { id: 'body', section: 'About you', title: 'How tall are you, and how much do you weigh?',
     help: 'Used together as body-mass index.',
@@ -123,6 +129,35 @@ QUESTIONS.push(...engineQuestions.map((x) => {
   return options.length ? { id: 'x-' + x.key, section: 'More answers', title: label, path: x.key, label, options } : null;
 }).filter(Boolean));
 
+// An input of a formula that still has no screen is asked plainly too: the engine can gain formulas
+// faster than this file gains questions. The engine's own input check says what kind of answer the
+// field takes, a number or a yes/no. A fixed choice or free text gets no screen here, because the
+// engine does not list its options. A wrong guess cannot change an estimate: the engine would
+// report the answer as missing.
+function answerKind(path) {
+  if (!engineUtil || typeof engineUtil.missingFields !== 'function') return null;
+  const person = (v) => (path.startsWith('labs.') ? { profile: {}, labs: { [path.slice(5)]: v } } : { profile: { [path]: v }, labs: {} });
+  const accepts = (v) => { try { return engineUtil.missingFields(person(v), [path]).length === 0; } catch (e) { return false; } };
+  return accepts(7) ? 'number' : accepts(true) ? 'yesno' : null;
+}
+// Field names carry their unit (docs/interfaces.md): 'labs.psaNgMl' is in ng/mL.
+const UNIT_BY_SUFFIX = [[/MgDl$/, 'mg/dL'], [/GdL$/, 'g/dL'], [/NgMl$/, 'ng/mL'], [/IuMl$/, 'IU/mL'], [/MgG$/, 'mg/g'],
+  [/UL$/, 'U/L'], [/MlMin$/, 'mL/min/1.73 m²'], [/Pct$/, '%'], [/Cm$/, 'cm'], [/Kg$/, 'kg'], [/K$/, '10³/µL']];
+function unitOf(path) {
+  const hit = UNIT_BY_SUFFIX.find(([re]) => re.test(path));
+  return hit ? hit[1] : '';
+}
+formulaList.forEach((f) => f.inputs.forEach((path) => {
+  if (typeof path !== 'string' || QUESTIONS.some((q) => pathsOf(q).includes(path))) return;
+  const kind = answerKind(path);
+  if (!kind) return;
+  const label = (engineUtil.FIELD_LABELS && engineUtil.FIELD_LABELS[path]) || fieldLabel(path);
+  QUESTIONS.push(kind === 'number'
+    ? { id: 'x-' + path, section: 'More answers', title: label, help: 'Enter a number, or skip it if you do not know.',
+      fields: [{ path, label, unit: unitOf(path), min: -Infinity, max: Infinity }] }
+    : { id: 'x-' + path, section: 'More answers', title: label, help: 'Choose Yes if this is true for you.', path, label, options: YES_NO });
+}));
+
 /* ---------------- shared with the results view ---------------- */
 
 // h('div.panel.tight', { onclick: fn, 'aria-label': 'x' }, child, [children], 'text')
@@ -181,8 +216,13 @@ function usedBy(q) {
   pathsOf(q).forEach((path) => {
     const meta = engineQuestions.find((x) => x.key === path);
     (meta && Array.isArray(meta.usedBy) ? meta.usedBy : []).forEach((id) => ids.add(id));
+    formulaList.forEach((f) => { if (f.inputs.includes(path)) ids.add(f.id); });
   });
-  return [...ids].filter(hasCard).map((id) => (EVIDENCE[id] ? EVIDENCE[id].name : id));
+  const nameOf = (id) => {
+    const f = formulaList.find((x) => x.id === id);
+    return EVIDENCE[id] ? EVIDENCE[id].name : f && f.name ? f.name : id;
+  };
+  return [...ids].filter(hasCard).map(nameOf);
 }
 
 /** Where the person lives: the saved choice (record.region), else the region of their sample person. */
@@ -196,7 +236,7 @@ export function regionOf(state) {
 export function readAnswer(state, path) {
   const person = personFrom(state);
   if (path.startsWith('labs.')) return person.labs[path.slice(5)];
-  if (path === 'region') return regionOf(state);
+  if (path === 'record.region') return regionOf(state);
   return getPath(person.profile, path);
 }
 
@@ -225,6 +265,11 @@ export function answerText(path, value) {
   if (value === true) return 'Yes';
   if (value === false) return 'No';
   return String(value);
+}
+
+/** Whether the questionnaire has a question that asks for `path`. */
+export function hasQuestionFor(path) {
+  return QUESTIONS.some((q) => pathsOf(q).includes(path));
 }
 
 /** Make the questionnaire open at the question that asks for `path`. Returns false if none does. */
@@ -280,7 +325,7 @@ function isAnswered(q, state) { return pathsOf(q).every((p) => has(readAnswer(st
 function save(path, value) {
   const store = host.ctx.store;
   if (path.startsWith('labs.')) store.setLabs({ [path.slice(5)]: value });
-  else if (path === 'region') store.set({ region: value });   // kept on the record, not in the profile
+  else if (path === 'record.region') store.set({ region: value });   // kept on the record, not in the profile
   else store.setProfile({ [path]: value });
 }
 function go(hash) {
@@ -455,7 +500,8 @@ function draw() {
         q.help ? h('p.qz-help', { id: 'qz-help' }, q.help) : null,
         h('div.qz-body', q.fields ? numberFields(q, state) : choiceOptions(q, state),
           // which formulas read this answer
-          formulas.length ? h('div.qz-used', h('span', 'Used by'), formulas.map((f) => h('span.pill.plain.mute', f))) : null),
+          formulas.length ? h('div.qz-used', h('span', 'Used by'), formulas.slice(0, 5).map((f) => h('span.pill.plain.mute', f)),
+            formulas.length > 5 ? h('span.pill.plain.mute', 'and ' + (formulas.length - 5) + ' more') : null) : null),
         h('p.qz-err', { id: 'qz-err', role: 'alert' }),
         h('div.qz-nav',
           h('button.btn.lg.ghost', { type: 'button', onclick: back, disabled: step === 0 }, 'Back'),
