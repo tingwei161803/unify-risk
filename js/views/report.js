@@ -422,7 +422,7 @@ export function render(root, ctx) {
     form.hidden = true;
     note.hidden = true;
     say('');
-    done.replaceChildren(
+    done.replaceChildren(...[
       el('h2', {}, older ? `Saved the report dated ${state.date} as history` : `Saved ${saved} value${saved === 1 ? '' : 's'} from the report dated ${state.date}`),
       older ? el('p', { class: 'rr-note' }, el('span', { class: 'rr-tag' }, 'Older report'),
         applied ? `This report (${state.date}) is older than your latest (${latest}). It is saved as history; ` +
@@ -434,7 +434,8 @@ export function render(root, ctx) {
         `${Object.keys(measurements).length} measurement${Object.keys(measurements).length === 1 ? '' : 's'} are now in your record` +
         `${result.demo ? ' (from a fictional sample report)' : ''}. Other tests stay with the report.`),
       el('div', { class: 'row' }, el('a', { class: 'btn', href: '#/results' }, 'See your results'),
-        el('button', { type: 'button', class: 'btn secondary', onclick: () => { done.hidden = true; input.value = ''; input.focus(); } }, 'Add another report')));
+        el('button', { type: 'button', class: 'btn secondary', onclick: () => { done.hidden = true; input.value = ''; input.focus(); } }, 'Add another report')),
+    ].filter(Boolean));
     done.hidden = false;
   }
 
