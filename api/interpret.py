@@ -32,6 +32,9 @@ SMALL_COUNTS = {str(n) for n in range(11)}  # "4 of the 5 criteria", "3 tests" a
 # (about 40 s down to the 10-15 s range) with the same rules and the same number check. Only used
 # when .env does not already name a model for that provider (CLAUDE_MODEL, JOHNCLAUDE_MODEL).
 APP_MODEL = "claude-sonnet-5-5"
+# Readings prepared in advance for the sample people (tools/build_readings.py) are not waited on,
+# so they use the strongest model and a fuller length.
+PREPARED_MODEL = "claude-opus-5-5"
 FAST_MODEL_KEYS = ("CLAUDE_MODEL", "JOHNCLAUDE_MODEL")
 
 # The parts of the guide the Explained page needs, as (first heading, heading that ends the part).
@@ -105,8 +108,11 @@ def handle(payload: dict, env) -> dict:
         # A named provider is used alone; with none named the router tries them in order.
         # The model gets a slimmer copy of the packet (see _slim); the number check below still
         # runs against the full packet the page sent.
-        reply = chat(json.dumps(_slim(packet), ensure_ascii=False), _fast_env(env),
-                     system=_app_guide(guide) + APP_MODE, provider=picked)
+        prepared = payload.get("mode") == "prepared"
+        reply = chat(json.dumps(_slim(packet), ensure_ascii=False),
+                     _fast_env(env, PREPARED_MODEL if prepared else APP_MODEL),
+                     system=_app_guide(guide) + (_prepared_mode(APP_MODE) if prepared else APP_MODE),
+                     provider=picked)
     except NoProviderError as error:
         raise RuntimeError("The written report is unavailable right now: " + _short(error) + ".") from None
 
@@ -166,13 +172,26 @@ def _app_guide(guide: str) -> str:
     return guide.splitlines()[0] + "\n\n" + "\n\n".join(parts)
 
 
-def _fast_env(env) -> dict:
-    """A copy of env where the Claude providers use APP_MODEL, unless .env already names a model."""
+def _fast_env(env, model: str = APP_MODEL) -> dict:
+    """A copy of env where the Claude providers use `model`, unless .env already names a model."""
     fast = dict(env)
     for name in FAST_MODEL_KEYS:
         if not str(fast.get(name) or "").strip():
-            fast[name] = APP_MODEL
+            fast[name] = model
     return fast
+
+
+def _prepared_mode(app_mode: str) -> str:
+    """App mode for readings prepared in advance: fuller, and every value off its standard named."""
+    text = app_mode.replace("about 250 words or fewer", "about 450 words")
+    text = text.replace("Length is a hard limit: 250 words in all.", "Length: about 450 words in all.")
+    text = text.replace("Leave out anything the tables on the page already show, and leave out", "Leave out")
+    return text + (
+        "\n\nPrepared reading: in `## Your health right now`, name every value whose status is not "
+        "normal, each with its number and its healthy line, grouped by body system (weight and waist, "
+        "blood pressure, blood sugar, blood fats, kidneys, liver). In `## What you should do`, tie each "
+        "action to the person's own numbers.\n"
+    )
 
 
 def _norm(number: str) -> str:
