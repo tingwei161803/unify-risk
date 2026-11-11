@@ -1,7 +1,7 @@
 // unify-risk formula engine (issue #5). Plain ES module: works in the browser and in Node.
 //
 //   import { FORMULAS, runAll, runFormula, runChecks } from './js/engine/index.js';
-//   const results = runAll(person);   // one result per formula, most serious first (see below)
+//   const results = runAll(person);   // one result per formula, largest estimate first (see below)
 //
 // Input: a person from js/data/personas.js or the questionnaire.
 //   person.profile  age, sex ('male' | 'female'), heightCm, weightKg, waistCm, educationYears,
@@ -41,7 +41,8 @@
 //   source        { citation, doi } of the paper the formula comes from
 //   notes         extra lines for the "show the math" drawer
 //
-// Order (most serious first). Horizons differ (8, 10 or 20 years), so the order is by the size
+// Order (largest estimate first). This is NOT an order of urgency or of clinical severity:
+// outcomes and horizons differ (8, 10 or 20 years), so the order is by the size
 // of the estimate, not by a common time frame:
 //   1. computed with a probability, highest severity first
 //   2. computed scores with no probability, those above their printed cut-off first
