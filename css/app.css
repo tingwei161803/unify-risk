@@ -55,7 +55,7 @@ h1, h2, h3, p { margin: 0; }
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Ccircle cx='5' cy='5' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='5' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='5' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='5' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='5' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='15' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='15' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='15' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='15' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='15' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='25' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='25' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='25' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='25' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='25' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='35' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='35' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='35' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='35' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='35' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='45' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='15' cy='45' r='3.5' fill='%23000'/%3E%3Ccircle cx='25' cy='45' r='3.5' fill='%23000'/%3E%3Ccircle cx='35' cy='45' r='3.5' fill='%23000'/%3E%3Ccircle cx='45' cy='45' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3C/svg%3E") center / contain no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Ccircle cx='5' cy='5' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='5' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='5' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='5' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='5' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='15' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='15' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='15' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='15' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='15' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='25' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='25' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='25' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='25' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='25' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='35' r='3.5' fill='%23000'/%3E%3Ccircle cx='15' cy='35' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='25' cy='35' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='35' cy='35' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='45' cy='35' r='3.5' fill='%23000'/%3E%3Ccircle cx='5' cy='45' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3Ccircle cx='15' cy='45' r='3.5' fill='%23000'/%3E%3Ccircle cx='25' cy='45' r='3.5' fill='%23000'/%3E%3Ccircle cx='35' cy='45' r='3.5' fill='%23000'/%3E%3Ccircle cx='45' cy='45' r='3.5' fill='%23000' fill-opacity='.28'/%3E%3C/svg%3E") center / contain no-repeat; }
 .brand:hover { color: var(--text); }
-.nav { display: flex; gap: 2px; align-self: stretch; overflow-x: auto; scrollbar-width: none; flex: 0 1 auto; margin-right: auto; }
+.nav { display: flex; gap: 2px; align-self: stretch; overflow-x: auto; scrollbar-width: none; flex: none; margin-right: auto; }
 .nav::-webkit-scrollbar { display: none; }
 .nav a { display: flex; align-items: center; color: var(--muted); padding: 0 10px; font-size: 13.5px; text-decoration: none;
   border-bottom: 2px solid transparent; white-space: nowrap; transition: color .15s; }
@@ -63,7 +63,7 @@ h1, h2, h3, p { margin: 0; }
 .nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
 .nav a:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--text); border-radius: 6px; }   /* inside the link, so .nav cannot clip it */
 .session { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
-#ai { flex: 0 10 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }   /* shrinks before the page links do */
+#ai { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* gives way to the page links */
 /* The AI provider note belongs to the page that calls a model (Lab report). On Results and Evidence,
    where every number comes from a published formula, it is hidden so it cannot be read as "AI data". */
 .top:has(.nav a.active[href="#/results"]) #ai, .top:has(.nav a.active[href="#/evidence"]) #ai { display: none; }
@@ -101,7 +101,7 @@ h1, h2, h3, p { margin: 0; }
 h1 { font-size: 34px; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; text-wrap: balance; }
 h2 { font-size: 22px; line-height: 1.35; font-weight: 650; margin: 0 0 6px; text-wrap: balance; }
 h3 { font-size: 16px; line-height: 1.4; font-weight: 650; }
-.lead { font-size: 16.5px; color: var(--muted); max-width: 72ch; text-wrap: balance; }
+.lead { font-size: 16.5px; color: var(--muted); max-width: 72ch; text-wrap: balance; margin: 0 0 24px; }
 .sub { color: var(--muted); font-size: 14px; max-width: 100ch; }
 .small { font-size: 13px; color: var(--muted); }
 .dim { color: var(--dim); }
@@ -527,6 +527,7 @@ html { scroll-padding-top: 70px; }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
+  .nav { flex: 0 1 auto; min-width: 0; }   /* on a narrow screen the links scroll sideways instead */
   .cols { grid-template-columns: minmax(0, 1fr); }
   .sticky-side { position: static; }
   .grid3 { grid-template-columns: minmax(0, 1fr); }
