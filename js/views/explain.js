@@ -10,7 +10,7 @@
 //      - The page draws it with a small renderer that only ever writes text with textContent.
 //      - Two markers colour a phrase: !!text!! red bold, ^^text^^ amber bold. The status words
 //        (High ▲, Very high ▲▲, Borderline ▲, Low ▼, Normal) get the table's colours.
-//      - Footer: the model, and how many numbers the server traced back to the packet.
+//      - Footer: the model, and any number the server found in neither the packet nor the guide.
 //      - On failure only this block shows the unavailable note and a Retry button.
 //   3. The details, computed in the browser; no AI is involved.
 //      - Where you stand now: every lab reading from interpretLabs() (via assess()) with its
@@ -291,8 +291,8 @@ function reportSection(ctx, packet) {
     el('div', { class: 'ex-actions-wrap' }, actions),
     el('p', { class: 'ex-next' }, el('a', { class: 'btn', href: '#/plan' }, 'See next steps →')));
   actions.append(writeBtn,
-      el('span', { class: 'ex-hint' }, 'Written by an AI model from your own numbers; every number in it is checked ' +
-        'against your data. A new reading takes about 25 seconds and uses the AI provider picked at the top.'));
+      el('span', { class: 'ex-hint' }, 'Written by an AI model from your own numbers. A number that appears in neither ' +
+        'your data nor the report guide is flagged below the reading. A new reading takes about 25 seconds and uses the AI provider picked at the top.'));
 
   let ticker = null;
   const stopTicker = () => { if (ticker) clearInterval(ticker); ticker = null; };
@@ -356,7 +356,7 @@ function footer(data, fromCache) {
   } else if (checked === 0) {
     foot.append(el('div', {}, 'This reading quotes no numbers to check.'));
   } else if (checked !== null) {
-    foot.append(el('div', { class: 'ex-traced' }, `${checked} numbers checked, all traced to your data.`));
+    foot.append(el('div', { class: 'ex-traced' }, `${checked} numbers found; none is missing from your data and the report guide. This check does not confirm each number is used correctly, so compare them with your results.`));
   } else {
     foot.append(el('div', {}, 'The numbers in this reading were not checked.'));
   }
