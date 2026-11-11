@@ -23,7 +23,7 @@ from server import load_env  # noqa: E402
 def one(item: dict) -> tuple:
     started = time.time()
     try:
-        reply = handle({"packet": item["packet"]}, os.environ)
+        reply = handle({"packet": item["packet"], "mode": "prepared"}, os.environ)
         keep = {k: reply.get(k) for k in ("markdown", "model", "provider", "numbersChecked", "untraced")}
         keep["seconds"] = round(time.time() - started, 1)
         return item["id"], keep
