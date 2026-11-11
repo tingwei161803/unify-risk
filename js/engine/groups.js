@@ -7,9 +7,10 @@ import * as cvd from './formulas/_group-cvd.js';
 import * as brainMortality from './formulas/_group-brain-mortality.js';
 import * as cancer from './formulas/_group-cancer.js';
 import * as liverCopd from './formulas/_group-liver-copd.js';
+import * as metabolic from './formulas/_group-metabolic.js';
 import { registerFields } from './util.js';
 
-export const GROUPS = [cvd, brainMortality, cancer, liverCopd];
+export const GROUPS = [cvd, metabolic, brainMortality, cancer, liverCopd];
 
 registerFields({
   labels: Object.assign({}, ...GROUPS.map((g) => g.fieldLabels || {})),
@@ -21,7 +22,7 @@ registerFields({
     'weightChange3kgLastYear', 'copd', 'familyLungCancer', 'familyColorectalCancer', 'atypicalHyperplasia',
     'dreAbnormal', 'priorNegativeBiopsy', 'familyProstateCancer',
     'hbvCarrier', 'hbvTreated', 'hcv', 'cirrhosis', 'chronicLiverDisease', 'regularDrinking',
-    'smoked100Cigarettes', 'copdDiagnosed', 'labs.hbeagPositive'
+    'smoked100Cigarettes', 'copdDiagnosed', 'labs.hbeagPositive', 'heavyDrinking', 'labs.proteinuria'
   ],
   choices: {
     ethnicity: ['white', 'black', 'hispanic', 'asian', 'other'],
