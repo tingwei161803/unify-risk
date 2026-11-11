@@ -32,4 +32,4 @@ Plain HTML, CSS and JavaScript with one small standard-library Python server: no
 
 ## Contributing
 
-Development rules are in [AGENTS.md](AGENTS.md). File owners and data formats are in [docs/interfaces.md](docs/interfaces.md).
+Development rules are in [AGENTS.md](AGENTS.md). File owners and data formats are in [docs/interfaces.md](docs/interfaces.md). How the pieces fit together, with diagrams, is in [docs/architecture.md](docs/architecture.md).

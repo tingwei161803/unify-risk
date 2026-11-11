@@ -2,6 +2,7 @@
 
 > What modules pass to each other. **Announce any format change in the group chat first**, and tell everyone who uses it.
 > Placeholder files return fake data in these shapes, so every page can be built before the real pieces land.
+> For the big picture with diagrams, see [architecture.md](architecture.md).
 
 ## Files and owners
 
