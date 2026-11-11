@@ -299,7 +299,7 @@ Use exactly this structure.
 **Things you can change:** [Section 5.7, with the caveat sentence]
 
 ## How these numbers were made
-- [Formula] ([source citation]): each term's `label` = `contribution`, as given in `terms` → `score` (when not `null`) → `display`.
+- [Formula] ([source citation]): each term copied from `terms` as `label`: `input` → `x` → `coef` → `contribution` (a points term: `label`: `input` → `points`; leave out a field the term does not have) → `score` (when not `null`) → `display`. Never write `label` = `contribution`: a line such as "Age / 10 = 3.181824" presents a term's contribution as if it were its value.
 
 *Not a diagnosis. Not medical advice. Risk estimates from published formulas; discuss any decision with a doctor.*
 ```
@@ -421,10 +421,10 @@ Use exactly this structure.
 > These formulas come from observational studies, so changing a factor may not lower your risk by the same amount.
 >
 > ## How these numbers were made
-> - **Chin-Shan** (Chien KL, et al. Stroke 2010): Age 60–64 = 5, Male = 1, Systolic BP 130–149 = 2, Diastolic BP 75–94 = 1, Parent or sibling had a stroke = 1 → score 10 of 19 → 8.5%.
+> - **Chin-Shan** (Chien KL, et al. Stroke 2010): Age 60–64 → 5 points, Male → 1 point, Systolic BP 130–149 → 2 points, Diastolic BP 75–94 → 1 point, Parent or sibling had a stroke → 1 point → score 10 of 19 → 8.5%.
 > - **Revised FSRP** (Dufouil C, et al. Circulation 2017): L = 3.8922, M = 4.4227101, Sb(10) = 0.94451 → 3.3%.
-> - **FINDRISC** (Lindström J, Tuomilehto J. Diabetes Care 2003; form): Age 55–64 = 3, BMI 25–30 = 1, Waist 94–102 cm (men) = 3, Less than 30 minutes of activity a day = 2, Ever told blood sugar was high = 5, Relatives with diabetes (parent, sibling or child) = 5 → score 19 of 26 → form band 15–20 (High), about 1 in 3.
-> - **CAIDE** (Kivipelto M, et al. Lancet Neurol 2006): Age over 53 = 4, Education 10 or more years = 0, Male = 1, Systolic BP over 140 mmHg = 2, BMI over 30 = 0, Total cholesterol over 6.5 mmol/L (251 mg/dL) = 0, Leisure exercise less than twice a week = 1 → score 8 of 15 → 3.2%.
+> - **FINDRISC** (Lindström J, Tuomilehto J. Diabetes Care 2003; form): Age 55–64 → 3 points, BMI 25–30 → 1 point, Waist 94–102 cm (men) → 3 points, Less than 30 minutes of activity a day → 2 points, Ever told blood sugar was high → 5 points, Relatives with diabetes (parent, sibling or child) → 5 points → score 19 of 26 → form band 15–20 (High), about 1 in 3.
+> - **CAIDE** (Kivipelto M, et al. Lancet Neurol 2006): Age over 53 → 4 points, Education 10 or more years → 0 points, Male → 1 point, Systolic BP over 140 mmHg → 2 points, BMI over 30 → 0 points, Total cholesterol over 6.5 mmol/L (251 mg/dL) → 0 points, Leisure exercise less than twice a week → 1 point → score 8 of 15 → 3.2%.
 >
 > *Not a diagnosis. Not medical advice. Risk estimates from published formulas; discuss any decision with a doctor.*
 
