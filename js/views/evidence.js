@@ -235,7 +235,7 @@ function draw(root, ctx) {
   const appIds = appFormulaIds();
   // formulas with a result card; some are for diseases the validation map does not cover
   const withCard = everyFormula().length || appIds.length;
-  const scoreOnly = everyFormula().filter((f) => f.kind === 'score').length;
+  const notPercent = everyFormula().filter((f) => f.kind && f.kind !== 'risk').length;   // a points score or an index
   const entries = showAll ? all : appIds.map((id) => EVIDENCE[id]);
   const visible = shownEntries(entries), pops = shownPopulations();
   const everything = counts(all);
@@ -262,7 +262,7 @@ function draw(root, ctx) {
           h('button' + (showAll ? '' : '.on'), { type: 'button', 'data-key': 'seg-app', 'aria-pressed': String(!showAll), onclick: () => { showAll = false; picked = null; redraw(); } }, 'In this app'),
           h('button' + (showAll ? '.on' : ''), { type: 'button', 'data-key': 'seg-all', 'aria-pressed': String(showAll), onclick: () => { showAll = true; picked = null; redraw(); } }, 'All ' + all.length))),
       withCard > appIds.length ? h('p.small', { style: { 'margin-bottom': '10px' } },
-        'The app computes ' + withCard + ' formulas in all' + (scoreOnly ? ', ' + scoreOnly + ' of them as a points score only' : '') + '. ' + (withCard - appIds.length)
+        'The app computes ' + withCard + ' formulas in all' + (notPercent ? ', ' + notPercent + ' of them as a score or an index, not a percentage' : '') + '. ' + (withCard - appIds.length)
         + ' of them are not in this map yet: it covers stroke, dementia and type 2 diabetes formulas.') : null,
       groupSummaries(appIds.map((id) => EVIDENCE[id]), person.ids),
       switches(visible.length, redraw),
