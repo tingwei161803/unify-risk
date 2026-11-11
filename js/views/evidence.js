@@ -17,6 +17,24 @@ const TONE_CLASS = { good: 'good', accent: 'accent', warn: 'warn', gap: 'gap', n
 // First formula ids in the app (docs/interfaces.md); used until the engine lists its own.
 const FIRST_FORMULAS = ['fsrp', 'chin-shan-stroke', 'findrisc', 'caide'];
 
+// What each status means in plain words, shown in a cell's details.
+const PLAIN = {
+  D: 'The formula was built on people from this group.',
+  V: 'Studies tested it in this group, and its percentages matched what happened.',
+  R: 'A version re-tuned for this group exists.',
+  C: 'Studies tested only how well it separates higher from lower risk. Whether its percentages fit this group is unknown.',
+  P: 'Studies tested it in this group, and its percentages did not match what happened.',
+  N: 'The formula does not apply to this group.'
+};
+const DIRECTION = {
+  over: 'It predicted more cases than happened.',
+  under: 'It predicted fewer cases than happened.',
+  'mixed-over': 'Studies disagree; on balance it predicted more cases than happened.',
+  'mixed-under': 'Studies disagree; on balance it predicted fewer cases than happened.'
+};
+// Statuses that count as "built or checked in this group".
+const CHECKED = new Set(['D', 'V', 'R', 'C', 'P']);
+
 let showAll = false;      // false: only the formulas this app computes
 let picked = null;        // { formulaId, populationId } of the cell whose details are open
 
@@ -69,7 +87,7 @@ function cellDetails(entry, pop) {
   const facts = [
     isNum(cell.oe) ? ['Observed / expected', num(cell.oe, 2) + (Array.isArray(cell.oeCi) ? ' (95% CI ' + num(cell.oeCi[0], 2) + ' to ' + num(cell.oeCi[1], 2) + ')' : '')
       + (cell.oeFrom ? ', ' + cell.oeFrom : '')] : null,
-    isNum(cell.c) ? ['C-statistic', num(cell.c, 2)] : null,
+    isNum(cell.c) ? ['C-statistic: how well it separates higher from lower risk (0.5 is a coin flip, 1 is perfect)', num(cell.c, 2)] : null,
     isNum(cell.studies) ? ['Studies', String(cell.studies)] : null,
     isNum(cell.events) ? ['Outcome events', cell.events.toLocaleString('en-US')] : null
   ].filter(Boolean);
@@ -77,6 +95,8 @@ function cellDetails(entry, pop) {
     h('div.row.between',
       h('h3', entry.name + ' · ' + pop.label),
       st ? h('span.pill.plain.' + (TONE_CLASS[st.tone] || 'mute'), h('span.code', cell.status), st.label) : null),
+    PLAIN[cell.status] ? h('p.small', { style: { 'margin-top': '8px' } }, PLAIN[cell.status]) : null,
+    DIRECTION[cell.direction] ? h('p.small', { style: { 'margin-top': '4px' } }, DIRECTION[cell.direction]) : null,
     facts.length ? h('div.tbl-wrap', { style: { 'margin-top': '10px' } }, h('table.tbl', h('tbody',
       facts.map(([k, v]) => h('tr', h('td', k), h('td.n', v)))))) : null,
     cell.status === 'G' ? h('p.small', { style: { 'margin-top': '8px' } },
@@ -84,6 +104,24 @@ function cellDetails(entry, pop) {
     isNum(cell.oe) ? h('p.small.dim', { style: { 'margin-top': '8px' } },
       'Observed / expected: 1 means the formula was right on; below 1 it over-estimated in this group, above 1 it under-estimated.') : null,
     url ? h('p.small', { style: { 'margin-top': '8px' } }, h('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, 'Open the paper (doi:' + cell.doi + ')')) : null);
+}
+
+// One sentence per group that describes the person, counted over the formulas this app computes.
+function groupSummaries(appEntries, mine) {
+  if (!appEntries.length) return null;
+  const lines = POPULATIONS.filter((pop) => mine.has(pop.id)).map((pop) => {
+    let checked = 0, gaps = 0, na = 0;
+    appEntries.forEach((e) => {
+      const code = (e.cells[pop.id] || {}).status;
+      if (CHECKED.has(code)) checked += 1; else if (code === 'N') na += 1; else gaps += 1;
+    });
+    const total = appEntries.length;
+    return h('li', h('strong', pop.label + ': '),
+      checked + ' of your ' + total + (total === 1 ? ' formula ' : ' formulas ') + (checked === 1 ? 'has' : 'have')
+      + ' been built or checked in this group; ' + gaps + (gaps === 1 ? ' has' : ' have') + ' no validation found.'
+      + (na ? ' ' + na + (na === 1 ? ' does' : ' do') + ' not apply.' : ''));
+  });
+  return lines.length ? h('ul.plain-list', { 'aria-label': 'Summary for the groups that describe you' }, lines) : null;
 }
 
 function matrix(entries, mine, redraw) {
@@ -177,6 +215,7 @@ function draw(root, ctx) {
         h('div.seg', { role: 'group', 'aria-label': 'Which formulas to show' },
           h('button' + (showAll ? '' : '.on'), { type: 'button', 'data-key': 'seg-app', 'aria-pressed': String(!showAll), onclick: () => { showAll = false; picked = null; redraw(); } }, 'In this app'),
           h('button' + (showAll ? '.on' : ''), { type: 'button', 'data-key': 'seg-all', 'aria-pressed': String(showAll), onclick: () => { showAll = true; picked = null; redraw(); } }, 'All ' + all.length))),
+      groupSummaries(appIds.map((id) => EVIDENCE[id]), person.ids),
       matrix(entries, person.ids, redraw),
       h('div', { style: { 'margin-top': '12px' } }, legend()),
       pickedEntry && pickedPop ? h('div.ev-float', cellDetails(pickedEntry, pickedPop))
