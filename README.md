@@ -11,11 +11,13 @@ Built at the c0mpiled-18 YC Startup School Hackathon, Taipei, 2026-11-11.
 ## Run
 
 ```bash
-uv run python -m http.server 8000
+uv run python server.py
 ```
 
-Then open <http://127.0.0.1:8000/>. Static HTML, CSS and JavaScript: no build step, no dependencies, no API key. Your answers stay in your browser.
+Then open <http://127.0.0.1:8000/>. Plain HTML, CSS and JavaScript with one small standard-library Python server: no build step and no packages to install. Your answers stay in your browser.
+
+Reading a lab report calls an external API. Copy `.env.example` to `.env` and fill in the keys; without them the app falls back to demo data.
 
 ## Contributing
 
-Development rules are in [AGENTS.md](AGENTS.md).
+Development rules are in [AGENTS.md](AGENTS.md). File owners and data formats are in [docs/interfaces.md](docs/interfaces.md).

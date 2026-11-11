@@ -14,8 +14,8 @@ Our entry for the c0mpiled-18 YC Startup School Hackathon (Taipei, 2026-11-11), 
 - **No tests, no test suites, no type checks, no code review.** After a change, start the app, walk through the demo flow once, and report what you saw.
 - **Open an issue before you build anything.** Give it a short title, what will be visible when it is done, and the files you expect to touch, then assign it to yourself. The issue list is how everyone sees who is building what, so check it before you start (`gh issue list`) to avoid doing the same thing twice.
 - **Edit only the files you own.** One branch does one thing; merge as soon as it works.
-- Agree on the data format between modules before you build, and do not change a shared format on your own; ask first.
-- Ask before touching shared files: `index.html`, the app entry point, shared styles, `README.md`, `AGENTS.md`.
+- Follow the data formats in [`docs/interfaces.md`](docs/interfaces.md). Do not change a shared format on your own; ask first.
+- Ask before touching shared files: `index.html`, `server.py`, `js/app.js`, `js/store.js`, `js/api.js`, `css/app.css`, `README.md`, `AGENTS.md`.
 - Wire modules together with hard-coded fake data first, then replace it with the real thing. Nobody should wait on anybody else.
 - Stuck for 20 minutes? Say so in the group chat.
 - API keys go in `.env` only, never in the repo, a PR or an issue. When you add an environment variable, update `.env.example` (name and purpose only).
@@ -69,11 +69,13 @@ flowchart LR
 
 ## 7. Stack and how to run
 
-- **Static web app**: HTML, CSS and plain JavaScript (ES modules). No framework, no build step, no packages. Data stays in the browser's `localStorage`.
+- **Static web app**: HTML, CSS and plain JavaScript (ES modules). No framework, no build step, no packages. A person's data stays in the browser's `localStorage`.
+- **One small server**, `server.py`, standard library only. It serves the static files and forwards `POST /api/<name>` to `api/<name>.py`. API keys are read from `.env` on the server and never appear in client code.
+- File owners and the data formats between modules are in [`docs/interfaces.md`](docs/interfaces.md).
 - Run:
 
   ```bash
-  uv run python -m http.server 8000
+  uv run python server.py
   ```
 
   Then open <http://127.0.0.1:8000/>.
