@@ -458,7 +458,8 @@ function fromReply(reply, filename) {
   };
 }
 
-// A fictional sample report: js/data/reports.js when it exists, else the sample person's own labs.
+// A fictional sample report from js/data/reports.js; if that file fails to load or has no report,
+// the sample person's own labs.
 async function demoReport(ctx, filename, reason) {
   const stem = filename.replace(/\.[^.]+$/, '');
   const record = ctx.store.get();
@@ -476,7 +477,7 @@ async function demoReport(ctx, filename, reason) {
         sourceLabel: !filename && name ? `${name}'s sample report${when ? `, ${when}` : ''}` : '',
         sampleOf: name || report.personId, items: report.items.map((it) => cleanItem({ ...it, confidence: 'sample' })) };
     }
-  } catch { /* js/data/reports.js is not on main yet */ }
+  } catch { /* js/data/reports.js failed to load: use the sample person's own labs below */ }
   const { PERSONAS } = await import('../data/personas.js');
   const person = PERSONAS.find((p) => p.id === stem.split('-')[0]) || PERSONAS.find((p) => p.id === record.personaId) ||
     PERSONAS.find((p) => p.labs && Object.keys(p.labs).length);

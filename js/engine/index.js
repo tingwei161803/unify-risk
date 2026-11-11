@@ -20,7 +20,7 @@
 //   disease       'stroke' | 'diabetes' | 'dementia'
 //   outcome       e.g. 'First stroke within 10 years'
 //   kind          'risk' (value is a probability 0-1) | 'score' (value is points, no probability)
-//   derivedIn     where the formula's data came from: 'US' | 'TW' | 'EU'
+//   derivedIn     where the formula's data came from: 'US' | 'TW' | 'EU' | 'JP'
 //   status        'computed' | 'missing' | 'not-applicable'
 //   value         kind 'risk': probability 0-1; kind 'score': points; null when not computed
 //   display       '6.9%', 'about 1 in 3', '6 points (of 9)', or '' when not computed
@@ -52,9 +52,9 @@
 //
 // Score-only results (kind 'score', e.g. the ADA test) are left out unless the caller asks:
 //   runAll(person, { includeScores: true })
-// js/engine/run.js currently maps every result to kind 'risk' and the results page prints
-// value x 100 as a percent, which would turn 6 points into "600%". Turn scores on once both
-// handle kind 'score' (show `display`).
+// js/engine/run.js passes each result's kind through ('risk' only when a result has none), and
+// the results page shows `display` instead of a percent for a result that is not kind 'risk'.
+// No caller in the app asks for scores, so the two score-only formulas (ADA, BDSI) are not shown.
 //
 // Missing inputs are listed, never guessed. Outside the age range the result is
 // 'not-applicable'; nothing is extrapolated.

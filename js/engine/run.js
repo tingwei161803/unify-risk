@@ -2,17 +2,19 @@
 // Adapts the formula engine (js/engine/index.js) and the lab readings (js/engine/labs.js)
 // to the result format in docs/interfaces.md. Nothing is computed here.
 //
-// Until those two files are on main, the imports below fail and this file falls back to
-// the placeholder results, so the app keeps running whatever order the PRs merge in.
+// The engine is the normal path. If one of the imports below fails to load, this file falls
+// back to the fixed placeholder results at the bottom, so the app shows a warning instead of
+// a blank page.
 
 const engine = await import('./index.js').catch(() => null);
 const labs = await import('./labs.js').catch(() => null);
 const util = await import('./util.js').catch(() => null);
 
-/** True once the real engine is loaded; false means placeholder numbers. */
+/** True when the engine loaded; false means the fallback placeholder numbers are in use. */
 export const ENGINE_READY = Boolean(engine);
 
-// Where each formula's data came from (docs/interfaces.md `derivedIn`).
+// Fallback for `derivedIn` (docs/interfaces.md). Every formula in js/engine/formulas now sets its own,
+// so this covers only a result that arrives without one.
 const DERIVED_IN = { fsrp: 'US', 'chin-shan-stroke': 'TW', findrisc: 'EU', caide: 'EU' };
 const STATUS = { computed: 'ok', missing: 'missing', 'not-applicable': 'not_applicable' };
 
@@ -90,7 +92,7 @@ export function assess(person) {
   };
 }
 
-// Fixed numbers in the agreed format, used only until the real engine is on main.
+// Fixed numbers in the agreed format, used only if the engine fails to load.
 // Do not show these numbers in the demo.
 const PLACEHOLDER = [
   {

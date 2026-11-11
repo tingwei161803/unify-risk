@@ -1,8 +1,10 @@
 // Fictional sample people for the demo. Every sample person here is fictional;
 // nobody here is real, and no value comes from a real record.
 //
-// Nine people. The round-1 formulas are FSRP (ages 55-84), Chin-Shan (>=35),
-// FINDRISC (35-64) and CAIDE (39-64).
+// Nine people, written around the first four formulas: FSRP (ages 55-84),
+// Chin-Shan (>=35), FINDRISC (35-64) and CAIDE (39-64). The engine has more
+// formulas now (js/engine/index.js); "all four formulas" and "the first four
+// formulas" below mean these four.
 //   lin, linda   one person from Taiwan and one from the United States. Run the
 //                same person through the US formula (FSRP) and the Taiwanese one
 //                (Chin-Shan) to show the gap. All four formulas apply.
@@ -59,7 +61,7 @@
 //   exerciseTwiceWeekly (leisure exercise >=2 times a week)   CAIDE
 //   vegFruitDaily                                             FINDRISC
 //
-// Context-only profile fields (no round-1 formula reads them; the report and
+// Context-only profile fields (no formula reads them; the report and
 // the explanation text use them)
 //   familyDementia, familyHypertension, familyHighCholesterol
 //   livesAlone, hearingLoss, sleepProblem, retiredRecently
@@ -67,13 +69,13 @@
 //
 // Lab fields
 //   totalCholMgDl     Chin-Shan (lab version), CAIDE (>6.5 mmol/L = >251 mg/dL)
-//   hdlMgDl           not used in round 1; kept for PREVENT later
-//   fastingGlucoseMgDl  Chin-Shan (lab version)
-//   hba1cPct          not used in round 1
+//   hdlMgDl           Framingham Offspring diabetes
+//   fastingGlucoseMgDl  Chin-Shan (lab version), Framingham Offspring diabetes
+//   hba1cPct          not used by the first four formulas
 //   ldlMgDl, tgMgDl, creatinineMgDl, egfrMlMin (mL/min/1.73 m2), uacrMgG
 //   (urine albumin-to-creatinine ratio, mg/g), astUL, altUL (U/L),
 //   plateletsK (10^3/uL)
-//                     not used by round-1 formulas; read by the lab standards
+//                     not used by the first four formulas; read by the lab standards
 //                     (js/engine/labs.js) and the report
 //
 // report.printedRanges keys are the lab keys above plus bmi, waistCm, sbp and
