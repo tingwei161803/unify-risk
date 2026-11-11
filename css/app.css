@@ -85,3 +85,5 @@ body {
 .card-button { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .card-button:hover { border-color: var(--accent); }
 .link { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+.field-small { min-width: 0; padding: 4px 8px; font-size: 0.85rem; }

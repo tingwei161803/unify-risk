@@ -12,7 +12,7 @@ import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from api.router import configured
+from api.router import describe
 
 ROOT = Path(__file__).resolve().parent
 # Only index.html and files under these folders are served.
@@ -73,8 +73,8 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/":
             self.path = "/index.html"
         if path == "/api/health":
-            # Provider names only. Key values never leave the server.
-            return self.send_json(200, {"ok": True, "providers": configured(os.environ)})
+            # Provider names and models only. Key values never leave the server.
+            return self.send_json(200, {"ok": True, "providers": describe(os.environ)})
         if not self.is_public_file():
             return self.send_error(404)
         return super().do_GET()
