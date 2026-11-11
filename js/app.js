@@ -11,6 +11,7 @@ const ROUTES = [
   { path: '/inputs', label: 'Questionnaire', load: () => import('./views/inputs.js') },
   { path: '/report', label: 'Lab report', load: () => import('./views/report.js') },
   { path: '/results', label: 'Results', load: () => import('./views/results.js') },
+  { path: '/plan', label: 'Next steps', load: () => import('./views/plan.js') },
   { path: '/evidence', label: 'Evidence', load: () => import('./views/evidence.js') },
   { path: '/login', label: null, load: () => import('./views/login.js') }
 ];

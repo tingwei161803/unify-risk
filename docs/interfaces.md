@@ -36,6 +36,7 @@ assets/sample-reports/ Andrew   fictional report files
 | `#/inputs` | `inputs.js` | Questionnaire |
 | `#/report` | `report.js` | Upload a lab report, confirm each value |
 | `#/results` | `results.js` | One card per formula |
+| `#/plan` | `plan.js` | Next steps: follow-up tests and services the person's own values qualify for |
 | `#/evidence` | `evidence.js` | Where each formula has been checked |
 
 A query string may follow the path: `#/results?open=fsrp`.
@@ -214,3 +215,23 @@ reply["text"], reply["provider"], reply["model"]
 - With no key set, or when every provider fails, `chat` raises `NoProviderError`; the caller falls back to demo data.
 - From a page: `await ctx.callApi('chat', { prompt, system, attachment })` returns the same `{ text, provider, model }`.
 - **The user can pick the provider.** The header has a selector (Auto, or one configured provider). `callApi` adds the choice to every payload as `provider`; a server module honours it by passing it on: `chat(prompt, env, attachment=..., provider=payload.get("provider") or "")`. A named provider is used alone, with no fallback. Return `provider` and `model` from `chat()` in your response so the header can show who answered.
+
+## Next steps (tests and services)
+
+`js/data/services.js` holds written rules; no model is involved and no number is produced. Every figure shown is copied from the person's record or is part of a published eligibility rule.
+
+```js
+import { followUpTests, matchingServices } from '../data/services.js';
+import { assess } from '../engine/run.js';
+
+const { results, labs: labRows, metabolicSyndrome: mets } = assess({ profile, labs, region });
+const context = { profile, labs, results, labRows, mets, region };   // region: 'TW' | 'US'
+
+followUpTests(context);     // at most 3: [{ id, name, reasons: [string], adds, where }]
+matchingServices(context);  // [{ id, name, what, rule, how, source: { name, url }, matched: [string] }]
+```
+
+- A test is suggested when a lab reading is outside its standard (repeat it) or when a formula lists an input as missing.
+- A service is listed only when the person's own values meet its published rule; `matched` holds those values.
+- The record now carries an optional `region` (`'TW'` | `'US'`), set by the switch on the page. When absent, the region of the account's sample person is used.
+- To add a service, append to `SERVICES.TW` or `SERVICES.US` with its `rule` in words, a `match(ctx)` function and an official `source`. Never add a medicine, dose or supplement.

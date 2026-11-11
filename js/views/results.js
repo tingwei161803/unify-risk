@@ -11,6 +11,7 @@ export function render(root, ctx) {
     <div id="cards"></div>
     <div class="row">
       <a class="btn" href="#/report">Add a lab report</a>
+      <a class="btn" href="#/plan">See next steps</a>
       <a class="btn secondary" href="#/evidence">See the evidence</a>
     </div>`;
 

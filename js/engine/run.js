@@ -24,8 +24,9 @@ function toInterface(r) {
     ...rest,
     modelId: id,
     outcome: disease,
-    kind: 'risk',
-    derivedIn: DERIVED_IN[id] || null,
+    // The engine's own kind and derivedIn win; the fallbacks cover engines that do not set them.
+    kind: r.kind || 'risk',
+    derivedIn: r.derivedIn || DERIVED_IN[id] || null,
     status: STATUS[status] || status,
     // Point scores have no coefficient; their points are the contribution.
     terms: terms.map((t) => ('points' in t
