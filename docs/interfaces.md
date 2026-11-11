@@ -211,6 +211,7 @@ reply["text"], reply["provider"], reply["model"]
 
 - `attachment` is an optional base64 data URL of an image or a PDF.
 - A provider is used when its key is set in `.env`. They are tried in this order, and the next one is tried when a call fails: `CLAUDE_API_KEY`, `JOHNCLAUDE`, `OPENROUTER_API_KEY`, `OPENGSA_GEMINI_API_KEY`, `GROQ_API_KEY`, `NVIDIA_API_KEY`. `LLM_PROVIDER_ORDER` changes the order; `<NAME>_MODEL` (for example `GROQ_MODEL`) overrides a provider's model.
+- A busy or unreachable provider (HTTP 429, 500, 502, 503, 504, or a network error) is tried once more after a short pause (1.5 s, or a numeric `Retry-After` capped at 5 s) before the next one is tried; other errors (400, 401, 403, 404), refusals, empty replies and full timeouts are not retried. Both attempts share one 90-second budget per provider.
 - Only the two Claude keys read PDFs; the others read images. A provider that cannot read the attachment is skipped.
 - With no key set, or when every provider fails, `chat` raises `NoProviderError`; the caller falls back to demo data.
 - From a page: `await ctx.callApi('chat', { prompt, system, attachment })` returns the same `{ text, provider, model }`.
