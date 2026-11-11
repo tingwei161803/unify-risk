@@ -116,7 +116,11 @@ def _numbers(text: str) -> list:
 
 
 def _trace(markdown: str, packet_json: str, guide: str) -> tuple:
-    """How many numbers the report contains, and which of them appear in neither the packet nor the guide."""
+    """How many numbers the report contains, and which of them appear in neither the packet nor the guide.
+
+    This is a coarse filter, not proof: a number passes if it appears anywhere in the packet or the
+    guide, so it cannot tell whether the number is attached to the right result.
+    """
     known = set(_numbers(packet_json)) | set(_numbers(guide)) | SMALL_COUNTS
     found = _numbers(markdown)
     untraced = sorted({n for n in found if n not in known}, key=float)
