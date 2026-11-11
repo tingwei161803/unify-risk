@@ -6,7 +6,7 @@
 
 Our entry for the c0mpiled-18 YC Startup School Hackathon (Taipei, 2026-11-11), built during the event (18:45–22:45).
 
-**unify-risk: your health numbers, explained by formulas you can check.** A person answers a questionnaire and adds lab values. Published formulas turn those into risk estimates. Every number opens to show the equation, the source, and the populations the formula was validated in.
+**unify-risk: your health numbers, explained by formulas you can check.** A person answers a questionnaire and adds lab values. Published formulas turn those into risk estimates. Every risk estimate opens to show the equation, the source, and the populations the formula was validated in.
 
 ## 2. Development
 
@@ -26,7 +26,7 @@ Our entry for the c0mpiled-18 YC Startup School Hackathon (Taipei, 2026-11-11), 
 
 - Every page carries the disclaimer: Not a diagnosis. Not medical advice.
 - Do not use "diagnose", "screen" or "detect". Use "estimate" and "published formula".
-- Every number on screen opens to show its equation and source. If a formula cannot be computed, say what is missing. If the person is outside the formula's range, show "not applicable"; never extrapolate.
+- Every risk estimate on screen opens to show its equation and source. If a formula cannot be computed, say what is missing. If the person is outside the formula's range, show "not applicable"; never extrapolate.
 
 ## 4. Language
 

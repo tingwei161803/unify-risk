@@ -5,7 +5,7 @@ import { PERSONAS } from '../data/personas.js';
 export function render(root, ctx) {
   root.innerHTML = `
     <h1>Your health numbers, explained by formulas you can check.</h1>
-    <p class="lead">Answer a few questions, add your lab report, and see what published formulas estimate. Every number opens up to show the equation and the paper it came from.</p>
+    <p class="lead">Answer a few questions, add your lab report, and see what published formulas estimate. Every risk estimate opens up to show the equation and the paper it came from.</p>
     <div class="row" id="start">
       <a class="btn" href="#/inputs">Start with your own answers</a>
     </div>

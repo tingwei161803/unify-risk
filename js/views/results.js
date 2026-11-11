@@ -143,6 +143,7 @@ function normalise(raw) {
       builtOn: shortPopulation(r.population) || (r.derivedIn ? 'data from ' + (PLACES[r.derivedIn] || r.derivedIn) : null),
       ageRange: Array.isArray(r.ageRange) ? r.ageRange : null,
       source: { citation: src.citation || '', url: safeUrl(src.url) || (src.doi ? safeUrl('https://doi.org/' + src.doi) : null) },
+      // True only for the fallback results js/engine/run.js returns if the engine failed to load.
       placeholder: r.placeholder === true
     };
   });
@@ -474,7 +475,8 @@ export function render(root, ctx) {
     h('section',
       h('div.sec-head',
         h('div.row.between',
-          h('h1', computed.length + (computed.length === 1 ? ' estimate' : ' estimates') + ' from published formulas'),
+          h('h1', computed.length + (computed.length === 1 ? ' estimate' : ' estimates') + ' from '
+            + (results.length > computed.length ? results.length + ' ' : '') + 'published ' + (results.length === 1 ? 'formula' : 'formulas')),
           sample ? h('span.sample-badge', sample) : null),
         h('p.sub', 'Open any number to see the arithmetic, the source paper, and where the formula has been checked.')),
       failure ? h('div.callout.warn', failure) : null,

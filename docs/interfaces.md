@@ -1,7 +1,7 @@
 # Interfaces
 
 > What modules pass to each other. **Announce any format change in the group chat first**, and tell everyone who uses it.
-> Placeholder files return fake data in these shapes, so every page can be built before the real pieces land.
+> The modules on `main` pass data in these shapes. The only placeholder left is the fixed result list in `js/engine/run.js`, flagged `placeholder: true` and returned only if the engine fails to load.
 > For the big picture with diagrams, see [architecture.md](architecture.md).
 
 ## Files and owners
