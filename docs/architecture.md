@@ -12,7 +12,7 @@ The main design decisions:
 - **Static front end.** `index.html` loads `js/app.js`, a hash router that loads one view module per page on demand. A view that fails to load breaks only its own page.
 - **The server is only a key-holding proxy.** `server.py` serves an allowlist of static files and forwards `POST /api/NAME` to `api/NAME.py`. API keys are read from `.env` on the server and never reach the browser.
 - **A person's data stays in the browser.** Everything is kept in `localStorage`, one record per signed-in test account. The server stores nothing.
-- **Formulas run in the browser.** `runAll(person)` in `js/engine/run.js` is called by the results page; no health data is sent to the server to compute a risk. On `main` this function is still a placeholder.
+- **Formulas run in the browser.** `runAll(person)` in `js/engine/run.js` is called by the results page; no health data is sent to the server to compute a risk. On `main` the four formulas are in `js/engine/`, but `run.js`, the function the pages call, still returns fixed placeholder results; PR #23 connects the two.
 - **One router in front of every model provider.** Server modules call `chat()` in `api/router.py`; it picks a configured provider, falls back to the next one on failure, and reports who answered.
 
 ## System overview
@@ -26,8 +26,9 @@ flowchart LR
         STORE["js/store.js<br/>per-user record"]
         AUTH["js/auth.js<br/>demo sign-in"]
         ENGINE["js/engine/run.js<br/>runAll, placeholder"]
-        PERSONAS["js/data/personas.js<br/>sample people, placeholder"]
-        EVIDENCE["js/data/evidence.js<br/>generated, not imported yet"]
+        FORMULAS["js/engine/index.js and formulas<br/>real formulas, not wired in yet"]
+        PERSONAS["js/data/personas.js<br/>nine fictional people"]
+        UNUSED["js/data/evidence.js<br/>js/data/reports.js<br/>data, not imported yet"]
         APIJS["js/api.js<br/>callApi, listProviders"]
         LS[("localStorage")]
     end
@@ -76,7 +77,8 @@ Notes on what the diagram shows:
 
 - The dispatch is generic: any `api/NAME.py` that defines `handle(payload, env)` becomes `POST /api/NAME`. `main` has two, `chat` and `recognize`. `api/router.py` has no `handle`, so it is not an endpoint.
 - `api/recognize.py` on `main` returns fixed values with `"demo": true` and does not call the router yet.
-- The `assets/` folder is on the allowlist but does not exist on `main` yet.
+- `js/engine/index.js` (the real formulas) and the two data modules `js/data/evidence.js` and `js/data/reports.js` are on `main` but have no arrows: nothing imports them yet.
+- `assets/sample-reports/` holds fictional lab report files (PDF and PNG). The server serves them, but no page links to them yet.
 
 ## Front-end modules
 
@@ -90,7 +92,6 @@ flowchart TD
     APIJS["js/api.js"]
     RUN["js/engine/run.js"]
     PERSONAS["js/data/personas.js"]
-    EVIDENCE["js/data/evidence.js<br/>generated, not imported by any module yet"]
 
     subgraph VIEWS["js/views, each exports render"]
         LOGIN["login.js"]
@@ -118,6 +119,21 @@ flowchart TD
 
     LOGIN --> AUTH
     HOME --> PERSONAS
+
+    subgraph UNWIRED["On main, but no module imports them yet"]
+        INDEX["js/engine/index.js<br/>runAll, runFormula, runChecks, FORMULAS"]
+        FORMULAS["js/engine/formulas<br/>fsrp, chin-shan-stroke, findrisc, caide"]
+        CHECKS["js/engine/checks.js"]
+        UTIL["js/engine/util.js"]
+        EVIDENCE["js/data/evidence.js<br/>generated"]
+        REPORTS["js/data/reports.js"]
+    end
+
+    INDEX --> FORMULAS
+    INDEX --> CHECKS
+    CHECKS --> FORMULAS
+    CHECKS --> UTIL
+    FORMULAS --> UTIL
 ```
 
 Every view exports one function, `render(root, ctx)`. `root` is the emptied `<main>` element. `ctx` is the same object for every view and is the only way most views reach the rest of the app:
@@ -133,6 +149,11 @@ Every view exports one function, `render(root, ctx)`. `root` is the emptied `<ma
 Two views import a module directly instead of going through `ctx`: `login.js` imports `js/auth.js` (sign-in is not part of `ctx`) and `home.js` imports `js/data/personas.js`. The four placeholder views import nothing.
 
 `js/data/evidence.js` is real generated data (57 formulas by 18 populations, built offline by `tools/build-evidence.mjs`) and exports `STATUS`, `POPULATIONS`, `EVIDENCE` and `getEvidence(modelId, populationId)`. No module on `main` imports it yet; the evidence page that will use it is a placeholder.
+
+The same is true of two more groups of files:
+
+- **The real formula engine.** `js/engine/index.js` exports `runAll`, `runFormula`, `runChecks` and `FORMULAS`, backed by one file per formula in `js/engine/formulas/` (FSRP, Chin-Shan stroke, FINDRISC, CAIDE). `runChecks` re-computes the examples printed in each paper. The app still imports `runAll` from `js/engine/run.js`, the placeholder. The engine's own result shape is not the one in [interfaces.md](interfaces.md) (`id` instead of `modelId`, status `computed` and `not-applicable` instead of `ok` and `not_applicable`), so pages must not import `index.js` directly; PR #23 rewrites `run.js` to call the engine and translate.
+- **The dated lab reports.** `js/data/reports.js` exports `REPORTS` and `reportsFor(personId)`, the fictional reports behind the files in `assets/sample-reports/`.
 
 ## Main flow: sign in and see results
 
@@ -175,9 +196,9 @@ sequenceDiagram
 
 What is real and what is not in this flow on `main`:
 
-- The sign-in gate, the test accounts and the per-account record are working. `main` has one sample person, so only `testuser1` exists; accounts are built from the first three entries of `PERSONAS`.
-- The home page also lists the sample people. Picking one there calls `loadPersona` again, which overwrites the account's profile and labs, then goes straight to the results page.
-- `runAll` ignores its argument and returns four fixed results (one per status: two `ok`, one `missing`, one `not_applicable`), each flagged `placeholder: true`. The results page prints "placeholder number" on every card. The questionnaire page has no questions yet.
+- The sign-in gate, the test accounts and the per-account record are working. Accounts are built from the first three entries of `PERSONAS`: `testuser1` opens `lin`, `testuser2` opens `linda`, `testuser3` opens `chen`.
+- The home page lists all nine sample people. Picking one there calls `loadPersona` again, which overwrites the account's profile and labs, then goes straight to the results page.
+- `runAll` in `run.js` ignores its argument and returns four fixed results (two `ok`, one `missing`, one `not_applicable`), each flagged `placeholder: true`. The results page prints "placeholder number" on every card, so every account shows the same numbers whoever the sample person is. The questionnaire page has no questions yet.
 
 ## AI request flow
 
@@ -281,11 +302,13 @@ Owners are the names used in [interfaces.md](interfaces.md).
 | `server.py`: static allowlist, health, API dispatch | Working | Peter | Done |
 | `api/router.py`, `api/chat.py`: provider router and chat endpoint | Working; no page calls `chat` yet | Peter | Done |
 | `js/app.js`, `js/store.js`, `js/api.js`: router, store, API client, provider selector | Working | Peter | Done |
-| `js/auth.js`, `js/views/login.js`: demo sign-in | Working; one account, because there is one sample person | Peter | More accounts arrive with PR #10 |
+| `js/auth.js`, `js/views/login.js`: demo sign-in | Working; three test accounts | Peter | Done |
 | `js/views/home.js`: pitch and sample people | Working | Peter | Done |
-| `js/engine/run.js`: formula engine | Placeholder; four fixed results | Matt and Andrew | Issue #9. PR #12 adds the formulas, PR #13 the lab reference standards, PR #23 (closes issue #19) wires them into `run.js` |
-| `js/data/personas.js`: sample people | Placeholder; one person | Andrew | Issue #5, PR #10 |
-| `assets/sample-reports/`: fictional report files | Not on `main` | Andrew | Issue #5, PR #20 |
+| `js/data/personas.js`: nine fictional sample people | Working | Andrew | Done (PR #10, part of issue #5) |
+| `assets/sample-reports/`, `js/data/reports.js`: fictional report files and their values | On `main`; not used by any page yet | Andrew | Used once issue #6 lands (PR #28) |
+| `js/engine/index.js`, `js/engine/formulas/`: FSRP, Chin-Shan stroke, FINDRISC, CAIDE | On `main` (PR #12); not called by the app yet | Matt and Andrew | Issue #9; wired in by PR #23 |
+| `js/engine/run.js`: the `runAll` the pages call | Placeholder; four fixed results | Matt and Andrew | Issue #19, PR #23 |
+| Lab reference standards (`js/engine/labs.js`) | Not on `main` | Matt and Andrew | Issue #9, PR #13 |
 | `api/recognize.py`: report recognition | Placeholder; fixed values, `"demo": true`, no model call | Matt | Issue #6, PR #28 |
 | `js/views/report.js`: upload and confirm | Placeholder; one button that loads the fixed report | Matt | Issue #6, PR #28 |
 | Report interpreter guide | Not on `main` | Issue #11 assignee | Issue #11, PR #24 |
