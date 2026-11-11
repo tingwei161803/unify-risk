@@ -59,6 +59,12 @@ def configured(env) -> list:
     return [p["name"] for p in _ordered(env) if (env.get(p["key"]) or "").strip()]
 
 
+def describe(env) -> list:
+    """Configured providers for the page's selector: name, model and what each can read. No keys."""
+    return [{"name": p["name"], "model": _model(p, env), "accepts": sorted(p["accepts"])}
+            for p in _ordered(env) if (env.get(p["key"]) or "").strip()]
+
+
 def _model(provider: dict, env) -> str:
     return (env.get(f"{provider['name'].upper()}_MODEL") or "").strip() or provider["model"]
 
@@ -82,7 +88,9 @@ def _kind(media_type: str) -> str:
 def _post(url: str, headers: dict, body: dict) -> dict:
     request = urllib.request.Request(
         url, data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", **headers}, method="POST")
+        # Some providers reject Python's default User-Agent, so send a plain one.
+        headers={"Content-Type": "application/json", "User-Agent": "unify-risk/0.1", **headers},
+        method="POST")
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             return json.loads(response.read())
@@ -130,16 +138,21 @@ def _call_openai(provider, key, model, prompt, system, attachment) -> str:
 _CALLERS = {"anthropic": _call_anthropic, "openai": _call_openai}
 
 
-def chat(prompt: str, env, system: str = "", attachment: str = "") -> dict:
-    """Ask the first working provider.
+def chat(prompt: str, env, system: str = "", attachment: str = "", provider: str = "") -> dict:
+    """Ask the first working provider, or only `provider` when one is named.
 
     attachment: optional base64 data URL of an image or a PDF.
+    provider: optional provider name picked by the user; no fallback to the others.
     Returns {"text", "provider", "model"}. Raises NoProviderError if nobody answers.
     """
     parsed = _parse_data_url(attachment) if attachment else None
     kind = _kind(parsed[0]) if parsed else None
+    wanted = (provider or "").strip().lower()
+    candidates = [p for p in _ordered(env) if not wanted or p["name"] == wanted]
+    if wanted and not candidates:
+        raise NoProviderError(f"Unknown provider: {wanted}")
     failures = []
-    for provider in _ordered(env):
+    for provider in candidates:
         key = (env.get(provider["key"]) or "").strip()
         if not key:
             continue
@@ -153,6 +166,8 @@ def chat(prompt: str, env, system: str = "", attachment: str = "") -> dict:
             failures.append(f"{provider['name']}: {error}")
             continue
         return {"text": text, "provider": provider["name"], "model": model}
+    if not failures and wanted:
+        raise NoProviderError(f"No API key is set for {wanted}.")
     if not failures:
         raise NoProviderError("No API key is set. Fill in at least one key in .env (see .env.example).")
     raise NoProviderError("Every provider failed. " + " | ".join(failures))

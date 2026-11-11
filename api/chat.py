@@ -1,6 +1,7 @@
 """POST /api/chat: send a prompt to whichever model provider is configured.
 
-Body: {"prompt": str, "system": str (optional), "attachment": base64 data URL (optional)}
+Body: {"prompt": str, "system": str (optional), "attachment": base64 data URL (optional),
+       "provider": provider name picked by the user (optional)}
 Reply: {"text": str, "provider": str, "model": str}
 """
 
@@ -12,4 +13,5 @@ def handle(payload: dict, env) -> dict:
     if not prompt:
         raise ValueError("prompt is required")
     return chat(prompt, env, system=str(payload.get("system") or ""),
-                attachment=str(payload.get("attachment") or ""))
+                attachment=str(payload.get("attachment") or ""),
+                provider=str(payload.get("provider") or ""))
