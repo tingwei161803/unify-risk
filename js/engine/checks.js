@@ -11,6 +11,7 @@ import { adaDiabetes } from './formulas/ada-diabetes.js';
 import { checks as hisayamaChecks } from './formulas/hisayama.js';
 import { checks as bdsiChecks } from './formulas/bdsi.js';
 import { round } from './util.js';
+import { GROUPS } from './groups.js';
 
 const person = (profile, labs = {}) => ({ profile, labs });
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
@@ -198,5 +199,6 @@ function adaChecks() {
 }
 
 export function runChecks() {
-  return [...fsrpChecks(), ...chinShanChecks(), ...findriscChecks(), ...caideChecks(), ...wilsonChecks(), ...adaChecks(), ...hisayamaChecks, ...bdsiChecks];
+  return [...fsrpChecks(), ...chinShanChecks(), ...findriscChecks(), ...caideChecks(), ...wilsonChecks(), ...adaChecks(), ...hisayamaChecks, ...bdsiChecks,
+    ...GROUPS.flatMap((g) => g.checks())];
 }

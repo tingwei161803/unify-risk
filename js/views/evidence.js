@@ -192,6 +192,10 @@ function checksTable(redraw) {
   let checks = [];
   try { checks = engine.runChecks(); } catch (e) { return h('div.callout.warn', 'The checks could not be run: ' + String(e && e.message ? e.message : e)); }
   if (!Array.isArray(checks)) checks = [];
+  // Only the formulas the pages show. The engine also holds formulas that are not shown yet, and
+  // many of their checks are our own recomputation, not an example printed in a paper.
+  const shown = Array.isArray(engine.FORMULAS) ? new Set(engine.FORMULAS.map((f) => f.id)) : null;
+  if (shown) checks = checks.filter((c) => shown.has(c.formulaId));
   const passed = checks.filter((c) => c.pass).length;
   const name = (id) => (EVIDENCE[id] ? EVIDENCE[id].name : id);
   return h('div.stack',
