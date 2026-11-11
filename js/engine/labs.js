@@ -1,7 +1,8 @@
 // Reference standards for the values on a health-check report, and a plain-English
 // reading of where one person stands against each of them.
 //
-//   interpretLabs(person)     -> one row per value the person has (absent = not tested, no row)
+//   interpretLabs(person, report?) -> one row per value the person has (absent = not tested, no row);
+//                               `report` is an optional js/data/reports.js entry whose printed ranges win
 //   metabolicSyndrome(person) -> Taiwan criteria: how many of the 5 items are met (3 or more = yes)
 //   LAB_STANDARDS             -> every cut-off with its source, for the "show the math" drawer
 //
@@ -363,10 +364,19 @@ const uacrRow = (person) => bandedRow(person, 'uacrMgG', 'uacr', (v, b) =>
 const ITEMS = [bmiRow, waistRow, bpRow, glucoseRow, hba1cRow, totalCholRow, ldlRow, hdlRow, tgRow, creatinineRow, egfrRow, uacrRow,
   liverRow('astUL', 'ast', 'AST'), liverRow('altUL', 'alt', 'ALT'), plateletsRow];
 
+// Merge the printed ranges of a js/data/reports.js entry ({ items: [{ key, range }] }) into the person.
+function withReport(person, report) {
+  if (!report || !Array.isArray(report.items)) return person;
+  const printedRanges = { ...(person.report?.printedRanges || {}) };
+  for (const it of report.items) if (it && it.key && it.range) printedRanges[it.key] = it.range;
+  return { ...person, report: { ...(person.report || {}), printedRanges } };
+}
+
 /** One row per value the person has, in report order: body measurements, sugar, fats, kidneys, liver, blood count. */
-export function interpretLabs(person) {
+export function interpretLabs(person, report) {
   if (!person) return [];
-  return ITEMS.map((f) => f(person)).filter(Boolean);
+  const p = withReport(person, report);
+  return ITEMS.map((f) => f(p)).filter(Boolean);
 }
 
 /** Taiwan metabolic-syndrome criteria: 3 or more of 5. Unknown items (value missing) stay null. */
