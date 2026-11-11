@@ -48,6 +48,12 @@
 //   4. 'not-applicable'
 // Ties keep the FORMULAS order.
 //
+// Score-only results (kind 'score', e.g. the ADA test) are left out unless the caller asks:
+//   runAll(person, { includeScores: true })
+// js/engine/run.js currently maps every result to kind 'risk' and the results page prints
+// value x 100 as a percent, which would turn 6 points into "600%". Turn scores on once both
+// handle kind 'score' (show `display`).
+//
 // Missing inputs are listed, never guessed. Outside the age range the result is
 // 'not-applicable'; nothing is extrapolated.
 //
@@ -94,8 +100,8 @@ function group(r) {
   return r.status === 'missing' ? 3 : 4;
 }
 
-export function runAll(person) {
-  const results = ALL.map((f, i) => {
+export function runAll(person, { includeScores = false } = {}) {
+  const results = ALL.filter((f) => includeScores || f.kind !== 'score').map((f, i) => {
     const r = f.compute(person || {});
     return { r: { ...r, severity: severityOf(r) }, i };
   });
