@@ -75,11 +75,15 @@ import { GROUPS } from './groups.js';
 export { runChecks } from './checks.js';
 
 // The first eight formulas, then every formula group (issue #69), in GROUPS order.
-const ALL = [fsrp, chinShanStroke, findrisc, caide, wilsonDiabetes, adaDiabetes, hisayama, bdsi,
-  ...GROUPS.flatMap((g) => g.formulas)];
+// CORE is what the pages show: these formulas have rows in js/data/evidence.js, questions in the
+// questionnaire and sample people with the inputs. MORE (issue #69) computes and passes its checks,
+// but has none of those yet, so a page asks for it explicitly with { includeMore: true }.
+const CORE = [fsrp, chinShanStroke, findrisc, caide, wilsonDiabetes, adaDiabetes, hisayama, bdsi];
+const MORE = GROUPS.flatMap((g) => g.formulas);
+const ALL = [...CORE, ...MORE];
 
 // Static description of each formula (no person needed), e.g. for the evidence page.
-export const FORMULAS = ALL.map((f) => ({
+const describe = (f) => ({
   id: f.id,
   name: f.name,
   disease: f.disease,
@@ -92,7 +96,10 @@ export const FORMULAS = ALL.map((f) => ({
   source: { ...f.source },
   equation: f.equation,
   inputs: f.inputs.slice()
-}));
+});
+// FORMULAS: the formulas the pages show. ALL_FORMULAS: every formula the engine can compute.
+export const FORMULAS = CORE.map(describe);
+export const ALL_FORMULAS = ALL.map(describe);
 
 // Probability used for ordering: the risk value (or the printed band risk) of a computed result.
 function severityOf(r) {
@@ -107,8 +114,8 @@ function group(r) {
   return r.status === 'missing' ? 3 : 4;
 }
 
-export function runAll(person, { includeScores = false } = {}) {
-  const results = ALL.filter((f) => includeScores || f.kind !== 'score').map((f, i) => {
+export function runAll(person, { includeScores = false, includeMore = false } = {}) {
+  const results = (includeMore ? ALL : CORE).filter((f) => includeScores || f.kind !== 'score').map((f, i) => {
     const r = f.compute(person || {});
     return { r: { ...r, severity: severityOf(r) }, i };
   });

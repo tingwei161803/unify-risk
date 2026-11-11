@@ -5,10 +5,11 @@ Every formula the engine computes (`js/engine/index.js`), generated from `FORMUL
 ## How to use
 
 ```js
-import { FORMULAS, runAll, runFormula, runChecks } from './js/engine/index.js';
+import { FORMULAS, ALL_FORMULAS, runAll, runFormula, runChecks } from './js/engine/index.js';
 
 runAll(person);                          // one result per formula (risk and value kinds)
 runAll(person, { includeScores: true }); // also point scores without a probability
+runAll(person, { includeMore: true });   // all 44; the default is the eight the pages show
 runFormula('pooled-cohort-equations-pce', person);
 runChecks();                             // re-computes the worked examples
 ```
