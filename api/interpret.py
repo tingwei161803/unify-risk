@@ -191,6 +191,21 @@ def _prepared_mode(app_mode: str) -> str:
         "normal, each with its number and its healthy line, grouped by body system (weight and waist, "
         "blood pressure, blood sugar, blood fats, kidneys, liver). In `## What you should do`, tie each "
         "action to the person's own numbers.\n"
+        "\nColour, strictly by the `labs` status: every value whose status is high or very-high goes "
+        "inside `!!…!!` (red); borderline and low go inside `^^…^^` (amber); normal values get no marker. "
+        "Never put a high value in amber.\n"
+        "\nA value exactly at a cut-off belongs to the higher band (for example triglycerides of 150 are "
+        "borderline high, because normal is under 150). Copy the band from `labs`, never infer it.\n"
+        "\nThe packet's `services` (`meets`, `confirm`), `followUpTests` reasons and `whatIfs` change text "
+        "are data written for a program. Rewrite them as natural sentences for the person and keep every "
+        "number exactly. Never paste labels such as \"Age 62\", \"Smoking: current\" or \"reads "
+        "\"High\" against the standard used here\"; write \"you are 62\", \"you smoke\", \"your blood "
+        "pressure (146/92) is high by the standard used here\". Mention every service in `services` "
+        "(those you meet and those that may apply, with what is still to confirm) and every test in "
+        "`followUpTests`. When a what-if leaves an estimate in the same band, say how the points change "
+        "(\"your score drops from 19 to 17 points, still about 1 in 3\"). Avoid verbs that can be misread: "
+        "write \"ask your doctor to recheck\" or \"bring it up with your doctor\", never \"raise your "
+        "cholesterol\".\n"
     )
 
 
