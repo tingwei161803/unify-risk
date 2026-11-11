@@ -2,18 +2,20 @@
 
 Issue #6. Contract (docs/interfaces.md):
 
-    payload: {"filename": str, "dataUrl": "data:<type>;base64,<data>"}
+    payload: {"filename": str, "dataUrl": "data:<type>;base64,<data>", "provider": str (optional)}
     returns: {"demo": False,
               "report": {"date": "YYYY-MM-DD" or "", "source": <filename>, "labs": {<Person.labs keys>}},
               "measurements": {heightCm, weightKg, waistCm, sbp, dbp}   # only those printed
               "items": [{key, label, value, unit, range, flag, confidence}],  # every printed result
               "lab": <clinic name>, "provider": ..., "model": ...}
 
-The model is reached through api/router.py, one key at a time in this order: JOHNCLAUDE,
-then CLAUDE_API_KEY (both read images and PDFs), then OPENGSA_GEMINI_API_KEY (images only).
-If no key is set or every call fails, handle() raises; the page then shows a fictional
-sample report with a "demo data" note. Values here always come from the model, so
-"demo" is always False when handle() returns.
+The model is reached through api/router.py. When the person picked a provider in the header,
+only that one is used (no fallback). Otherwise ("Auto") the providers are tried one at a time
+in this order: JOHNCLAUDE, then CLAUDE_API_KEY (both read images and PDFs), then
+OPENGSA_GEMINI_API_KEY (images only); the next one is tried when a call fails or its answer
+is not valid JSON. If nothing works, handle() raises; the page then shows a fictional sample
+report with a "demo data" note. Values here always come from the model, so "demo" is always
+False when handle() returns.
 """
 
 import json
@@ -84,21 +86,16 @@ def handle(payload: dict, env) -> dict:
     data_url = str(payload.get("dataUrl") or "")
     media_type = _check_file(data_url)
 
+    picked = str(payload.get("provider") or "").strip().lower()
+    attempts = [picked] if picked else [name for name, key_name in ATTEMPTS if (env.get(key_name) or "").strip()]
     failures = []
-    for name, key_name in ATTEMPTS:
-        key = (env.get(key_name) or "").strip()
-        if not key:
-            continue
+    for name in attempts:
         if name == "gemini" and media_type == "application/pdf":
             failures.append("gemini cannot read PDFs")
             continue
-        # The router tries every provider whose key it can see, so give it exactly one.
-        one = {key_name: key, "LLM_PROVIDER_ORDER": name}
-        model = (env.get(f"{name.upper()}_MODEL") or "").strip()
-        if model:
-            one[f"{name.upper()}_MODEL"] = model
         try:
-            reply = chat(PROMPT, one, system=SYSTEM, attachment=data_url)
+            # A named provider is used alone; the router does not fall back to the others.
+            reply = chat(PROMPT, env, system=SYSTEM, attachment=data_url, provider=name)
         except NoProviderError as error:
             failures.append(f"{name}: {_short(error)}")
             continue
@@ -129,7 +126,14 @@ def _check_file(data_url: str) -> str:
 
 def _short(error: Exception) -> str:
     """Status codes only; provider error bodies are never passed to the page."""
-    codes = re.findall(r"HTTP (\d{3})", str(error))
+    text = str(error)
+    if "No API key is set" in text:
+        return "no key is set"
+    if "Unknown provider" in text:
+        return "unknown provider"
+    if "cannot read" in text:
+        return "cannot read this file type"
+    codes = re.findall(r"HTTP (\d{3})", text)
     if codes:
         return "HTTP " + ", ".join(dict.fromkeys(codes))
     if "Network error" in str(error):

@@ -168,8 +168,8 @@ def compare(truth: dict, result: dict) -> dict:
     }
 
 
-def run_one(file: Path, env: dict, data: dict) -> dict:
-    payload = {"filename": file.name,
+def run_one(file: Path, env: dict, data: dict, provider: str = "") -> dict:
+    payload = {"filename": file.name, "provider": provider,
                "dataUrl": f"data:{MEDIA[file.suffix.lower()]};base64,{base64.b64encode(file.read_bytes()).decode('ascii')}"}
     started = time.monotonic()
     try:
@@ -208,6 +208,7 @@ def main() -> int:
     parser.add_argument("--only", action="append", default=[], help="check only this file name (repeatable)")
     parser.add_argument("--out", default="", help="folder for recognition-check.json (default: a temporary folder)")
     parser.add_argument("--workers", type=int, default=3)
+    parser.add_argument("--provider", default="", help="use only this provider (johnclaude, claude, gemini, ...); default: Auto")
     args = parser.parse_args()
 
     env = read_env_file(args.env_file)
@@ -231,7 +232,7 @@ def main() -> int:
           f"({'reports.js' if data.get('reports') else 'personas.js'}).", flush=True)
 
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
-        results = list(pool.map(lambda f: run_one(f, env, data), files))
+        results = list(pool.map(lambda f: run_one(f, env, data, args.provider), files))
 
     out = Path(args.out) if args.out else tmp
     out.mkdir(parents=True, exist_ok=True)
