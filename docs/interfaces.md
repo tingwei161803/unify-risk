@@ -192,6 +192,23 @@ const { report, demo } = await ctx.callApi('recognize', { filename, dataUrl });
 
 - `callApi` throws on any failure (network, non-200, an exception in `handle`). The caller catches it and falls back to demo data, with a small "demo data" note on screen. The flow never blocks.
 - Set `"demo": True` in the response whenever the values did not come from the real service.
-- `GET /api/health` returns `{"ok": true}`.
+- `GET /api/health` returns `{"ok": true, "providers": ["claude", ...]}`: the names of the providers whose key is set, never the keys.
 - Only `index.html` and files under `css/`, `js/` and `assets/` are served; anything else is a 404.
 - `POST /api/*` must send `Content-Type: application/json` and come from this server's own pages (`callApi` already does both). Other origins get 403.
+
+## Model providers
+
+Server modules that need a language model call one function and never talk to a provider directly:
+
+```python
+from api.router import chat, NoProviderError
+
+reply = chat("Extract the lab values as JSON.", env, system="...", attachment=data_url)
+reply["text"], reply["provider"], reply["model"]
+```
+
+- `attachment` is an optional base64 data URL of an image or a PDF.
+- A provider is used when its key is set in `.env`. They are tried in this order, and the next one is tried when a call fails: `CLAUDE_API_KEY`, `JOHNCLAUDE`, `OPENROUTER_API_KEY`, `OPENGSA_GEMINI_API_KEY`, `GROQ_API_KEY`, `NVIDIA_API_KEY`. `LLM_PROVIDER_ORDER` changes the order; `<NAME>_MODEL` (for example `GROQ_MODEL`) overrides a provider's model.
+- Only the two Claude keys read PDFs; the others read images. A provider that cannot read the attachment is skipped.
+- With no key set, or when every provider fails, `chat` raises `NoProviderError`; the caller falls back to demo data.
+- From a page: `await ctx.callApi('chat', { prompt, system, attachment })` returns the same `{ text, provider, model }`.
