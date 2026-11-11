@@ -12,7 +12,7 @@ Closes #
 
 ## Impact on others
 
-<!-- Shared files touched (index.html, app entry point, shared styles, README, AGENTS.md), interface changes, new packages or environment variables. -->
+<!-- Shared files touched (index.html, server.py, js/app.js, js/store.js, js/api.js, css/app.css, README, AGENTS.md), interface changes, new packages or environment variables. -->
 
 - [ ] No API key, `.env` or personal data committed
 - [ ] `.env.example` updated for any new environment variable
