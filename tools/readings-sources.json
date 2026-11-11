@@ -1,0 +1,11 @@
+{
+  "note": "Written by tools/build-readings.mjs; checked by tools/check-readings.mjs.",
+  "files": {
+    "api/interpret.py": "c177001995952f20",
+    "docs/report-interpreter.md": "7b6ca9fb0b27cb4e",
+    "js/views/explain-packet.js": "f2bf7bdbf23da259",
+    "js/engine/labs.js": "1474c08766dbaf07",
+    "js/engine/whatif.js": "6c421fb90cdcfab2",
+    "js/data/services.js": "5a0e4f5c73110885"
+  }
+}
