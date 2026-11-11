@@ -33,7 +33,7 @@ flowchart TD
 Yellow with a thick border: a model is involved. Green: deterministic formulas or written rules; the same inputs always give the same output and no model is called. Grey: the person's own input or fictional sample data.
 
 - **Step 3.** The model only copies values. Nothing is saved until the person has ticked every row.
-- **Step 6.** The model receives numbers the browser already computed and writes prose around them. The server then lists every number in the reply that appears in neither the packet nor the guide, and the page flags them. This is a coarse filter, not proof: it cannot tell whether a number is attached to the right result.
+- **Step 6.** For a sample person whose inputs are unchanged, the page shows a reading a model wrote in advance (`js/data/readings.js`) and makes no call. Otherwise the model receives numbers the browser already computed and writes prose around them. The server then lists every number in the reply that appears in neither the packet nor the guide, and the page flags them. This is a coarse filter, not proof: it cannot tell whether a number is attached to the right result.
 
 The main design decisions:
 
@@ -112,6 +112,7 @@ flowchart LR
 Notes on what the diagram shows:
 
 - The dispatch is generic: any `api/NAME.py` that defines `handle(payload, env)` becomes `POST /api/NAME`. `main` has three: `recognize`, `interpret` and `chat`. `api/router.py` has no `handle`, so it is not an endpoint.
+- `js/data/readings.js` (generated readings for the sample people) is loaded on demand by the Explained page and is not in the diagram.
 - Two pages call the server: the lab report page through `recognize`, and the Explained page through `interpret`. `api/chat.py` works but no page calls it.
 - `docs/report-interpreter.md` is not served to the browser. `api/interpret.py` reads it from disk and uses part of it as the model's instructions.
 - `js/data/coefficients.js` (generated coefficient tables for 53 models, built by `tools/build-coefficients.mjs`) is on `main` but is not in the diagram: no module imports it yet.
@@ -152,6 +153,7 @@ flowchart TD
         RWHATIF["results-whatif.js"]
         RLABS["results-labs.js"]
         EXPLAIN["explain.js"]
+        EXPACKET["explain-packet.js"]
         PLAN["plan.js"]
         EVVIEW["evidence.js"]
     end
@@ -167,6 +169,7 @@ flowchart TD
         REPORTS["reports.js"]
         SERVICES["services.js"]
         EVDATA["evidence.js"]
+        READINGS["readings.js"]
     end
 
     APP --> STORE
@@ -198,12 +201,14 @@ flowchart TD
     RLABS --> INPUTS
     RLABS -.-> RUN
 
-    EXPLAIN --> RUN
-    EXPLAIN --> EVDATA
+    EXPLAIN --> EXPACKET
     EXPLAIN --> PERSONAS
-    EXPLAIN --> REPORTS
-    EXPLAIN --> SERVICES
-    EXPLAIN -.-> WHATIF
+    EXPLAIN -.-> READINGS
+    EXPACKET --> RUN
+    EXPACKET --> EVDATA
+    EXPACKET --> REPORTS
+    EXPACKET --> SERVICES
+    EXPACKET -.-> WHATIF
 
     PLAN --> SERVICES
     PLAN --> RUN
@@ -231,7 +236,7 @@ Every page view exports one function, `render(root, ctx)`. `root` is the emptied
 Things the graph shows that are easy to miss:
 
 - **`inputs.js` is also a helper module.** The results views and the evidence view import its DOM helpers (`h`, `mount`), `personFrom`, `regionOf`, field labels and the disclaimer.
-- **`results-whatif.js` and `results-labs.js` are sections, not pages.** `results.js` calls `whatIfSection` and `labsSection`. They have no route.
+- **`results-whatif.js`, `results-labs.js` and `explain-packet.js` are not pages.** `results.js` calls `whatIfSection` and `labsSection`; `explain.js` calls `buildPacket`. They have no route.
 - **`results.js` and `evidence.js` import `js/engine/index.js` directly**, for `FORMULAS` and `runChecks`. Estimates still come through `ctx.runAll`.
 - **`report.js` and `login.js` reach the rest of the app only through `ctx`** and, for `report.js`, on-demand sample data.
 - `js/data/services.js`, `js/data/evidence.js`, `js/engine/labs.js` and `js/api.js` import nothing.
@@ -380,7 +385,7 @@ Details the diagram leaves out:
 ```mermaid
 sequenceDiagram
     actor Person
-    participant Page as views/explain.js
+    participant Page as views/explain.js and explain-packet.js
     participant Engine as engine and rules in the browser
     participant LS as localStorage
     participant Server as server.py
@@ -392,8 +397,9 @@ sequenceDiagram
     Page->>Engine: assess, whatIfsFlat, matchingServices, followUpTests, evidence cells
     Engine-->>Page: Computed numbers and rule outcomes
     Note over Page: Builds the packet from these and the record
-    Page->>LS: Look for a saved reading for this exact packet
-    alt A saved reading exists
+    alt Sample person with unchanged inputs, fingerprint matches js/data/readings.js
+        Note over Page: Shows the reading prepared in advance, no call is made
+    else A reading for this exact packet is saved in localStorage
         LS-->>Page: The saved reading, no call is made
     else No saved reading, or Write again
         Page->>Server: POST /api/interpret with the packet
@@ -412,6 +418,7 @@ sequenceDiagram
     Page-->>Person: The details below it, computed in the browser
 ```
 
+- **Prepared readings.** `js/data/readings.js` holds one reading per sample person, written in advance by a model through the same `api/interpret.py` (`tools/build-readings.mjs`, with a stronger model and a longer length). The page uses one only when the fingerprint of its own packet matches: same person, answers, lab values, reports and formula results. An edited answer or a newly confirmed report falls back to a live reading. The footer says the reading was prepared in advance; "Write again" asks for a live one.
 - **What the model gets.** Only values the browser already holds or computed. The exact contents are listed under [Security boundaries](#security-boundaries).
 - **What the model is asked to do.** Write a short narrative in three parts, following the hard rules and phrasing in `docs/report-interpreter.md`. `api/interpret.py` uses the parts of that guide the page needs, plus a short addendum. Claude providers default to a faster model for this call unless `.env` names one.
 - **The number filter is coarse.** A number in the reply passes if it appears anywhere in the packet or the guide, or is a whole number from 0 to 10. It does not check that the number belongs to the right result, and it does not check the words. Numbers that fail come back in `untraced`; the page shows them under "Check these numbers". Nothing is removed from the text.
@@ -507,7 +514,7 @@ The exact fields of `profile`, `labs` and a formula result are in [interfaces.md
 - **Where keys live.** In `.env` (git-ignored) or the real environment; real environment variables win. They are read only by `api/router.py`, sent only to the provider's own API in a request header, and never logged or returned.
 - **What leaves the browser.** Two things, both sent to the local server and passed on to one model provider. Nothing else is sent: the questionnaire, results, Next steps and evidence pages make no API call.
   - **A report file the person uploads** (`recognize`). The model is told not to copy names, ID numbers or other identifying details, but the file itself is sent whole.
-  - **The Explained packet** (`interpret`). The browser sends: region; the person (sample person's id and name, or `me` and `you`; region; population rows; every profile answer; every lab value); the newest lab report and earlier ones as saved, including printed items, file name and clinic name; every formula result with terms, equation and citation; the lab readings; the metabolic syndrome count; the validation cells for the person's population rows; the what-ifs; the matching services with `status`, `meets` and `confirm`; and the follow-up tests.
+  - **The Explained packet** (`interpret`), built in `js/views/explain-packet.js`. It is sent only when a live reading is needed: not when a prepared or saved reading is shown. The browser sends: region; the person (sample person's id and name, or `me` and `you`; region; population rows; every profile answer; every lab value); the newest lab report and earlier ones as saved, including printed items, file name and clinic name; every formula result with terms, equation and citation; the lab readings; the metabolic syndrome count; the validation cells for the person's population rows; the what-ifs; the matching services with `status`, `meets` and `confirm`; and the follow-up tests.
   - **What the provider receives from that packet** is a slimmer copy made by `api/interpret.py`: region, population rows, profile answers and lab values; each report's date, type and lab values; each result's name, outcome, status, display value, terms (label, input, contribution), missing labels, reason and notes; lab readings; the metabolic syndrome count; the status and direction of each validation cell; the what-ifs; service name, rule, status, `meets`, `confirm` and how to apply; follow-up test name, reasons and where. The name, the id, citations, equations, printed report items, file names and clinic names are dropped. The profile answers and lab values are health data and do go to the provider.
 - **What reaches the browser.** Static files, the handler's JSON reply, and on failure `{ "error": message }`. `recognize` and `interpret` reduce a provider failure to a status code or a short reason. `chat` passes on the router's message, which can include the first 300 characters of a provider's error response; the router replaces the key with `[key]` if a provider ever echoes it.
 - **Sign-in is a demo.** Test accounts with no password, checked only in the browser. It separates sample people from each other; it does not protect data.
@@ -539,11 +546,11 @@ Owners are the names used in [interfaces.md](interfaces.md).
 | `js/views/results-whatif.js`, `js/views/results-labs.js`: what-if cards and lab readings on the results page | Working | Robert | Done (PR #60) |
 | `js/views/evidence.js`: validation matrix, per-group summary, re-run check table | Working | Robert | Done (PR #60) |
 | `js/data/evidence.js`, `tools/build-evidence.mjs`: evidence data | Generated; 57 formulas by 18 population rows | Matt | Done (PR #59) |
-| `api/interpret.py`, `js/views/explain.js`, `js/engine/whatif.js`: the Explained page | Working with a provider key; without one the reading is unavailable and the details still show. The number filter is coarse | Andrew | Done (PR #43, PR #53) |
+| `api/interpret.py`, `js/views/explain.js`, `js/views/explain-packet.js`, `js/engine/whatif.js`: the Explained page | Working with a provider key; without one the reading is unavailable and the details still show. The number filter is coarse | Andrew | Done (PR #43, PR #53) |
 | `docs/report-interpreter.md`: the model's guide for the reading | Used by `api/interpret.py` | Andrew | Done (PR #24) |
 | `js/views/plan.js`, `js/data/services.js`: Next steps | Working; rules only, `meets` or `may-apply` | Peter | Done (PR #41, PR #50) |
 | `js/data/coefficients.js`, `tools/build-coefficients.mjs`: coefficient tables for 53 models | Data only; no module imports it | Not listed | PR #62; issue #61 (open) |
-| Prepared readings for the sample people, shown without a model call | Not on `main` | Andrew | Issue #56, PR #57 (open) |
+| `js/data/readings.js`, `tools/build-readings.mjs`, `tools/build_readings.py`: readings prepared in advance for the nine sample people | Working; shown only while the sample person's inputs are unchanged | Andrew | Done (PR #57) |
 | `consentResearch` in the record | Stored field only; no page reads or sets it | Peter | None |
 
 ## Where to read next

@@ -29,6 +29,8 @@ api/recognize.py       Matt     report recognition (#6)
 js/views/report.js     Matt     upload, confirm field by field
 api/interpret.py       Andrew   POST /api/interpret: the written reading (#37)
 js/views/explain.js    Andrew   the Explained page (#37)
+js/views/explain-packet.js  Andrew   builds the packet sent to /api/interpret
+js/data/readings.js    Andrew   generated readings for the sample people; do not edit by hand
 js/data/evidence.js    Matt     generated; do not edit by hand
 js/engine/**           Matt and Andrew   formulas and lab standards (#9); pages import run.js only
 js/data/personas.js    Andrew   fictional sample people (#5)
