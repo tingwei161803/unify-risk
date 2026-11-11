@@ -1,13 +1,17 @@
 // Reference standards for the values on a health-check report, and a plain-English
 // reading of where one person stands against each of them.
 //
-//   interpretLabs(person, report?) -> one row per value the person has (absent = not tested, no row);
-//                               `report` is an optional js/data/reports.js entry whose printed ranges win
+//   interpretLabs(person, report?) -> one row per value the person has (absent = not tested, no row).
+//       person: docs/interfaces.md Person { profile, labs } (a sample person with `region` works too).
+//       report: optional; either the interfaces.md Lab report { date, source, labs } (its values win)
+//               or the richer js/data/reports.js entry { items: [{ key, value, range }] } (values and
+//               printed ranges win).
 //   metabolicSyndrome(person) -> Taiwan criteria: how many of the 5 items are met (3 or more = yes)
 //   LAB_STANDARDS             -> every cut-off with its source, for the "show the math" drawer
 //
-// Person shape: js/data/personas.js (profile + labs, units in the key names), plus the optional
+// Person shape: docs/interfaces.md (profile + labs, units in the key names), plus the optional
 // person.report.printedRanges = { <lab key>: '<range as printed, e.g. "≤40" or "0.7–1.3">' }.
+// Region decides the BMI and waist cut-offs: person.region, else profile.region, else DEFAULT_REGION.
 //
 // Row shape
 //   { key, label, group: 'blood' | 'measurement', value, unit, standard, status, statusLabel,
@@ -29,6 +33,9 @@ export const SOURCES = {
   printed: "The lab's printed reference range",
   common: 'Common adult reference range (labs differ; a printed range on the report takes priority)'
 };
+
+export const DEFAULT_REGION = 'TW';
+const regionOf = (person) => person?.region || person?.profile?.region || DEFAULT_REGION;
 
 const STATUS_LABEL = {
   normal: 'Normal',
@@ -187,7 +194,7 @@ function bmiRow(person) {
   const h = num(p.heightCm), w = num(p.weightKg);
   if (h === null || w === null) return null;
   const v = Math.round((w / (h / 100) ** 2) * 10) / 10;
-  const tw = person.region === 'TW';
+  const tw = regionOf(person) === 'TW';
   const std = LAB_STANDARDS.bmi[tw ? 'TW' : 'other'];
   const b = pickBand(std.bands, v);
   const healthy = tw ? '18.5 to under 24' : '18.5 to under 25';
@@ -206,7 +213,7 @@ function waistRow(person) {
   const p = person.profile || {};
   const v = num(p.waistCm);
   if (v === null || (p.sex !== 'male' && p.sex !== 'female')) return null;
-  const tw = person.region === 'TW';
+  const tw = regionOf(person) === 'TW';
   const std = LAB_STANDARDS.waist[tw ? 'TW' : 'other'];
   const rule = std[p.sex];
   const over = rule.atLeast !== undefined ? v >= rule.atLeast : v > rule.above;
@@ -364,12 +371,22 @@ const uacrRow = (person) => bandedRow(person, 'uacrMgG', 'uacr', (v, b) =>
 const ITEMS = [bmiRow, waistRow, bpRow, glucoseRow, hba1cRow, totalCholRow, ldlRow, hdlRow, tgRow, creatinineRow, egfrRow, uacrRow,
   liverRow('astUL', 'ast', 'AST'), liverRow('altUL', 'alt', 'ALT'), plateletsRow];
 
-// Merge the printed ranges of a js/data/reports.js entry ({ items: [{ key, range }] }) into the person.
+const PROFILE_MEASURES = ['heightCm', 'weightKg', 'waistCm', 'sbp', 'dbp'];
+
+// Read one report into the person: interfaces.md { date, source, labs } or reports.js { items: [{ key, value, range }] }.
 function withReport(person, report) {
-  if (!report || !Array.isArray(report.items)) return person;
+  if (!report || typeof report !== 'object') return person;
+  const profile = { ...(person.profile || {}) };
+  const labs = { ...(person.labs || {}), ...(report.labs || {}) };
   const printedRanges = { ...(person.report?.printedRanges || {}) };
-  for (const it of report.items) if (it && it.key && it.range) printedRanges[it.key] = it.range;
-  return { ...person, report: { ...(person.report || {}), printedRanges } };
+  for (const it of Array.isArray(report.items) ? report.items : []) {
+    if (!it || !it.key) continue;
+    if (it.range) printedRanges[it.key] = it.range;
+    if (num(it.value) === null) continue;
+    if (PROFILE_MEASURES.includes(it.key)) profile[it.key] = num(it.value);
+    else if (it.key !== 'bmi') labs[it.key] = num(it.value);
+  }
+  return { ...person, profile, labs, report: { ...(person.report || {}), date: report.date, printedRanges } };
 }
 
 /** One row per value the person has, in report order: body measurements, sugar, fats, kidneys, liver, blood count. */
@@ -405,6 +422,6 @@ export function metabolicSyndrome(person) {
     : met === null
       ? `${count} of 5 items are met (${which}); ${unknown.join(', ').toLowerCase()} not measured, so it cannot be settled yet.`
       : `${count} of 5 items are met (${which}); 3 or more is needed for Taiwan's definition of metabolic syndrome.`;
-  const note = person?.region && person.region !== 'TW' ? ' Taiwan criteria; US programs use a waist line above 102 cm (men) and 88 cm (women).' : '';
+  const note = regionOf(person) !== 'TW' ? ' Taiwan criteria; US programs use a waist line above 102 cm (men) and 88 cm (women).' : '';
   return { count, of: 5, items, met, missing: unknown, explanation: explanation + note, source: SOURCES.hpaMets };
 }
