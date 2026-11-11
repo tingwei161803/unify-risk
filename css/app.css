@@ -493,7 +493,7 @@ article.risk:hover { border-color: var(--border-strong); }
 .cmp-row .nm small { display: block; margin-top: 6px; font-weight: 400; font-size: 12px; color: var(--dim); }
 .cmp-mid { display: grid; gap: 8px; justify-items: start; padding-top: 4px; }
 .cmp-track { height: 14px; justify-self: stretch; background: var(--track); border-radius: 3px; overflow: hidden; }
-.cmp-track i { display: block; height: 100%; border-radius: 3px; background: var(--mark-1); }
+.cmp-track i { display: block; height: 100%; min-width: 3px; border-radius: 3px; background: var(--mark-1); }   /* under 1 in 100 still shows */
 .cmp-row .v { align-self: center; text-align: right; font-size: 34px; line-height: 1.1; letter-spacing: -.02em; font-weight: 700;
   font-variant-numeric: tabular-nums; color: var(--text); text-decoration-style: dotted; text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
 .cmp-row .v small { margin-left: 4px; font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
