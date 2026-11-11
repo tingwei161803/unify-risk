@@ -24,11 +24,8 @@
 // newest, `previousReports` the rest, oldest first), and the flat what-ifs.
 // If the call fails, the page says so and the rest of the app keeps working.
 
-import { assess } from '../engine/run.js';
-import { getEvidence } from '../data/evidence.js';
 import { getPersona } from '../data/personas.js';
-import { reportsFor } from '../data/reports.js';
-import { followUpTests, matchingServices } from '../data/services.js';
+import { buildPacket, readingFingerprint, safe } from './explain-packet.js';
 
 const CACHE_PREFIX = 'unify-risk:explain:';
 const ORDER_NOTE = 'Sorted by the size of each estimate, largest first. Time frames differ, so this is not an order of urgency.';
@@ -144,30 +141,13 @@ export async function render(root, ctx) {
 
   const record = ctx.store.get();
   const persona = record.personaId ? getPersona(record.personaId) : null;
-  const person = buildPerson(record, persona);
-  const engineInput = { profile: person.profile, labs: person.labs };
-  const assessed = assess(engineInput);
-  const { report, previousReports } = pickReports(record, persona);
-  const whatif = await import('../engine/whatif.js').catch(() => null);
-  const scenarios = whatif ? safe(() => whatif.whatIfs(engineInput), []) : null;
-  const flat = whatif ? safe(() => whatif.whatIfsFlat(engineInput), []) : [];
+  const { person, assessed, scenarios, packet } = await buildPacket(record, persona);
 
-  // Same context shape as js/views/plan.js, so the reading and the Next steps page agree.
-  const serviceCtx = { profile: person.profile, labs: person.labs, results: assessed.results, labRows: assessed.labs,
-    mets: assessed.metabolicSyndrome, region: person.region };
-  const packet = {
-    region: person.region,
-    person,
-    report,
-    previousReports,
-    results: assessed.results,
-    labs: assessed.labs,
-    metabolicSyndrome: assessed.metabolicSyndrome,
-    evidence: evidenceFor(assessed.results, person.populationIds),
-    whatIfs: flat,
-    services: safe(() => matchingServices(serviceCtx), []),
-    followUpTests: safe(() => followUpTests(serviceCtx), [])
-  };
+  // Readings prepared in advance for the sample people (tools/build-readings.mjs). One is used only
+  // when this page would send exactly the same inputs; edited answers or a new report fall back to a live reading.
+  const readings = await import('../data/readings.js').then((m) => m.READINGS || {}).catch(() => ({}));
+  const pre = readings[person.id];
+  const prepared = pre && pre.fingerprint === readingFingerprint(packet) ? pre : null;
 
   view.append(
     el('h1', {}, 'Your report, explained'),
@@ -181,7 +161,7 @@ export async function render(root, ctx) {
   }
 
   view.append(
-    reportSection(ctx, packet),
+    reportSection(ctx, packet, prepared),
     el('section', { class: 'ex-details', 'aria-labelledby': 'ex-details' },
       el('h2', { id: 'ex-details' }, 'The details'),
       standSection(assessed.labs, assessed.metabolicSyndrome),
@@ -280,7 +260,7 @@ function changesSection(scenarios) {
 
 // ---------- 3. Written report (AI) ----------
 
-function reportSection(ctx, packet) {
+function reportSection(ctx, packet, prepared) {
   const key = cacheKey(ctx.store.user(), packet);
   const writeBtn = el('button', { type: 'button', class: 'btn secondary' }, 'Write again');
   const status = el('p', { class: 'ex-status', role: 'status', 'aria-live': 'polite' });
@@ -297,8 +277,8 @@ function reportSection(ctx, packet) {
   let ticker = null;
   const stopTicker = () => { if (ticker) clearInterval(ticker); ticker = null; };
 
-  const showReport = (data, fromCache) => {
-    out.replaceChildren(el('div', { class: 'ex-doc' }, ...renderMarkdown(data.markdown || '')), footer(data, fromCache));
+  const showReport = (data, source) => {
+    out.replaceChildren(el('div', { class: 'ex-doc' }, ...renderMarkdown(data.markdown || '')), footer(data, source));
     actions.hidden = false;
   };
 
@@ -318,7 +298,7 @@ function reportSection(ctx, packet) {
       const saved = { ...data, at: new Date().toISOString() };
       writeCache(key, saved);
       status.textContent = '';
-      showReport(saved, false);
+      showReport(saved, 'live');
     } catch (error) {
       status.textContent = '';
       actions.hidden = true; // the note below has its own Retry button
@@ -335,19 +315,29 @@ function reportSection(ctx, packet) {
   };
 
   writeBtn.addEventListener('click', () => write());
-  const cached = readCache(key);
-  if (cached) showReport(cached, true);
-  else write(); // no saved reading for this packet: start straight away (not awaited, the details render now)
+  if (prepared) {
+    showReport(prepared, 'prepared'); // same inputs as when it was prepared: no call, no wait
+  } else {
+    const cached = readCache(key);
+    if (cached) showReport(cached, 'cache');
+    else write(); // no saved reading for this packet: start straight away (not awaited, the details render now)
+  }
 
   return section;
 }
 
-function footer(data, fromCache) {
+function footer(data, source) {
   const foot = el('div', { class: 'ex-foot' });
   const who = [data.model, data.provider].filter(Boolean).join(' · ');
-  const when = fromCache && data.at ? ` Saved ${new Date(data.at).toLocaleString()}.` : '';
-  const took = Number.isFinite(data.seconds) ? ` in ${Math.round(data.seconds)} s` : '';
-  foot.append(el('div', {}, `Written by ${who || 'the AI model'}${took}.${when}`));
+  if (source === 'prepared') {
+    const day = data.generatedAt ? new Date(data.generatedAt).toLocaleDateString() : '';
+    foot.append(el('div', {}, ['Prepared in advance from this sample person\'s numbers', data.model, day].filter(Boolean).join(' · ') +
+      '. "Write again" asks for a fresh one.'));
+  } else {
+    const when = source === 'cache' && data.at ? ` Saved ${new Date(data.at).toLocaleString()}.` : '';
+    const took = Number.isFinite(data.seconds) ? ` in ${Math.round(data.seconds)} s` : '';
+    foot.append(el('div', {}, `Written by ${who || 'the AI model'}${took}.${when}`));
+  }
   const checked = Number.isFinite(data.numbersChecked) ? data.numbersChecked : null;
   const untraced = Array.isArray(data.untraced) ? data.untraced : [];
   if (untraced.length) {
@@ -365,54 +355,7 @@ function footer(data, fromCache) {
   return foot;
 }
 
-// ---------- Packet ----------
 
-function buildPerson(record, persona) {
-  const profile = { ...(record.profile || {}) };
-  const sexRow = profile.sex === 'female' ? 'women' : profile.sex === 'male' ? 'men' : null;
-  const rows = persona && Array.isArray(persona.populationIds) && persona.populationIds.length
-    ? persona.populationIds.slice()
-    : ['tw', sexRow].filter(Boolean);
-  // Age rows from js/data/evidence.js, so "checked in people like you" covers older adults too.
-  const age = Number(profile.age);
-  if (age >= 65 && !rows.includes('65plus')) rows.push('65plus');
-  if (age >= 80 && !rows.includes('80plus')) rows.push('80plus');
-  return {
-    id: record.personaId || 'me',
-    name: persona ? persona.name : 'you',
-    region: record.region || (persona && persona.region) || 'TW',
-    populationIds: rows,
-    profile,
-    labs: { ...(record.labs || {}) }
-  };
-}
-
-function pickReports(record, persona) {
-  // The store keeps confirmed reports newest first; js/data/reports.js lists a sample person's oldest first.
-  // loadPersona() keeps earlier reports in the record, so with a sample person only reports tagged
-  // with that person's id count; untagged ones are ignored.
-  const stored = Array.isArray(record.reports) ? record.reports : [];
-  const mine = record.personaId ? stored.filter((r) => r && r.personId === record.personaId) : stored;
-  if (mine.length) return { report: mine[0], previousReports: mine.slice(1).reverse() };
-  const sample = persona ? safe(() => reportsFor(persona.id), []) : [];
-  if (sample.length) return { report: sample[sample.length - 1], previousReports: sample.slice(0, -1) };
-  return { report: null, previousReports: [] };
-}
-
-function evidenceFor(results, rows) {
-  const out = {};
-  for (const r of results || []) {
-    const id = r.modelId;
-    if (!id || out[id]) continue;
-    const cells = {};
-    for (const row of rows) {
-      const cell = getEvidence(id, row);
-      if (cell) cells[row] = cell;
-    }
-    out[id] = cells;
-  }
-  return out;
-}
 
 // ---------- Markdown → DOM (text only, never innerHTML) ----------
 
@@ -560,9 +503,6 @@ function shortReason(error) {
   return text.length > 140 ? `${text.slice(0, 137)}…` : text;
 }
 
-function safe(fn, fallback) {
-  try { return fn(); } catch (error) { console.error(error); return fallback; }
-}
 
 function addStyles() {
   if (document.getElementById('ex-styles')) return;
