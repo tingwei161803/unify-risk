@@ -19,6 +19,7 @@ Our entry for the c0mpiled-18 YC Startup School Hackathon (Taipei, 2026-11-11), 
 - Wire modules together with hard-coded fake data first, then replace it with the real thing. Nobody should wait on anybody else.
 - Stuck for 20 minutes? Say so in the group chat.
 - API keys go in `.env` only, never in the repo, a PR or an issue. When you add an environment variable, update `.env.example` (name and purpose only).
+- **Never print the real values in `.env`.** Do not `cat`, `grep`, `echo` or otherwise display the file or its values, and do not write them to logs, error messages, API responses, terminal output, commits, PRs or issues. To check a key, test only whether it is set (for example `GET /api/health` lists provider names), never what it is.
 - Use only published papers and formulas. No private or research datasets. Every sample person is fictional.
 
 ## 3. Product wording
