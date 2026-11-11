@@ -12,6 +12,8 @@ import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from api.router import configured
+
 ROOT = Path(__file__).resolve().parent
 # Only index.html and files under these folders are served.
 # Everything else (.env, server.py, api/, .git) is a 404.
@@ -71,7 +73,8 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/":
             self.path = "/index.html"
         if path == "/api/health":
-            return self.send_json(200, {"ok": True})
+            # Provider names only. Key values never leave the server.
+            return self.send_json(200, {"ok": True, "providers": configured(os.environ)})
         if not self.is_public_file():
             return self.send_error(404)
         return super().do_GET()
@@ -95,6 +98,8 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             module = importlib.import_module(f"api.{name}")
         except ModuleNotFoundError:
+            return self.send_error(404)
+        if not callable(getattr(module, "handle", None)):  # helper modules are not endpoints
             return self.send_error(404)
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY_BYTES:
