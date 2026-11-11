@@ -1,0 +1,474 @@
+{
+  "region": "TW",
+  "person": {
+    "title": "60, retired teacher, active, mother had dementia",
+    "story": "Walks an hour a day and eats well. Her mother had vascular dementia; her father had high blood pressure and high cholesterol; her brother has diabetes. Sleeps badly since retiring.",
+    "worry": "dementia"
+  },
+  "report": {
+    "date": "2026-11-04",
+    "type": "Health check (clinic)",
+    "fields": [
+      {
+        "label": "Height",
+        "key": "heightCm",
+        "value": "158",
+        "unit": "cm"
+      },
+      {
+        "label": "Weight",
+        "key": "weightKg",
+        "value": "56",
+        "unit": "kg"
+      },
+      {
+        "label": "BMI",
+        "key": "bmi",
+        "value": "22.4",
+        "unit": "kg/m²",
+        "range": "18.5–24"
+      },
+      {
+        "label": "Waist",
+        "key": "waistCm",
+        "value": "76",
+        "unit": "cm",
+        "range": "women <80"
+      },
+      {
+        "label": "Systolic blood pressure",
+        "key": "sbp",
+        "value": "128",
+        "unit": "mmHg",
+        "range": "<130/85"
+      },
+      {
+        "label": "Diastolic blood pressure",
+        "key": "dbp",
+        "value": "82",
+        "unit": "mmHg",
+        "range": "<130/85"
+      },
+      {
+        "label": "Fasting glucose",
+        "key": "fastingGlucose",
+        "value": "98",
+        "unit": "mg/dL",
+        "range": "70–99"
+      },
+      {
+        "label": "HbA1c",
+        "key": "hba1c",
+        "value": "5.8",
+        "unit": "%",
+        "range": "4.0–5.6",
+        "flag": "H"
+      },
+      {
+        "label": "Total cholesterol",
+        "key": "totalChol",
+        "value": "252",
+        "unit": "mg/dL",
+        "range": "<200",
+        "flag": "H"
+      },
+      {
+        "label": "Triglycerides",
+        "key": "tg",
+        "value": "110",
+        "unit": "mg/dL",
+        "range": "<150"
+      },
+      {
+        "label": "HDL cholesterol",
+        "key": "hdl",
+        "value": "62",
+        "unit": "mg/dL",
+        "range": "women ≥50"
+      },
+      {
+        "label": "LDL cholesterol",
+        "key": "ldl",
+        "value": "168",
+        "unit": "mg/dL",
+        "range": "<130",
+        "flag": "H"
+      },
+      {
+        "label": "Creatinine",
+        "key": "creatinine",
+        "value": "0.68",
+        "unit": "mg/dL",
+        "range": "0.5–1.1"
+      },
+      {
+        "label": "eGFR (as printed by the lab)",
+        "key": "egfr",
+        "value": "100",
+        "unit": "mL/min/1.73m²",
+        "range": "≥60"
+      },
+      {
+        "label": "AST",
+        "key": "ast",
+        "value": "22",
+        "unit": "U/L",
+        "range": "≤40"
+      },
+      {
+        "label": "ALT",
+        "key": "alt",
+        "value": "18",
+        "unit": "U/L",
+        "range": "≤40"
+      }
+    ]
+  },
+  "answers": {
+    "age": 60,
+    "sex": "female",
+    "educationYears": 16,
+    "smoking": "never",
+    "bpTreated": false,
+    "statin": false,
+    "diabetes": false,
+    "fam": {
+      "hypertension": true,
+      "highChol": true,
+      "diabetes": "first",
+      "stroke": false,
+      "dementia": true
+    },
+    "life": {
+      "active30": true,
+      "sedentary": false,
+      "vegDaily": true,
+      "livesAlone": false,
+      "hearingLoss": false,
+      "lowSocial": false,
+      "sleepProblem": true,
+      "highAlcohol": false,
+      "cognitivelyActive": true,
+      "healthyDiet": true
+    },
+    "concern": "dementia",
+    "highGlucoseHistory": false,
+    "exerciseTwiceWeekly": true,
+    "afib": false,
+    "cvdHistory": false,
+    "strokeHistory": false,
+    "retiredRecently": true,
+    "cond": {
+      "chd": false,
+      "heartFailure": false,
+      "afib": false,
+      "stroke": false,
+      "depression": false,
+      "cancer": false,
+      "lungDisease": false,
+      "hypertension": false,
+      "highChol": false,
+      "ckd": false,
+      "dementia": false
+    }
+  },
+  "previous_reports": [],
+  "engine": {
+    "note": "The calculator has already run. Use these numbers exactly as written; do not recompute or re-round them.",
+    "computed": [
+      {
+        "formula": "CKD-EPI 2021 eGFR",
+        "outcome": "Kidney filtering rate (estimated from creatinine)",
+        "source": "Inker 2021, doi:10.1056/NEJMoa2102953",
+        "result": "99.6 mL/min/1.73m²",
+        "equation": "eGFR = 142 × min(Scr/κ, 1)^α × max(Scr/κ, 1)^−1.200 × 0.9938^age × 1.012 [if female]",
+        "validation": {
+          "note": "Not in js/data/evidence.js (it covers stroke, dementia and diabetes formulas); use the Taiwan code in Section 5 of the guide."
+        }
+      },
+      {
+        "formula": "AHA PREVENT 10-year base equations",
+        "outcome": "Cardiovascular disease (heart attack, stroke or heart failure)",
+        "source": "Khan 2024, doi:10.1161/CIRCULATIONAHA.123.067626",
+        "within": "10 years",
+        "result": "4.2%",
+        "outOf100": "about 4 out of 100",
+        "alsoComputed": [
+          "Heart attack or stroke, 10 y: 2.9%",
+          "Heart failure, 10 y: 1.9%"
+        ],
+        "terms": [
+          "Age (per 10 y, centred at 55): x = 0.5, β = 0.7939329, adds 0.397",
+          "Non-HDL cholesterol (mmol/L − 3.5): x = 1.413, β = 0.0305239, adds 0.043",
+          "HDL cholesterol (per 0.3 mmol/L): x = 1.011, β = -0.1606857, adds -0.162",
+          "Systolic BP from 110 (per 20, centred at 130): x = -0.1, β = 0.360078, adds -0.036",
+          "eGFR from 60 (per 15 lower, centred at 90): x = -0.643, β = 0.0433769, adds -0.028",
+          "Age × non-HDL cholesterol: x = 0.707, β = -0.0819715, adds -0.058",
+          "Age × HDL cholesterol: x = 0.506, β = 0.0306769, adds 0.016",
+          "Age × systolic BP: x = -0.05, β = -0.0946348, adds 0.005"
+        ],
+        "equation": "risk = e^x / (1 + e^x),  x = intercept + Σ β·term",
+        "validation": {
+          "note": "Not in js/data/evidence.js (it covers stroke, dementia and diabetes formulas); use the Taiwan code in Section 5 of the guide."
+        }
+      },
+      {
+        "formula": "UK Biobank Dementia Risk Score (UKBDRS)",
+        "outcome": "Dementia",
+        "source": "Anatürk 2023, doi:10.1136/bmjment-2023-300719",
+        "within": "14 years",
+        "result": "1.2%",
+        "outOf100": "about 1 out of 100",
+        "terms": [
+          "Age − 59.97: x = 0.03, β = 0.178, adds 0.005",
+          "Parent with dementia: x = 1, β = 0.431, adds 0.431",
+          "Years of schooling − 13.54: x = 2.46, β = -0.041, adds -0.101"
+        ],
+        "equation": "risk = 1 − 0.9916195^exp(LP),  LP = Σ β·x  (age − 59.97, education − 13.54)",
+        "cautions": [
+          "The UK-only deprivation term is left out (it cannot be measured outside the UK)."
+        ],
+        "validation": {
+          "taiwan": {
+            "status": "G",
+            "meaning": "No validation found"
+          },
+          "women": {
+            "status": "G",
+            "meaning": "No validation found"
+          },
+          "china": {
+            "status": "G",
+            "meaning": "No validation found"
+          }
+        }
+      },
+      {
+        "formula": "LIBRA2 brain-health profile",
+        "outcome": "Modifiable dementia risk profile (a points score, no probability)",
+        "source": "Rosenau 2024, doi:10.3233/JAD-240666",
+        "result": "-2.4 points",
+        "score": "-2.4 points (higher = more modifiable risk; protective factors subtract)",
+        "points": [
+          "High cholesterol: 2.6",
+          "Sleep disturbance: 1.1",
+          "Physically active (protective): -1.9",
+          "Healthy diet (protective): -1.2",
+          "Cognitively active (protective): -3"
+        ],
+        "equation": "score = Σ weights of factors present (protective factors subtract)",
+        "validation": {
+          "note": "js/data/evidence.js has a row only for the original 2014 LIBRA, not LIBRA2"
+        }
+      },
+      {
+        "formula": "FINDRISC questionnaire (form version)",
+        "outcome": "Type 2 diabetes",
+        "source": "Lindström 2003, doi:10.2337/diacare.26.3.725; Finnish Diabetes Association form",
+        "within": "10 years",
+        "result": "about 1 in 25 (form band 7-11 points)",
+        "score": "8 of 26 points",
+        "paperVersion": "Same answers on the 2003 paper's 0-20 scale: 3 points; 0.6% of women in that band (0-3) developed drug-treated diabetes within 10 years.",
+        "points": [
+          "Age (45–54: 2, 55–64: 3, over 64: 4): 3",
+          "Diabetes in the family (second-degree 3, first-degree 5; form only): 5"
+        ],
+        "equation": "score = Σ points  →  the band printed on the form",
+        "cautions": [
+          "The form gives a band (\"about 1 in N\"), not an exact probability."
+        ],
+        "validation": {
+          "taiwan": {
+            "status": "C",
+            "meaning": "Only discrimination reported",
+            "cStatistic": 0.73,
+            "studies": 1
+          },
+          "women": {
+            "status": "C",
+            "meaning": "Only discrimination reported",
+            "cStatistic": 0.732,
+            "studies": 5
+          },
+          "china": {
+            "status": "R",
+            "meaning": "Recalibrated version exists",
+            "cStatistic": 0.661,
+            "studies": 1
+          }
+        }
+      },
+      {
+        "formula": "Revised Framingham Stroke Risk Profile (FSRP)",
+        "outcome": "Stroke",
+        "source": "Dufouil 2017, doi:10.1161/CIRCULATIONAHA.115.021275",
+        "within": "10 years",
+        "result": "1.2%",
+        "outOf100": "about 1 out of 100",
+        "alsoComputed": [
+          "Stroke, 5 y: 0.4%"
+        ],
+        "terms": [
+          "Age ÷ 10: x = 6, β = 0.87938, adds 5.276",
+          "(Systolic BP − 120) ÷ 10, untreated: x = 0.8, β = 0.11303, adds 0.09"
+        ],
+        "equation": "risk = 1 − Sb(t)^exp(L − M),  L = Σ β·x,  M = 6.6170719,  Sb(10) = 0.95911",
+        "validation": {
+          "taiwan": {
+            "status": "G",
+            "meaning": "No validation found"
+          },
+          "women": {
+            "status": "D",
+            "meaning": "Developed in this group",
+            "observedToExpected": 1.001,
+            "direction": "mixed-under",
+            "cStatistic": 0.71,
+            "studies": 8
+          },
+          "china": {
+            "status": "R",
+            "meaning": "Recalibrated version exists",
+            "observedToExpected": 3.488,
+            "direction": "formula under-estimates",
+            "cStatistic": 0.71,
+            "studies": 4
+          }
+        }
+      },
+      {
+        "formula": "Chin-Shan community stroke score (Taiwan)",
+        "outcome": "Stroke",
+        "source": "Chien 2010, doi:10.1161/STROKEAHA.110.586222",
+        "within": "10 years",
+        "result": "3.0%",
+        "outOf100": "about 3 out of 100",
+        "score": "7 of 19 points",
+        "points": [
+          "Age (35–39: 0, +1 per 5 years, 75 or over: 8): 5",
+          "Systolic BP (110–129: 1, 130–149: 2, 150 or more: 3): 1",
+          "Diastolic BP (75–94: 1, 95 or more: 2): 1"
+        ],
+        "equation": "score = Σ points  →  the 10-year risk printed for that total",
+        "validation": {
+          "taiwan": {
+            "status": "D",
+            "meaning": "Developed in this group",
+            "cStatistic": 0.772,
+            "studies": 1
+          },
+          "women": {
+            "status": "G",
+            "meaning": "No validation found"
+          },
+          "china": {
+            "status": "G",
+            "meaning": "No validation found"
+          }
+        }
+      },
+      {
+        "formula": "CAIDE dementia risk score (model 1, no APOE)",
+        "outcome": "Dementia",
+        "within": "20 years",
+        "result": "1.5%",
+        "outOf100": "about 1 out of 100",
+        "score": "6 of 15 points",
+        "points": [
+          "Age 60 (over 53): 4",
+          "Total cholesterol 252 mg/dL = 6.52 mmol/L (over 6.5): 2"
+        ],
+        "equation": "P = 1 / (1 + e^-(-7.406 + 0.796 + 0.401 x score)), the paper's continuous score equation (Kivipelto 2006, Methods)",
+        "cautions": [
+          "Observed in the CAIDE cohort for scores 6–7: 1.9% developed dementia within 20 years (Table 3).",
+          "Built on Finnish adults aged 39-64 at baseline; it does not include family history of dementia."
+        ],
+        "validation": {
+          "taiwan": {
+            "status": "G",
+            "meaning": "No validation found"
+          },
+          "women": {
+            "status": "D",
+            "meaning": "Developed in this group",
+            "cStatistic": 0.66,
+            "studies": 3
+          },
+          "china": {
+            "status": "P",
+            "meaning": "Checked, poorly calibrated"
+          },
+          "asianAmerican": {
+            "status": "P",
+            "meaning": "Checked, poorly calibrated"
+          }
+        },
+        "source": "Kivipelto 2006, Lancet Neurol 2006;5:735-741"
+      }
+    ],
+    "notApplicable": [
+      {
+        "formula": "Hisayama dementia equation",
+        "reason": "Age 60 is below the formula's minimum age of 65."
+      },
+      {
+        "formula": "BDSI dementia index (Barnes 2014)",
+        "reason": "Age 60 is below the formula's minimum age of 65."
+      },
+      {
+        "formula": "Kidney Failure Risk Equation (KFRE, 4-variable)",
+        "reason": "Only for people whose eGFR is below 60; this eGFR is above 60."
+      }
+    ],
+    "needsMoreInformation": [
+      {
+        "formula": "FIB-4 index",
+        "missing": [
+          "Platelet count (blood count)"
+        ]
+      }
+    ],
+    "whatIf": [
+      {
+        "change": "Total cholesterol 40 mg/dL lower",
+        "results": [
+          "PREVENT cardiovascular disease, 10 y: 4.2% -> 4.2%",
+          "PREVENT heart attack or stroke, 10 y: 2.9% -> 2.6%",
+          "CAIDE dementia, 20 y: 1.5% -> 0.7% (6 -> 4 points)"
+        ]
+      }
+    ]
+  },
+  "services": [
+    {
+      "service": "Free adult preventive health check (National Health Insurance)",
+      "eligible": "yes",
+      "how": "every 3 years"
+    },
+    {
+      "service": "One-time free hepatitis B and C blood test",
+      "eligible": "yes",
+      "how": "once"
+    },
+    {
+      "service": "Free stool test for bowel cancer (FIT), every 2 years, ages 45-74",
+      "eligible": "yes",
+      "how": "every 2 years"
+    },
+    {
+      "service": "One-time free Helicobacter pylori stool test, ages 45-74",
+      "eligible": "yes",
+      "how": "once"
+    },
+    {
+      "service": "Free mammogram every 2 years, women 40-74",
+      "eligible": "yes",
+      "how": "every 2 years"
+    },
+    {
+      "service": "Free cervical smear (Pap test)",
+      "eligible": "yes",
+      "how": "every 1 years"
+    }
+  ]
+}

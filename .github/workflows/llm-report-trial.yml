@@ -1,0 +1,44 @@
+name: LLM report trial
+
+# Experiment branch only (exp/llm-report-trial); never merged to main.
+on:
+  push:
+    branches: [exp/llm-report-trial]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: llm-report-trial
+  cancel-in-progress: false
+
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate reports
+        env:
+          JOHNCLAUDE: ${{ secrets.JOHNCLAUDE }}
+          OPENGSA_GEMINI_API_KEY: ${{ secrets.OPENGSA_GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: node tools/llm-report-trial/run.mjs
+      - name: Review with GPT 6 Astra
+        if: always()
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: node tools/llm-report-trial/review.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: llm-report-trial
+          path: out/
+          if-no-files-found: warn

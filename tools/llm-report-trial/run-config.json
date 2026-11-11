@@ -1,0 +1,7 @@
+{
+  "generate": true,
+  "compareGemini": true,
+  "review": true,
+  "reviewModel": "openai/gpt-6-astra",
+  "cases": []
+}
