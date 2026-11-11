@@ -13,6 +13,7 @@ import { EVIDENCE, POPULATIONS, STATUS as EVIDENCE_STATUS } from '../data/eviden
 import { PERSONAS } from '../data/personas.js';
 import { whatIfSection } from './results-whatif.js';
 import { labsSection } from './results-labs.js';
+import { publishedSection } from './results-published.js';
 
 // Optional extras from the formula engine: the list of inputs per formula and the checks that
 // re-compute each paper's printed examples. The page works without them.
@@ -324,6 +325,8 @@ function openDrawer(r, person, state, opener) {
         r.terms.some((t) => isNum(t.contribution)) ? h('p.small.dim', { style: { 'margin-top': '6px' } },
           'Orange to the right pushes the figure up; blue to the left pulls it down.') : null,
         r.notes.length ? h('div.stack', { style: { gap: '4px', 'margin-top': '10px' } }, r.notes.map((n) => h('p.small', '· ' + n))) : null) : null,
+      // the paper's own equation, coefficients and tables (js/data/coefficients.js), loaded when a drawer first opens
+      publishedSection(r, state && state.profile ? state.profile.sex : null),
       h('div', h('h4', 'Where the formula comes from'),
         r.population ? h('p', r.population) : r.builtOn ? h('p', 'Built on ' + r.builtOn + '.') : null,
         range ? h('p.small', { style: { 'margin-top': '6px' } }, range) : null,
