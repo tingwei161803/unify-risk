@@ -25,6 +25,8 @@ export const bdsi = {
   name: 'BDSI',
   disease: 'dementia',
   outcome: 'Dementia within 6 years (points; no percentage published)',
+  kind: 'score',
+  derivedIn: 'US',
   horizonYears: 6,
   ageRange: [65, 79],
   population: 'Four US cohorts (CHS, FHS, HRS, SALSA): adults aged 65–79 without dementia, followed for 6 years.',
@@ -68,10 +70,10 @@ export const bdsi = {
       'The paper publishes no percentage for each score, so none is shown.'
     ];
     return computed(this, {
-      value: null,
+      value: points,
       display: `${points} of ${MAX} points · ${high ? 'at or above' : 'below'} the ${CUTOFF}-point line`,
       score: { points, max: MAX },
-      band: high ? 'high' : 'not high',
+      band: { label: `${high ? 'At or above' : 'Below'} the ${CUTOFF}-point line`, aboveCutoff: high },
       terms,
       notes
     });

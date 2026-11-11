@@ -14,7 +14,8 @@
 //
 // Result shape, one per formula (the UI draws one card per result):
 //   id            same id as js/data/evidence.js: 'fsrp' | 'chin-shan-stroke' | 'findrisc' | 'caide' |
-//                 'framingham-offspring-diabetes-wilson-2007' | 'ada-risk-test-bang-2009'
+//                 'framingham-offspring-diabetes-wilson-2007' | 'ada-risk-test-bang-2009' |
+//                 'hisayama-dementia-equation' | 'bdsi'
 //   name          short name, e.g. 'Revised FSRP'
 //   disease       'stroke' | 'diabetes' | 'dementia'
 //   outcome       e.g. 'First stroke within 10 years'
@@ -66,10 +67,12 @@ import { findrisc } from './formulas/findrisc.js';
 import { caide } from './formulas/caide.js';
 import { wilsonDiabetes } from './formulas/wilson-diabetes.js';
 import { adaDiabetes } from './formulas/ada-diabetes.js';
+import { hisayama } from './formulas/hisayama.js';
+import { bdsi } from './formulas/bdsi.js';
 
 export { runChecks } from './checks.js';
 
-const ALL = [fsrp, chinShanStroke, findrisc, caide, wilsonDiabetes, adaDiabetes];
+const ALL = [fsrp, chinShanStroke, findrisc, caide, wilsonDiabetes, adaDiabetes, hisayama, bdsi];
 
 // Static description of each formula (no person needed), e.g. for the evidence page.
 export const FORMULAS = ALL.map((f) => ({

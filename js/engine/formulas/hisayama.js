@@ -52,6 +52,8 @@ export const hisayama = {
   name: 'Hisayama dementia equation',
   disease: 'dementia',
   outcome: 'Dementia within 10 years',
+  kind: 'risk',
+  derivedIn: 'JP',
   horizonYears: 10,
   ageRange: [65, null],
   population: 'Hisayama Study, Japan: community-dwelling adults aged 65 and over without dementia, followed for 10 years.',

@@ -8,6 +8,8 @@ import { findrisc, findriscPaperBand } from './formulas/findrisc.js';
 import { caide } from './formulas/caide.js';
 import { wilsonDiabetes } from './formulas/wilson-diabetes.js';
 import { adaDiabetes } from './formulas/ada-diabetes.js';
+import { checks as hisayamaChecks } from './formulas/hisayama.js';
+import { checks as bdsiChecks } from './formulas/bdsi.js';
 import { round } from './util.js';
 
 const person = (profile, labs = {}) => ({ profile, labs });
@@ -196,5 +198,5 @@ function adaChecks() {
 }
 
 export function runChecks() {
-  return [...fsrpChecks(), ...chinShanChecks(), ...findriscChecks(), ...caideChecks(), ...wilsonChecks(), ...adaChecks()];
+  return [...fsrpChecks(), ...chinShanChecks(), ...findriscChecks(), ...caideChecks(), ...wilsonChecks(), ...adaChecks(), ...hisayamaChecks, ...bdsiChecks];
 }
