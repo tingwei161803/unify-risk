@@ -1,0 +1,87 @@
+/* Shared styles. Tokens first; pages build on these classes. */
+:root {
+  --bg: #f7f6f2;
+  --surface: #ffffff;
+  --ink: #1d2327;
+  --muted: #5d6870;
+  --line: #dcdad2;
+  --accent: #0b6e69;
+  --warn: #a4580c;
+  --radius: 12px;
+  font-size: 18px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { font-weight: 700; color: var(--accent); text-decoration: none; }
+.nav { display: flex; gap: 16px; flex: 1; flex-wrap: wrap; }
+.nav a { color: var(--muted); text-decoration: none; padding: 4px 2px; border-bottom: 2px solid transparent; }
+.nav a.active { color: var(--ink); border-bottom-color: var(--accent); }
+.session { color: var(--muted); font-size: 0.85rem; }
+
+.page { max-width: 880px; margin: 0 auto; padding: 32px 24px 64px; }
+.page h1 { margin: 0 0 8px; font-size: 1.8rem; line-height: 1.2; }
+.lead { color: var(--muted); margin: 0 0 24px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); }
+
+.btn {
+  display: inline-block;
+  font: inherit;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn.secondary { background: transparent; color: var(--accent); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+.foot {
+  padding: 16px 24px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.field {
+  font: inherit;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  min-width: 240px;
+}
+.card-button { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.card-button:hover { border-color: var(--accent); }
+.link { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
