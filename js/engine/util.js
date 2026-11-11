@@ -22,7 +22,10 @@ export const FIELD_LABELS = {
   active30minDaily: 'At least 30 minutes of activity a day',
   exerciseTwiceWeekly: 'Leisure exercise at least twice a week',
   vegFruitDaily: 'Vegetables, fruit or berries every day',
-  'labs.totalCholMgDl': 'Total cholesterol'
+  'labs.totalCholMgDl': 'Total cholesterol',
+  'labs.fastingGlucoseMgDl': 'Fasting glucose',
+  'labs.hdlMgDl': 'HDL cholesterol',
+  'labs.tgMgDl': 'Triglycerides'
 };
 
 const CHOICES = {
@@ -76,11 +79,12 @@ export function yesNo(v) {
   return v ? 'yes' : 'no';
 }
 
-// Age gate shared by every formula. ageRange = [lo, hi]; hi = null means no upper limit.
+// Age gate shared by every formula. ageRange = [lo, hi]; hi = null means no upper limit,
+// lo = null means the source states no lower limit.
 // Returns '' when the age is inside the range, otherwise the reason shown to the person.
 export function outsideAge(meta, age) {
   const [lo, hi] = meta.ageRange;
-  if (age >= lo && (hi === null || age <= hi)) return '';
+  if ((lo === null || age >= lo) && (hi === null || age <= hi)) return '';
   const range = hi === null ? `${lo} and over` : `${lo}–${hi}`;
   return `Age ${age} is outside ${range}, the ages this formula was built on.`;
 }
@@ -92,6 +96,8 @@ function base(meta) {
     name: meta.name,
     disease: meta.disease,
     outcome: meta.outcome,
+    kind: meta.kind || 'risk',
+    derivedIn: meta.derivedIn || null,
     status: 'computed',
     value: null,
     display: '',

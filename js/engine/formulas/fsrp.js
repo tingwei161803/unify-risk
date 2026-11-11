@@ -31,6 +31,8 @@ export const fsrp = {
   disease: 'stroke',
   outcome: 'First stroke within 10 years',
   horizonYears: 10,
+  kind: 'risk',
+  derivedIn: 'US',
   ageRange: [55, 84],
   population: 'Framingham Heart Study (US), stroke-free adults aged 55–84; checked externally in 3C (France) and REGARDS (US).',
   source: {

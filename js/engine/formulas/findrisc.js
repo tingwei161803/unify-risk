@@ -36,6 +36,8 @@ export const findrisc = {
   disease: 'diabetes',
   outcome: 'Type 2 diabetes within 10 years',
   horizonYears: 10,
+  kind: 'risk',
+  derivedIn: 'EU',
   ageRange: [35, 64],
   population: 'Finnish adults aged 35–64 (1987 survey cohort; checked again in the 1992 cohort).',
   source: {

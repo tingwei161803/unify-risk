@@ -9,12 +9,16 @@
 ```text
 index.html             Peter    the only HTML file; loads js/app.js
 server.py              Peter    serves the app and forwards /api/*
+api/router.py          Peter    chat(): one entry point for every model provider (#18)
+api/chat.py            Peter    POST /api/chat
 js/app.js              Peter    router: maps the hash to a view
 js/store.js            Peter    reads and writes localStorage
 js/api.js              Peter    callApi(name, payload)
 js/auth.js             Peter    demo sign-in (#3)
 js/views/home.js       Peter
 js/views/login.js      Peter
+js/views/plan.js       Peter    next steps: follow-up tests and services (#39)
+js/data/services.js    Peter    the written rules behind the next steps page
 css/app.css            Robert   shared styles (Peter wrote the first version)
 js/views/inputs.js     Robert   questionnaire
 js/views/results.js    Robert   one card per formula
@@ -22,8 +26,9 @@ js/views/evidence.js   Robert   validation matrix and check table
 api/recognize.py       Matt     report recognition (#6)
 js/views/report.js     Matt     upload, confirm field by field
 js/data/evidence.js    Matt     generated; do not edit by hand
-js/engine/**           Matt and Andrew   formulas (#9)
+js/engine/**           Matt and Andrew   formulas and lab standards (#9); pages import run.js only
 js/data/personas.js    Andrew   fictional sample people (#5)
+js/data/reports.js     Andrew   fictional dated lab reports (#5)
 assets/sample-reports/ Andrew   fictional report files
 ```
 
@@ -211,6 +216,7 @@ reply["text"], reply["provider"], reply["model"]
 
 - `attachment` is an optional base64 data URL of an image or a PDF.
 - A provider is used when its key is set in `.env`. They are tried in this order, and the next one is tried when a call fails: `CLAUDE_API_KEY`, `JOHNCLAUDE`, `OPENROUTER_API_KEY`, `OPENGSA_GEMINI_API_KEY`, `GROQ_API_KEY`, `NVIDIA_API_KEY`. `LLM_PROVIDER_ORDER` changes the order; `<NAME>_MODEL` (for example `GROQ_MODEL`) overrides a provider's model.
+- A busy or unreachable provider (HTTP 429, 500, 502, 503, 504, or a network error) is tried once more after a short pause (1.5 s, or a numeric `Retry-After` capped at 5 s) before the next one is tried; other errors (400, 401, 403, 404), refusals, empty replies and full timeouts are not retried. Both attempts share one 90-second budget per provider.
 - Only the two Claude keys read PDFs; the others read images. A provider that cannot read the attachment is skipped.
 - With no key set, or when every provider fails, `chat` raises `NoProviderError`; the caller falls back to demo data.
 - From a page: `await ctx.callApi('chat', { prompt, system, attachment })` returns the same `{ text, provider, model }`.
