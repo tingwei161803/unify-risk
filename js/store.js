@@ -2,7 +2,7 @@
 
 import { PERSONAS } from './data/personas.js';
 
-const SESSION_KEY = 'unify-risk:session';
+export const SESSION_KEY = 'unify-risk:session';
 const dataKey = (user) => `unify-risk:v1:${user}`;
 const listeners = new Set();
 
