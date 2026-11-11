@@ -29,6 +29,7 @@ export const SOURCES = {
   atp3: 'NCEP Adult Treatment Panel III (ATP III), 2001',
   accAha: '2017 ACC/AHA high blood pressure guideline (Whelton et al.)',
   ada: 'ADA Standards of Care in Diabetes 2026, Section 2 (Tables 2.1 and 2.2)',
+  adaLow: 'ADA Standards of Care in Diabetes 2026, Section 6 (glucose levels for hypoglycemia)',
   kdigo: 'KDIGO 2024 guideline for chronic kidney disease',
   printed: "The lab's printed reference range",
   common: 'Common adult reference range (labs differ; a printed range on the report takes priority)'
@@ -106,9 +107,12 @@ export const LAB_STANDARDS = {
   egfr: {
     label: 'eGFR (kidney filtering rate)', group: 'blood', unit: 'mL/min/1.73m²', source: SOURCES.kdigo,
     // descending: the first stage whose floor the value reaches
-    stages: [{ atLeast: 90, status: 'normal', category: 'G1, normal or high' }, { atLeast: 60, status: 'normal', category: 'G2, mildly decreased' },
-      { atLeast: 45, status: 'low', category: 'G3a, mildly to moderately decreased' }, { atLeast: 30, status: 'low', category: 'G3b, moderately to severely decreased' },
-      { atLeast: 15, status: 'low', category: 'G4, severely decreased' }, { atLeast: -Infinity, status: 'low', category: 'G5, kidney failure range' }]
+    stages: [{ atLeast: 90, status: 'normal', category: 'G1, normal or high', range: '90 or more' },
+      { atLeast: 60, status: 'normal', category: 'G2, mildly decreased', range: '60–89' },
+      { atLeast: 45, status: 'low', category: 'G3a, mildly to moderately decreased', range: '45–59' },
+      { atLeast: 30, status: 'low', category: 'G3b, moderately to severely decreased', range: '30–44' },
+      { atLeast: 15, status: 'low', category: 'G4, severely decreased', range: '15–29' },
+      { atLeast: -Infinity, status: 'low', category: 'G5, kidney failure range', range: 'under 15' }]
   },
   uacr: {
     label: 'Urine albumin-to-creatinine ratio (UACR)', group: 'blood', unit: 'mg/g', source: SOURCES.kdigo,
@@ -122,7 +126,16 @@ export const LAB_STANDARDS = {
 
 /* ---------- helpers ---------- */
 
-const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+// Only real numbers and non-blank numeric strings count; ' ', [], true and the like are "not given",
+// so they never turn into a reading of 0 or 1.
+const num = (v) => {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
 const fmt = (v, d = 1) => {
   const s = Number(v).toFixed(d);
   return s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s;
@@ -244,7 +257,7 @@ function bpRow(person) {
   const onMeds = p.bpTreated === true ? ' This reading is on blood-pressure medicine.' : '';
   const explanation = c.status === 'normal'
     ? `${s}/${d} mmHg is under 120/80, the normal line.${onMeds}`
-    : `${s}/${d} mmHg is in the ${c.category.toLowerCase()}; one office reading is not enough, so repeat or home readings confirm it.${onMeds}`;
+    : `${s}/${d} mmHg is in the 2017 ACC/AHA ${c.category.toLowerCase()}; one office reading is a snapshot, and repeat or home readings show whether it stays in this range.${onMeds}`;
   return row('bp', LAB_STANDARDS.bp, `${s}/${d}`, 'mmHg', {
     standard: LAB_STANDARDS.bp.text, status: c.status, category: c.category, explanation, source: SOURCES.accAha
   });
@@ -263,10 +276,20 @@ function bandedRow(person, key, stdKey, sentence) {
 
 const glucoseRow = (person) => {
   const r = bandedRow(person, 'fastingGlucoseMgDl', 'fastingGlucose', (v, b) =>
-    b.status === 'normal' ? `Fasting glucose ${fmt(v)} mg/dL is under 100, the normal line.`
-      : b.status === 'borderline' ? `Fasting glucose ${fmt(v)} mg/dL is above the prediabetes line (100) but below the diabetes range (126).`
-        : `Fasting glucose ${fmt(v)} mg/dL is in the diabetes range (126 or more); a single result needs a repeat test before it means diabetes.`);
+    b.status === 'normal' ? `Fasting glucose ${fmt(v)} mg/dL is under 100, the ADA's normal line.`
+      : b.status === 'borderline' ? `Fasting glucose ${fmt(v)} mg/dL is in the ADA's prediabetes range (100–125), below its diabetes range (126 or more).`
+        : `Fasting glucose ${fmt(v)} mg/dL is in the ADA's diabetes range (126 or more); the ADA criteria call for a second test to confirm a result in this range.`);
   if (!r) return r;
+  // Zero, negative or far beyond any lab's scale: not a plausible fasting reading, so no category.
+  if (r.value <= 0 || r.value > 1000) {
+    return Object.assign(r, { status: 'low', statusLabel: 'Check this value', category: 'Not a plausible reading',
+      explanation: `A fasting glucose of ${fmt(r.value)} mg/dL is not a plausible reading; please check this value against the report.` });
+  }
+  // Under 70 mg/dL is the ADA's line for low blood glucose.
+  if (r.value < 70) {
+    Object.assign(r, { status: 'low', statusLabel: STATUS_LABEL.low, category: 'Under 70 (low-glucose range)',
+      explanation: `Fasting glucose ${fmt(r.value)} mg/dL is under 70, the line the ADA uses for low blood glucose.`, source: SOURCES.adaLow });
+  }
   // a printed lower limit can still flag a low value
   const pr = parseRange(person.report?.printedRanges?.fastingGlucoseMgDl);
   if (pr && pr.lo !== null && r.value < pr.lo) {
@@ -277,9 +300,9 @@ const glucoseRow = (person) => {
 };
 
 const hba1cRow = (person) => bandedRow(person, 'hba1cPct', 'hba1c', (v, b) =>
-  b.status === 'normal' ? `HbA1c ${fmt1(v)}% is under 5.7%, the normal line; it reflects average blood sugar over about three months.`
-    : b.status === 'borderline' ? `HbA1c ${fmt1(v)}% is in the prediabetes range (5.7–6.4%), above normal but below the diabetes range (6.5%).`
-      : `HbA1c ${fmt1(v)}% is in the diabetes range (6.5% or more); a single result needs a repeat test before it means diabetes.`);
+  b.status === 'normal' ? `HbA1c ${fmt1(v)}% is under 5.7%, the ADA's normal line; it reflects average blood sugar over about three months.`
+    : b.status === 'borderline' ? `HbA1c ${fmt1(v)}% is in the ADA's prediabetes range (5.7–6.4%), below its diabetes range (6.5% or more).`
+      : `HbA1c ${fmt1(v)}% is in the ADA's diabetes range (6.5% or more); the ADA criteria call for a second test to confirm a result in this range.`);
 
 const totalCholRow = (person) => bandedRow(person, 'totalCholMgDl', 'totalChol', (v, b) =>
   b.status === 'normal' ? `Total cholesterol ${fmt(v)} mg/dL is under 200, the desirable line.`
@@ -303,14 +326,16 @@ function hdlRow(person) {
     status = 'low'; category = 'Low';
     explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is under 40, which counts as a heart-risk factor.`;
   } else if (female && v < 50) {
-    status = 'borderline'; category = "Under the women's line of 50";
+    // Too low for the women's line, so the arrow points down (Low ▼), not up.
+    status = 'low'; category = "Under the women's line of 50";
     explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is above 40 but under 50, the line Taiwan's metabolic-syndrome criteria use for women.`;
   } else if (v >= 60) {
     status = 'normal'; category = 'High (protective)';
     explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is 60 or more, which counts in your favour.`;
   } else {
     status = 'normal'; category = 'Normal';
-    explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is not under the low line (${female ? '50 for women' : '40 for men'}).`;
+    const line = female ? '50 for women' : person.profile?.sex === 'male' ? '40 for men' : '40';
+    explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is not under the low line (${line}).`;
   }
   return row('hdlMgDl', LAB_STANDARDS.hdl, v, 'mg/dL', {
     standard: LAB_STANDARDS.hdl.text + printedNote(person, 'hdlMgDl'), status, category, explanation, source: LAB_STANDARDS.hdl.source
@@ -341,10 +366,16 @@ const creatinineRow = (person) => rangeRow(person, 'creatinineMgDl', 'creatinine
   s === 'normal' ? `Creatinine ${fmt1(v)} mg/dL is within range (${r.text}); the eGFR line turns it into a filtering rate.`
     : `Creatinine ${fmt1(v)} mg/dL is ${s === 'high' ? 'above' : 'below'} range (${r.text}); the eGFR line says what it means for the kidneys.`);
 
-const liverRow = (key, stdKey, name) => (person) => rangeRow(person, key, stdKey, (v, s, r) =>
-  s === 'high'
-    ? `${name} ${fmt(v)} U/L is ${fmt(v / r.hi)} times the upper limit (${fmt(r.hi)}); mild rises are common with fatty liver, alcohol or some medicines.`
-    : `${name} ${fmt(v)} U/L is within range (${r.text}).`);
+// Says how far above or below the range the value is; no guess at the cause.
+const liverRow = (key, stdKey, name) => (person) => rangeRow(person, key, stdKey, (v, s, r) => {
+  if (s === 'high') {
+    const ratio = v / r.hi;
+    // Under 1.5 times, a multiple such as "1 times" reads oddly; say "above" instead.
+    return `${name} ${fmt(v)} U/L is ${ratio < 1.5 ? 'above' : `${fmt(ratio)} times`} the upper limit (${fmt(r.hi)}).`;
+  }
+  if (s === 'low') return `${name} ${fmt(v)} U/L is below the range (${r.text}).`;
+  return `${name} ${fmt(v)} U/L is within range (${r.text}).`;
+});
 
 const plateletsRow = (person) => rangeRow(person, 'plateletsK', 'platelets', (v, s, r) =>
   s === 'normal' ? `Platelets ${fmt(v)} ×10³/µL are within range (${r.text}).`
@@ -355,18 +386,25 @@ function egfrRow(person) {
   if (v === null) return null;
   const std = LAB_STANDARDS.egfr;
   const st = std.stages.find((x) => v >= x.atLeast);
+  const [stage, words] = [st.category.split(',')[0], st.category.split(', ')[1]];
+  // Where the number falls on the KDIGO scale; never whether the person has or lacks a kidney disease.
   const explanation = v >= 60
-    ? `eGFR ${fmt(v)} is stage ${st.category.split(',')[0]} (${st.category.split(', ')[1]}); on its own this is not kidney disease unless urine albumin is also raised.`
-    : `eGFR ${fmt(v)} is stage ${st.category.split(',')[0]} (${st.category.split(', ')[1]}); one result cannot establish chronic kidney disease, it needs a repeat after more than 3 months.`;
+    ? `eGFR ${fmt(v)} is in KDIGO stage ${stage} (${words}, ${st.range}); KDIGO reads the stage together with urine albumin (UACR).`
+    : `eGFR ${fmt(v)} is in KDIGO stage ${stage} (${words}, ${st.range}); KDIGO stages describe results that stay in a range for more than 3 months, so a repeat test shows whether this one does.`;
   return row('egfrMlMin', std, v, std.unit, {
     standard: 'G1 90 or more · G2 60–89 · G3a 45–59 · G3b 30–44 · G4 15–29 · G5 under 15' + printedNote(person, 'egfrMlMin'),
     status: st.status, category: st.category, explanation, source: std.source
   });
 }
 
-const uacrRow = (person) => bandedRow(person, 'uacrMgG', 'uacr', (v, b) =>
-  b.status === 'normal' ? `Urine albumin ${fmt(v)} mg/g is under 30 (A1), so the kidney filter is not leaking protein.`
-    : `Urine albumin ${fmt(v)} mg/g is ${b.category.split(', ')[1]} (${b.category.split(',')[0]}), an early sign the kidney filter leaks protein; it needs a repeat test to confirm.`);
+// Where the number falls on the KDIGO albuminuria scale; no statement about the kidneys themselves.
+const uacrRow = (person) => bandedRow(person, 'uacrMgG', 'uacr', (v, b) => {
+  const [cat, words] = [b.category.split(',')[0], b.category.split(', ')[1]];
+  const range = cat === 'A1' ? 'under 30' : cat === 'A2' ? '30–300' : 'over 300';
+  return b.status === 'normal'
+    ? `Urine albumin ${fmt(v)} mg/g is in KDIGO category ${cat} (${words}, ${range}).`
+    : `Urine albumin ${fmt(v)} mg/g is in KDIGO category ${cat} (${words}, ${range}); KDIGO categories describe results that stay in a range for more than 3 months, so a repeat test shows whether this one does.`;
+});
 
 const ITEMS = [bmiRow, waistRow, bpRow, glucoseRow, hba1cRow, totalCholRow, ldlRow, hdlRow, tgRow, creatinineRow, egfrRow, uacrRow,
   liverRow('astUL', 'ast', 'AST'), liverRow('altUL', 'alt', 'ALT'), plateletsRow];
