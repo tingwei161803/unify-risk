@@ -142,6 +142,7 @@ function normalise(raw) {
       builtOn: shortPopulation(r.population) || (r.derivedIn ? 'data from ' + (PLACES[r.derivedIn] || r.derivedIn) : null),
       ageRange: Array.isArray(r.ageRange) ? r.ageRange : null,
       source: { citation: src.citation || '', url: safeUrl(src.url) || (src.doi ? safeUrl('https://doi.org/' + src.doi) : null) },
+      // True only for the fallback results js/engine/run.js returns if the engine failed to load.
       placeholder: r.placeholder === true
     };
   });
