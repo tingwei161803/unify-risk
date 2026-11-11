@@ -192,7 +192,7 @@ const printedNote = (person, key) => {
 function bmiRow(person) {
   const p = person.profile || {};
   const h = num(p.heightCm), w = num(p.weightKg);
-  if (h === null || w === null) return null;
+  if (h === null || w === null || h <= 0 || w <= 0) return null; // blank or zero is "not answered", not a measurement
   const v = Math.round((w / (h / 100) ** 2) * 10) / 10;
   const tw = regionOf(person) === 'TW';
   const std = LAB_STANDARDS.bmi[tw ? 'TW' : 'other'];
