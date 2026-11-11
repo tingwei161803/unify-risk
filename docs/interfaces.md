@@ -21,10 +21,16 @@ js/views/plan.js       Peter    next steps: follow-up tests and services (#39)
 js/data/services.js    Peter    the written rules behind the next steps page
 css/app.css            Robert   shared styles (Peter wrote the first version)
 js/views/inputs.js     Robert   questionnaire
-js/views/results.js    Robert   one card per formula
+js/views/results.js    Robert   one card per formula, with the equation drawer
+js/views/results-whatif.js  Robert   what-if cards on the results page
+js/views/results-labs.js    Robert   lab readings on the results page
 js/views/evidence.js   Robert   validation matrix and check table
 api/recognize.py       Matt     report recognition (#6)
 js/views/report.js     Matt     upload, confirm field by field
+api/interpret.py       Andrew   POST /api/interpret: the written reading (#37)
+js/views/explain.js    Andrew   the Explained page (#37)
+js/views/explain-packet.js  Andrew   builds the packet sent to /api/interpret
+js/data/readings.js    Andrew   generated readings for the sample people; do not edit by hand
 js/data/evidence.js    Matt     generated; do not edit by hand
 js/engine/**           Matt and Andrew   formulas and lab standards (#9); pages import run.js only
 js/data/personas.js    Andrew   fictional sample people (#5)
@@ -41,6 +47,7 @@ assets/sample-reports/ Andrew   fictional report files
 | `#/inputs` | `inputs.js` | Questionnaire |
 | `#/report` | `report.js` | Upload a lab report, confirm each value |
 | `#/results` | `results.js` | One card per formula |
+| `#/explain` | `explain.js` | The written reading of the results, then the computed details |
 | `#/plan` | `plan.js` | Next steps: follow-up tests and services the person's own values qualify for |
 | `#/evidence` | `evidence.js` | Where each formula has been checked |
 
@@ -70,7 +77,7 @@ One record per signed-in user, kept in this browser's `localStorage` under `unif
 
 ```js
 ctx.store.user();                 // 'testuser1' | 'guest'
-ctx.store.get();                  // { personaId, profile, labs, reports, consentResearch }
+ctx.store.get();                  // { personaId, profile, labs, reports, consentResearch, region? }
 ctx.store.set({ consentResearch: true });
 ctx.store.setProfile({ age: 62 });            // shallow merge into profile
 ctx.store.setLabs({ hdlMgDl: 41 });           // shallow merge into labs
@@ -152,6 +159,8 @@ export const PERSONAS = [
   labs: { totalCholMgDl: 212, hdlMgDl: 41 } }   // same keys as Person.labs
 ```
 
+The report page also saves `measurements`, `items`, `lab`, `demo` and `personId`; see the data model in [architecture.md](architecture.md#data-model).
+
 ## Results
 
 ```js
@@ -179,7 +188,7 @@ runAll({ profile, labs });
 
 - `status` is one of `ok`, `missing`, `not_applicable`.
 - The engine always returns 0–1 for a risk. Views multiply by 100 and round for display.
-- First formula ids: `fsrp`, `chin-shan-stroke`, `findrisc`, `caide`.
+- Formula ids: `fsrp`, `chin-shan-stroke`, `findrisc`, `caide`, `framingham-offspring-diabetes-wilson-2007`, `hisayama-dementia-equation`. Two point scores, `ada-risk-test-bang-2009` and `bdsi`, are returned only by the engine's own `runAll` with `includeScores: true`.
 - `getEvidence(modelId, populationId)` from `js/data/evidence.js` answers "has this formula been checked in people like me?".
 
 ## Server API
