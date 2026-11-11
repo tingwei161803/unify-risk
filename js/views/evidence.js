@@ -173,7 +173,7 @@ function draw(root, ctx) {
         h('div.stat', h('div.v', Math.round(everything.gaps / Math.max(everything.cells, 1) * 100) + '%'), h('div.l', 'of the map is still blank')))),
     h('section',
       h('div.row.between', { style: { 'margin-bottom': '12px' } },
-        h('h2', showAll ? 'All ' + all.length + ' formulas' : 'The ' + entries.length + ' formulas this app computes'),
+        h('h2', showAll ? 'All ' + all.length + ' formulas' : 'In this app: ' + entries.length + ' of the ' + all.length + ' formulas'),
         h('div.seg', { role: 'group', 'aria-label': 'Which formulas to show' },
           h('button' + (showAll ? '' : '.on'), { type: 'button', 'data-key': 'seg-app', 'aria-pressed': String(!showAll), onclick: () => { showAll = false; picked = null; redraw(); } }, 'In this app'),
           h('button' + (showAll ? '.on' : ''), { type: 'button', 'data-key': 'seg-all', 'aria-pressed': String(showAll), onclick: () => { showAll = true; picked = null; redraw(); } }, 'All ' + all.length))),
