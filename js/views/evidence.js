@@ -4,7 +4,7 @@
 // Rows are formulas, columns are groups. A dashed cell is a gap: no published validation found.
 // The data comes from js/data/evidence.js (generated; this view only reads it).
 
-import { h, mount, disclaimer, focusHeading, regionOf } from './inputs.js';
+import { h, mount, disclaimer, focusHeading, regionOf, formulasOnScreen } from './inputs.js';
 import { EVIDENCE, POPULATIONS, STATUS } from '../data/evidence.js';
 import { PERSONAS } from '../data/personas.js';
 
@@ -55,7 +55,8 @@ function num(x, digits) { return isNum(x) ? String(Number(x.toFixed(digits))) : 
 
 function appFormulaIds() {
   // score-only formulas give no estimate and get no result card (the engine keeps them out of runAll)
-  const ids = engine && Array.isArray(engine.FORMULAS) ? engine.FORMULAS.filter((f) => f.kind !== 'score').map((f) => f.id) : FIRST_FORMULAS;
+  const onScreen = formulasOnScreen(engine);   // the first formulas, or every one in "all formulas" mode
+  const ids = onScreen.length ? onScreen.filter((f) => f.kind !== 'score').map((f) => f.id) : FIRST_FORMULAS;
   return ids.filter((id) => EVIDENCE[id]);
 }
 
@@ -226,7 +227,7 @@ function draw(root, ctx) {
   const all = Object.values(EVIDENCE);
   const appIds = appFormulaIds();
   // formulas with a result card; some are for diseases the validation map does not cover
-  const withCard = engine && Array.isArray(engine.FORMULAS) ? engine.FORMULAS.filter((f) => f.kind !== 'score').length : appIds.length;
+  const withCard = formulasOnScreen(engine).filter((f) => f.kind !== 'score').length || appIds.length;
   const entries = showAll ? all : appIds.map((id) => EVIDENCE[id]);
   const visible = shownEntries(entries), pops = shownPopulations();
   const everything = counts(all);
