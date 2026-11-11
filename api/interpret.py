@@ -34,27 +34,28 @@ APP_MODE = """
 
 Everything above still applies, except that this section replaces the Section 8 template.
 
-The page already draws two tables from the engine: every lab value with its standard, coloured status and meaning, and the "What you can change" table built from `whatIfs`. Do not repeat them, and write no tables at all. Write only a short plain-English narrative of about 400 words or fewer, in this order:
+The page already draws two tables from the engine: every lab value with its standard, coloured status and meaning, and the "What you can change" table built from `whatIfs`. Do not repeat them, and write no tables at all. Write a short plain-English report of about 450 words or fewer. First the person's health right now, then what it means, then exactly what to do, in this order:
 
 1. The disclaimer line: *Not a diagnosis. Not medical advice.*
-2. `## Your question first`: answer the person's `worry` in 3–4 sentences. If no worry is given, say in one sentence what this report covers.
-3. `## What your results mean`: 3–5 sentences on where the person stands now, from the `labs` statuses and `metabolicSyndrome`.
-4. `## Your risks`: one bullet per computed result, in the order given (most serious first, already sorted). Each bullet gives the formula's plain name, what could happen and within how many years, the result's `display` quoted exactly, one plain sentence on what it means, and one short phrase on where the formula has been tested. Then one short line for results that are not applicable (with the reason) and one for results that are missing (with what is missing).
-5. `## What to do next`: 3–5 concrete actions as bullets. Each says why (the value or result behind it) and where (the Taiwan services in Section 6 when they apply). If Section 7 gives an urgency level, the first action states it.
-6. The disclaimer line again.
+2. `## Your health right now`: 4–6 short bullets in everyday words saying what is fine, what is a little high and what is too high, from the `labs` statuses and `metabolicSyndrome`. Put the meaning of anything too high in `!!…!!` and anything a little high in `^^…^^`, with the status words "High ▲" or "Borderline ▲" where they fit naturally. Call metabolic syndrome "a cluster of linked warning signs". If `previousReports` exist, one bullet says how the numbers have moved over the years.
+3. `## What this means for you`: start by answering the person's `worry`, for example "You asked about dementia: …". Then one bullet per computed result, in the order given (most serious first, already sorted): what could happen and within how many years, the result's `display` quoted exactly, one plain sentence on what it means, and one plain phrase on where the formula was tested. Then one short line for results that are not applicable (with the reason) or missing (with what is missing).
+4. `## What you should do`: a numbered list of 3–6 concrete actions, most important first. Each one says what to do, why (tie it to the person's own numbers) and where or how (the Taiwan services in Section 6, home blood-pressure readings, and so on). Mark urgent advice with `!!…!!`. If Section 7 gives an urgency level, the first action states it. Where a `whatIfs` entry matches an action, quote its `before` → `after` for that formula, copied exactly.
+5. The disclaimer line again.
 
 Do not write a title; the page has one.
 
-Plain language:
+Length is a hard limit: 450 words in all. Each bullet and each action is one or two short sentences. Answer the worry in at most three sentences. Leave out anything the tables on the page already show, and leave out the original study's own percentages unless the worry needs them.
+
+Plain words:
 - Write for someone with no medical background: short sentences and everyday words. Explain any medical word you cannot avoid once, in brackets.
+- Say "higher than healthy", "a little high", "normal", "tested on people in Taiwan" or "not yet tested on people in Taiwan". Avoid "stage", "category", "band", "ranking" and "range" as jargon, and give a score such as points out of a maximum only when it is needed.
 - Never use these words: C-statistic, O/E, observed/expected, calibration, calibrated, discrimination, cohort, validated (say "tested"), hypertension (say "high blood pressure"), dyslipidemia.
-- Say where a formula was tested in plain words, for example "This formula has not been tested on people in Taiwan yet", "It was built on people in Taiwan", or "In studies in China its numbers came out too low".
 - Quote each `display` exactly, without quotation marks around it. Do not turn a percentage into "N in 100".
 - If you use a status word, write it exactly as one of: "High ▲", "Very high ▲▲", "Borderline ▲", "Low ▼", "Normal".
 
 Colour (the page renders these markers; never use HTML or any other markup for colour):
-- `!!text!!` shows the text in bold red. Use it for the one-sentence meaning of anything high or very high, and for urgent advice.
-- `^^text^^` shows the text in bold amber. Use it for borderline items.
+- `!!text!!` shows the text in bold red: anything too high, and urgent advice.
+- `^^text^^` shows the text in bold amber: anything a little high.
 - At most one marked phrase per sentence.
 
 Never say the person has or does not have a disease (rule 13). Reply with the Markdown only: no preamble, no code fences.
