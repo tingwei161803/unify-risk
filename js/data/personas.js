@@ -1,20 +1,31 @@
 // Fictional sample people for the demo. Every sample person here is fictional;
 // nobody here is real, and no value comes from a real record.
 //
-// Seven people, chosen so that every round-1 formula applies to all of them
-// (FSRP 55-84, Chin-Shan >=35, FINDRISC 35-64, CAIDE 39-64):
+// Nine people. The round-1 formulas are FSRP (ages 55-84), Chin-Shan (>=35),
+// FINDRISC (35-64) and CAIDE (39-64).
 //   lin, linda   one person from Taiwan and one from the United States. Run the
 //                same person through the US formula (FSRP) and the Taiwanese one
-//                (Chin-Shan) to show the gap.
+//                (Chin-Shan) to show the gap. All four formulas apply.
 //   chen, wang, wu, tsai, kao
 //                five people in Taiwan, aged 60-64, who have just retired and are
 //                worried about dementia. All five have parents or siblings with
 //                high blood pressure, high cholesterol and diabetes, and none has
 //                any known disease (no diabetes, no blood-pressure medicine, no
 //                atrial fibrillation, no heart disease, no stroke). Their check-up
-//                numbers are borderline in different ways.
+//                numbers are borderline in different ways. All four formulas
+//                apply. Chen has four yearly reports whose numbers worsen.
+//   hsu          61, same story, but her only report has no total cholesterol
+//                and no HbA1c, so CAIDE shows "missing".
+//   yang         67, same story: CAIDE and FINDRISC are "not applicable", while
+//                FSRP and Chin-Shan still apply.
 //
-// Shape of one persona
+// Order matters: the demo sign-in (js/auth.js) gives testuser1, testuser2 and
+// testuser3 the first three people, so lin, linda and chen (the multi-year
+// trend) come first. The home page lists everyone in this order.
+//
+// Shape of one persona (docs/interfaces.md, "Sample people" and "Person";
+// strokeHistory, the context-only fields, the extra lab keys and report are
+// optional additions that docs/interfaces.md does not list yet)
 //   id              string, stable key (used in URLs and localStorage)
 //   region          'TW' | 'US'
 //   name, tagline, blurb   display text (English)
@@ -22,8 +33,11 @@
 //                   page highlights these rows for this person
 //   profile         questionnaire answers (no blood test needed)
 //   labs            lab values; units are in the key name. Missing = not tested.
-//   report          optional: the check-up report the labs came from
-//                   { date, type, printedRanges: { <key>: range as printed } }
+//                   Always the lab values of the person's latest report in
+//                   js/data/reports.js (reportsFor(id), last entry).
+//   report          the latest report's date, type and printed ranges
+//                   { date, type, printedRanges: { <key>: range as printed } };
+//                   the full dated reports are in js/data/reports.js
 //
 // Profile fields and the formulas that read them
 //   age (years), sex ('male' | 'female')                     all
@@ -100,6 +114,20 @@ export const PERSONAS = [
       hdlMgDl: 41,
       fastingGlucoseMgDl: 108,
       hba1cPct: 5.9
+    },
+    report: {
+      date: '2026-10-15',
+      type: 'Health check (clinic)',
+      printedRanges: {
+        bmi: '18.5–24',
+        waistCm: 'men <90',
+        sbp: '<130/85',
+        dbp: '<130/85',
+        fastingGlucoseMgDl: '70–99',
+        hba1cPct: '4.0–5.6',
+        totalCholMgDl: '<200',
+        hdlMgDl: 'men ≥40'
+      }
     }
   },
   {
@@ -136,6 +164,20 @@ export const PERSONAS = [
       hdlMgDl: 52,
       fastingGlucoseMgDl: 101,
       hba1cPct: 5.7
+    },
+    report: {
+      date: '2026-09-22',
+      type: 'Annual physical (clinic)',
+      printedRanges: {
+        bmi: '18.5–24.9',
+        waistCm: 'women ≤88',
+        sbp: '<120/80',
+        dbp: '<120/80',
+        fastingGlucoseMgDl: '65–99',
+        hba1cPct: '<5.7',
+        totalCholMgDl: '<200',
+        hdlMgDl: 'women ≥50'
+      }
     }
   },
   {
@@ -192,6 +234,140 @@ export const PERSONAS = [
     report: {
       date: '2026-11-06',
       type: 'Self-paid health check (hospital)',
+      printedRanges: {
+        bmi: '18.5–24',
+        waistCm: 'men <90',
+        sbp: '<130/85',
+        dbp: '<130/85',
+        fastingGlucoseMgDl: '70–99',
+        hba1cPct: '4.0–5.6',
+        totalCholMgDl: '<200',
+        tgMgDl: '<150',
+        hdlMgDl: 'men ≥40',
+        ldlMgDl: '<130',
+        creatinineMgDl: '0.7–1.3',
+        egfrMlMin: '≥60',
+        uacrMgG: '<30',
+        astUL: '≤40',
+        altUL: '≤40',
+        plateletsK: '150–400'
+      }
+    }
+  },
+  {
+    id: 'hsu',
+    region: 'TW',
+    name: 'Ms. Hsu',
+    tagline: '61 · Taoyuan · retired nurse, only a basic blood test this year',
+    blurb: 'She retired from nursing this summer and has started forgetting appointments. Her mother had dementia and diabetes and her father had high blood pressure and high cholesterol, but her only test this year was a basic blood test with no cholesterol and no HbA1c.',
+    populationIds: ['tw', 'women'],
+    profile: {
+      age: 61,
+      sex: 'female',
+      heightCm: 160,
+      weightKg: 63.0,
+      waistCm: 82,
+      educationYears: 14,
+      smoking: 'never',
+      sbp: 136,
+      dbp: 84,
+      bpTreated: false,
+      diabetes: false,
+      highGlucoseHistory: false,
+      afib: false,
+      cvdHistory: false,
+      strokeHistory: false,
+      familyStroke: false,
+      familyDiabetes: 'first',
+      active30minDaily: false,
+      exerciseTwiceWeekly: false,
+      vegFruitDaily: true,
+      familyDementia: true,
+      familyHypertension: true,
+      familyHighCholesterol: true,
+      livesAlone: false,
+      hearingLoss: false,
+      sleepProblem: true,
+      retiredRecently: true,
+      worry: 'dementia'
+    },
+    labs: {
+      fastingGlucoseMgDl: 101,
+      creatinineMgDl: 0.74,
+      egfrMlMin: 92,
+      astUL: 20,
+      altUL: 17
+    },
+    report: {
+      date: '2026-10-28',
+      type: 'Basic blood test (community health station)',
+      printedRanges: {
+        bmi: '18.5–24',
+        waistCm: 'women <80',
+        sbp: '<130/85',
+        dbp: '<130/85',
+        fastingGlucoseMgDl: '70–99',
+        creatinineMgDl: '0.5–1.1',
+        egfrMlMin: '≥60',
+        astUL: '≤40',
+        altUL: '≤40'
+      }
+    }
+  },
+  {
+    id: 'yang',
+    region: 'TW',
+    name: 'Mr. Yang',
+    tagline: '67 · Changhua · retired bus driver, walks his grandchildren to school',
+    blurb: 'He retired two years ago and lately loses track of conversations. His older brother has dementia, his parents had high blood pressure, high cholesterol and diabetes, and his father had a stroke; at 67 he is older than the people two of the formulas were built on.',
+    populationIds: ['tw', 'men', '65plus'],
+    profile: {
+      age: 67,
+      sex: 'male',
+      heightCm: 165,
+      weightKg: 68.0,
+      waistCm: 91,
+      educationYears: 12,
+      smoking: 'former',
+      sbp: 142,
+      dbp: 86,
+      bpTreated: false,
+      diabetes: false,
+      highGlucoseHistory: false,
+      afib: false,
+      cvdHistory: false,
+      strokeHistory: false,
+      familyStroke: true,
+      familyDiabetes: 'first',
+      active30minDaily: true,
+      exerciseTwiceWeekly: false,
+      vegFruitDaily: true,
+      familyDementia: true,
+      familyHypertension: true,
+      familyHighCholesterol: true,
+      livesAlone: false,
+      hearingLoss: false,
+      sleepProblem: false,
+      retiredRecently: false,
+      worry: 'dementia'
+    },
+    labs: {
+      totalCholMgDl: 221,
+      hdlMgDl: 46,
+      fastingGlucoseMgDl: 104,
+      hba1cPct: 5.8,
+      ldlMgDl: 145,
+      tgMgDl: 150,
+      creatinineMgDl: 1.05,
+      egfrMlMin: 78,
+      uacrMgG: 18,
+      astUL: 26,
+      altUL: 24,
+      plateletsK: 210
+    },
+    report: {
+      date: '2026-10-21',
+      type: 'Adult preventive health check (hospital)',
       printedRanges: {
         bmi: '18.5–24',
         waistCm: 'men <90',
