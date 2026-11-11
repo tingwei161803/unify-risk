@@ -5,7 +5,7 @@
 // supplement or the authors' code, as recorded in the research files (each
 // coefficient's "source" gives the table and page). Text that exists only in
 // Chinese in the research files is left out until it is translated; see
-// UNTRANSLATED (1571 strings).
+// UNTRANSLATED (0 strings).
 //
 // Shapes vary a little by model type:
 //   cox / logistic: equations[].coefficients[] { key, term, beta, mean, hr | odds_ratio },
@@ -19,27 +19,43 @@ export const COEFFICIENTS = {
   "schema": "c2-coef-v1",
   "model_id": "aabcs",
   "source": {
-   "citation": "Matsuno RK, Costantino JP, Ziegler RG, et al. J Natl Cancer Inst 2011;103(12):951-961. doi:10.1093/jnci/djr154"
+   "citation": "Matsuno RK, Costantino JP, Ziegler RG, et al. J Natl Cancer Inst 2011;103(12):951-961. doi:10.1093/jnci/djr154",
+   "locator": "Main text Table 1 (journal p. 952), Table 2 (absolute risk for Chinese women, journal p. 955), F(t) and the worked-example text (journal p. 955), coding notes (journal pp. 953–954); supplement Matsuno2011JNCI_supp1.doc: Supplementary Table 1 (rates), Table 2 (log-odds and covariances), Tables 3–7 (absolute risk by ethnic group)",
+   "license": "Paper and supplement (journal copyright); the numeric tables and formulas may be cited. Same values as the CRAN BCRA Race 6–11 branch (GPL (>=2) package)."
   },
+  "model_type": "Logistic relative risk × SEER Asian rates (1998–2002) → discrete absolute risk with competing mortality (Gail equation 6, 1-year intervals)",
+  "outcome": "Invasive breast cancer",
+  "horizon_years": "Any (Table 2 gives 5/10/20/30)",
+  "population": "Asian American / Pacific Islander women: Chinese, Japanese, Filipino, Native Hawaiian, other Pacific Islander, other Asian; starting age 20–89",
   "inputs": [
    {
     "name": "AGEMEN",
+    "values": ">=14→0; 12–13→1; <12→2",
     "locator": "Table 1"
    },
    {
-    "name": "NBIOPS"
+    "name": "NBIOPS",
+    "values": "0→0; 1→1; >=2→2",
+    "locator": "Table 1; the RR is the same for <50 and >=50 (AABCS has no NBIOPS×age interaction), unlike Gail"
    },
    {
-    "name": "AGEFLB"
+    "name": "AGEFLB",
+    "values": "<20→0; 20–24→1; 25–29 or nulliparous→2; >=30→3",
+    "locator": "Table 1 (journal p. 952), text on journal p. 954"
    },
    {
-    "name": "NUMREL"
+    "name": "NUMREL",
+    "values": "First-degree relatives with breast cancer (mother, sisters, daughters) 0→0; >=1→1 (two categories, 0 or 1; 2 or more are merged into 1)",
+    "locator": "Journal p. 954 text: \"coded as 0 or 1 for zero or more than zero\"; in Table 1 the RR for NUMREL=2 is the same as for 1"
    },
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "note": "Age T1/T2 is used for the rates and F(t); the model fit also included continuous age as an adjustment, which does not enter the RR"
    },
    {
-    "name": "ethnicity"
+    "name": "ethnicity",
+    "values": "Chinese, Japanese, Filipino, Hawaiian, other Pacific Islander, other Asian (rates differ; β and F are shared)"
    }
   ],
   "constants": {
@@ -47,7 +63,8 @@ export const COEFFICIENTS = {
     "NBIOPS": 0.5526,
     "AGEMEN": 0.075,
     "AGEFLB": 0.2764,
-    "NUMREL": 0.7919
+    "NUMREL": 0.7919,
+    "locator": "Supp Table 2; no AGEFLB×NUMREL interaction term and no NBIOPS×age interaction term"
    },
    "covariance_x1e-2": {
     "order": [
@@ -81,11 +98,13 @@ export const COEFFICIENTS = {
       -0.02,
       4.5813
      ]
-    ]
+    ],
+    "note": "Supp Table 2 note: the covariances are the tabulated numbers ×10^-2; the symmetric matrix is expanded from the upper triangle"
    },
    "F_one_minus_AR": {
     "lt50": 0.4752,
     "ge50": 0.5032,
+    "locator": "Journal p. 955; the code uses 0.47519806426735 / 0.50316401683903 (CRAN BCRA absolute.risk.R Asian_1_AR)",
     "CI_lt50": "0.3255–0.6249",
     "CI_ge50": "0.3630–0.6434"
    }
@@ -118,7 +137,8 @@ export const COEFFICIENTS = {
      "0": 2.291,
      "1": 5.058
     }
-   }
+   },
+   "check": "Recomputed exp(β): AGEMEN 1.078/1.162, NBIOPS 1.738/3.020, AGEFLB 1.318/1.738/2.291, NUMREL 2.207, AGEFLB+NUMREL 2.910/3.837/5.058; identical to Table 1 item by item (three decimals)"
   },
   "rates": {
    "age_groups": [
@@ -137,6 +157,7 @@ export const COEFFICIENTS = {
     "80-84",
     "85-89"
    ],
+   "note": "Supp Table 1, per 100,000 women-years, SEER Detailed API Database 1998–2002; the age rows in the original table have printing errors (\"50-53\", \"60-63\", \"70-73\", \"80-83\" should be 50–54 etc.); the first row (20–24) of the non-breast-cancer mortality appeared before the header row when the .doc was converted to text and has been moved back into place. Same as bcra-rates.csv Race 6–11.",
    "values": {
     "Chinese": {
      "incidence_per_1e5": [
@@ -344,9 +365,14 @@ export const COEFFICIENTS = {
     }
    }
   },
+  "formula": {
+   "relative_risk": "RR = exp(0.5526·NBIOPS + 0.0750·AGEMEN + 0.2764·AGEFLB + 0.7919·NUMREL) (all ages); with atypical hyperplasia multiply by 1.82; with a biopsy and definitely no hyperplasia multiply by 0.93",
+   "absolute_risk": "h1(t)=h*(t)·F(t); h2(t)=non-breast-cancer mortality; Gail equation 6 applied in 1-year intervals (details as in nci-bcrat-cran-bcra.md); r(t)=RR (same at all ages); different F for T1<50 and >=50"
+  },
   "examples": [
    {
     "id": "paper-text",
+    "note": "Main-text example: age 30, nulliparous (AGEFLB=2), menarche at 14, mother with breast cancer (NUMREL=1), 1 biopsy, hyperplasia unknown, Chinese, 30 years",
     "RR_paper": 6.67,
     "RR_reproduced": 6.6676,
     "risk_paper_exact": 9.9,
@@ -355,155 +381,232 @@ export const COEFFICIENTS = {
    },
    {
     "id": "Table2-Chinese",
+    "note": "Chinese: 21 rows × RR 1/2/5/10 = 84 values",
     "reproduced_max_abs_diff_pct": 0.005
    },
    {
     "id": "SuppTables3-7",
+    "note": "Japanese, Filipino, Hawaiian, other Pacific Islander, other Asian: 84 values each",
     "reproduced_max_abs_diff_pct": 0.0057
    }
-  ]
+  ],
+  "verification": {
+   "coding_vs_table1": "Variables and coding checked against main-text Table 1 and the text on p. 4: 4 variables (AGEMEN, NBIOPS, AGEFLB, NUMREL); NUMREL is dichotomous 0/>0, not 0/1/2; AGEFLB has 4 categories; there is no AGEFLB×NUMREL interaction term (the AGEFLB×NUMREL combined cells are expressed as multiplied main effects). The input field in the index had omitted AGEFLB and has been added.",
+   "absolute": "Python reimplementation using the Supp Table 1 rates + F(t) + Supp Table 2 β, checked against Table 2 and Supp Tables 3–7 (504 values in total); maximum difference 0.0057 percentage points (within the rounding range of the paper's two decimals).",
+   "supp1_vs_bcra_rates": "The 84×2 rates for the six groups in Supp Table 1 differ from bcra-rates.csv by at most 0.05 per 100,000 (rounding)."
+  }
  },
  "ada": {
   "schema": "c1-coef-1",
   "model_id": "ada",
   "citation": "Bang H, et al. Development and Validation of a Patient Self-assessment Score for Diabetes Risk. Ann Intern Med 2009;151:775–783.",
   "model_type": "points",
+  "outcome": "Currently undiagnosed diabetes (FPG ≥126 mg/dL); the questionnaire also uses ≥4 points to flag diabetes or prediabetes",
+  "population": {
+   "age_range": "≥20 years",
+   "sex": "Men and women combined (men get 1 point)",
+   "notes": "Development: NHANES 1999–2004 (n=5,258); validation: NHANES 2005–2006 (n=1,640) and ARIC/CHS"
+  },
+  "formula": "Total score = sum of the points for 6 questions (range −1 to 9); ≥5 points = high risk of undiagnosed diabetes, ≥4 points = high risk of diabetes or prediabetes (Figure)",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "<40, 40–49, 50–59, ≥60"
    },
    {
     "name": "sex",
-    "unit": "—"
+    "unit": "—",
+    "coding": "Men 1 point"
    },
    {
     "name": "family_history",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Parent or sibling with diabetes"
    },
    {
     "name": "hypertension",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Hypertension or taking blood-pressure medication"
    },
    {
     "name": "weight_class",
-    "unit": "—"
+    "unit": "—",
+    "coding": "4 levels by BMI or waist circumference (inches); definitions in the Figure and the Table 1 note"
    },
    {
     "name": "physically_active",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Self-reported \"physically active or not\"; the paper gives no operational definition"
    }
   ],
   "equations": [
    {
     "id": "logistic_development",
+    "applies_to": "Model developed in NHANES 1999–2004 (no intercept, so probabilities cannot be computed)",
     "coefficients": [
      {
+      "term": "Age 40–49 (ref <40)",
       "beta": 0.95,
       "odds_ratio": "2.6 (1.3–5.0)",
-      "score": 1
+      "score": 1,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Age 50–59",
       "beta": 1.57,
       "odds_ratio": "4.8 (2.2–10.6)",
-      "score": 2
+      "score": 2,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Age ≥60",
       "beta": 2.09,
       "odds_ratio": "8.1 (3.9–16.9)",
-      "score": 3
+      "score": 3,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Men (ref women)",
       "beta": 0.96,
       "odds_ratio": "2.6 (1.8–3.7)",
-      "score": 1
+      "score": 1,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Family history of diabetes",
       "beta": 0.67,
       "odds_ratio": "2.0 (1.5–2.6)",
-      "score": 1
+      "score": 1,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "History of hypertension",
       "beta": 0.64,
       "odds_ratio": "1.9 (1.2–2.9)",
-      "score": 1
+      "score": 1,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Overweight (ref not overweight)",
       "beta": 0.27,
       "odds_ratio": "1.3 (0.6–2.8)",
-      "score": 1
+      "score": 1,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Obese",
       "beta": 1.12,
       "odds_ratio": "3.1 (1.6–5.8)",
-      "score": 2
+      "score": 2,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Extremely obese",
       "beta": 1.99,
       "odds_ratio": "7.3 (4.0–13.4)",
-      "score": 3
+      "score": 3,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      },
      {
+      "term": "Physically active (ref no)",
       "beta": -0.34,
       "odds_ratio": "0.7 (0.5–1.0)",
-      "score": -1
+      "score": -1,
+      "source": "Table 1, PDF p. 4 (journal p. 778)"
      }
-    ]
+    ],
+    "constants": {
+     "intercept": {
+      "source": "Not published in the paper"
+     }
+    }
    }
   ],
   "points_tables": [
    {
     "id": "questionnaire",
+    "applies_to": "Self-completed questionnaire",
+    "source": "Figure, PDF p. 6 (journal p. 780)",
     "items": [
      {
+      "factor": "1. Age",
       "category": "<40",
       "points": 0
      },
      {
+      "factor": "1. Age",
       "category": "40–49",
       "points": 1
      },
      {
+      "factor": "1. Age",
       "category": "50–59",
       "points": 2
      },
      {
+      "factor": "1. Age",
       "category": "≥60",
       "points": 3
      },
      {
+      "factor": "2. Sex",
+      "category": "Women",
       "points": 0
      },
      {
+      "factor": "2. Sex",
+      "category": "Men",
       "points": 1
      },
      {
+      "factor": "3. Family history (parent or sibling) of diabetes",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "3. Family history (parent or sibling) of diabetes",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "4. Hypertension or taking blood-pressure medication",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "4. Hypertension or taking blood-pressure medication",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "5. Weight",
+      "category": "Not overweight or obese",
       "points": 0
      },
      {
+      "factor": "5. Weight",
+      "category": "Overweight",
       "points": 1
      },
      {
+      "factor": "5. Weight",
+      "category": "Obese",
       "points": 2
      },
      {
+      "factor": "5. Weight",
+      "category": "Extremely obese",
       "points": 3
      },
      {
+      "factor": "6. Physical activity",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "6. Physical activity",
+      "category": "Yes",
       "points": -1
      }
     ]
@@ -512,18 +615,28 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "cutpoints",
+    "applies_to": "Not a probability; cut-off performance (NHANES)",
+    "source": "Appendix Table 2, PDF p. 11 (journal p. W-255)",
     "rows": [
      {
-      "score": "≥6"
+      "score": "≥6",
+      "dev": "High risk 23%, sensitivity 61, specificity 79, PPV 11, NPV 98",
+      "val": "High risk 20%, sensitivity 62, specificity 82, PPV 13, NPV 98"
      },
      {
-      "score": "≥5"
+      "score": "≥5",
+      "dev": "39%, 82, 63, 8, 99",
+      "val": "35%, 79, 67, 10, 99"
      },
      {
-      "score": "≥4"
+      "score": "≥4",
+      "dev": "55%, 93, 46, 7, 99",
+      "val": "51%, 97, 51, 8, 100"
      },
      {
-      "score": "≥3"
+      "score": "≥3",
+      "dev": "71%, 98, 30, 5, 100",
+      "val": "68%, 99, 33, 6, 100"
      }
     ]
    }
@@ -535,6 +648,7 @@ export const COEFFICIENTS = {
     "equation": "questionnaire",
     "inputs": {
      "age": 52,
+     "sex": "Men",
      "family_history": 1,
      "hypertension": 0,
      "bmi": 28,
@@ -556,7 +670,9 @@ export const COEFFICIENTS = {
      "high_risk_undiagnosed_diabetes": true,
      "high_risk_diabetes_or_prediabetes": true
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from the Figure",
+    "note": "No example in the paper; self-computed, not checked against the paper. BMI 28 is overweight (25–<30) by the Figure's definition"
    },
    {
     "id": "self-f35-active",
@@ -564,6 +680,7 @@ export const COEFFICIENTS = {
     "equation": "questionnaire",
     "inputs": {
      "age": 35,
+     "sex": "Women",
      "family_history": 0,
      "hypertension": 0,
      "bmi": 22,
@@ -576,7 +693,9 @@ export const COEFFICIENTS = {
      "score": -1,
      "high_risk_undiagnosed_diabetes": false
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from the Figure",
+    "note": "Self-computed, not checked against the paper; tested the lowest score, −1"
    }
   ]
  },
@@ -584,10 +703,16 @@ export const COEFFICIENTS = {
   "model_id": "amap",
   "source": {
    "pdf_key": "Fan2020JHepatol",
-   "citation": "Fan R et al. J Hepatol 2020;73:1368-1378, doi:10.1016/j.jhep.2020.07.025"
+   "citation": "Fan R et al. J Hepatol 2020;73:1368-1378, doi:10.1016/j.jhep.2020.07.025",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "cox_score",
+  "outcome": "5-year HCC (patients with chronic hepatitis: hepatitis B, hepatitis C, non-viral)",
   "horizon_years": 5,
+  "population": {
+   "sex": "Men and women (male is a variable)",
+   "eligibility": "Chronic hepatitis (training set: 3,688 Asian CHB patients); the age range is not stated in the paper"
+  },
   "inputs": [
    {
     "name": "age",
@@ -612,16 +737,20 @@ export const COEFFICIENTS = {
   ],
   "constants": {
    "albi_bili_coef": {
-    "value": 0.66
+    "value": 0.66,
+    "source": "ALBI formula, PDF p. 5"
    },
    "albi_alb_coef": {
-    "value": -0.085
+    "value": -0.085,
+    "source": "ALBI formula, PDF p. 5"
    },
    "score_constant": {
-    "value": 7.4
+    "value": 7.4,
+    "source": "aMAP formula, PDF p. 6"
    },
    "score_divisor": {
-    "value": 14.77
+    "value": 14.77,
+    "source": "aMAP formula, PDF p. 6"
    },
    "S0_5y": {
     "value": 0.984,
@@ -632,27 +761,32 @@ export const COEFFICIENTS = {
    {
     "term": "age",
     "value": 0.06,
-    "scale": "score_weight"
+    "scale": "score_weight",
+    "source": "aMAP formula, PDF p. 6"
    },
    {
     "term": "male",
     "value": 0.89,
-    "scale": "score_weight"
+    "scale": "score_weight",
+    "source": "aMAP formula, PDF p. 6"
    },
    {
     "term": "albi",
     "value": 0.48,
-    "scale": "score_weight"
+    "scale": "score_weight",
+    "source": "aMAP formula, PDF p. 6"
    },
    {
     "term": "platelets",
     "value": -0.01,
-    "scale": "score_weight"
+    "scale": "score_weight",
+    "source": "aMAP formula, PDF p. 6"
    },
    {
     "term": "age",
     "value": 0.06,
     "scale": "cox_beta",
+    "source": "Table 2 multivariable, PDF p. 5",
     "hr": 1.062
    },
    {
@@ -688,10 +822,12 @@ export const COEFFICIENTS = {
     "high": 19.9
    }
   },
+  "formula": "ALBI = log10(bilirubin)·0.66 + albumin·(−0.085); aMAP = (0.06·age + 0.89·male + 0.48·ALBI − 0.01·platelets + 7.4)/14.77 × 100",
   "examples": [
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; the paper does not say which group the boundaries belong to; self-computed using <50 low, 50–<60 medium, ≥60 high",
     "inputs": {
      "age": 55,
      "male": 1,
@@ -709,6 +845,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; the paper does not say which group the boundaries belong to; self-computed using <50 low, 50–<60 medium, ≥60 high",
     "inputs": {
      "age": 45,
      "male": 0,
@@ -726,6 +863,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-3",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; the paper does not say which group the boundaries belong to; self-computed using <50 low, 50–<60 medium, ≥60 high",
     "inputs": {
      "age": 68,
      "male": 1,
@@ -741,10 +879,14 @@ export const COEFFICIENTS = {
     "tolerance": 0.0001
    }
   ],
+  "paper_examples": "The paper has no example person",
   "schema": "c2-coef-v1",
   "derived_risk": {
    "derived": true,
+   "status": "Derived candidate, not published by the authors",
+   "sensitivity": "Sensitivity (choice of coefficients): S0=0.984 comes from the Cox coefficients in Table 2 (age 0.060, male 0.894, ALBI 0.484, platelets −0.012), but the LP in this file uses the rounded coefficients of the aMAP formula (0.06 / 0.89 / 0.48 / −0.01). Using the Cox coefficients instead, the 5-year risks of the three self-computed examples change from 6.52 / 0.43 / 33.55% to 4.84 / 0.26 / 28.85%, a difference of about 14%–40%. In addition, the evidence for \"consistent with the three groups\" is weak: the upper bound of the high-risk group is 100%, which hardly constrains anything.",
    "formula": "risk5y=1-0.984^exp(LP)",
+   "check": "score=50→LP=-0.015→1.58%; score=60→LP=1.462→6.72%; low group (<50) range 0–1.6% vs observed 0.8%, medium group 1.6–6.7% vs observed 4.2%, high group 6.7–100% vs observed 19.9%; all three groups are plausible. If 7.4 is added or a centering assumption is made, a mean is also needed, which the paper does not give",
    "examples": [
     {
      "id": "self-1",
@@ -762,237 +904,395 @@ export const COEFFICIENTS = {
      "risk5y_pct": 33.55
     }
    ]
-  }
+  },
+  "range_contradiction_resolved": "The abstract's 8.1–19.9% is pooled (training + validation): the low/medium/high group n=7,413/6,529/3,044 is exactly the validation 5,255/5,348/2,721 plus the training 2,158/1,181/323, so the 19.9% comes from training; the 8.1–17.8% in Results covers the validation cohort only. No contradiction",
+  "text_notes": "Methods say the score is standardized to 1–100; the abstract says 0–100"
  },
  "anu-adri": {
   "schema": "c1-coef-1",
   "model_id": "anu-adri",
+  "citation": "Anstey KJ, Cherbuin N, Herath PM. Development of a new method for assessing global risk of Alzheimer's disease for use in population health approaches to prevention. Prev Sci 2013;14(4):411–421. Validation: Anstey KJ, et al. A self-report risk index to predict occurrence of dementia in three independent cohorts of older adults: the ANU-ADRI. PLoS One 2014;9(1):e86141.",
   "model_type": "points",
+  "outcome": "Relative risk index for Alzheimer's disease (no absolute risk)",
   "horizon_years": [],
+  "population": {
+   "age_range": "For late life ≥60 years (the age points table starts at <65; BMI and cholesterol count only for <60 years)",
+   "sex": "Sex enters only through the two age tables",
+   "notes": "Points = pooled β × 7.6923 (1/0.13), rounded (development paper Table 1 note). Validation cohorts: MAP (US), KP (Sweden), CVHS (US). No baseline survival, so it cannot be converted to a probability."
+  },
+  "formula": "ANU-ADRI = Σ points (15 factors; age is looked up by sex). Range: MAP −13 to 64, CVHS −11 to 56 (validation paper; recomputed with the points below and it matches).",
   "variables": [
    {
-    "name": "age_sex"
+    "name": "age_sex",
+    "unit": "years",
+    "coding": "One age table each for men and women, see points_tables.age_male / age_female"
    },
    {
-    "name": "education_years"
+    "name": "education_years",
+    "unit": "years",
+    "coding": ">11 = 0, 8–11 = 3, <8 = 6 (direction taken from the development paper)"
    },
    {
-    "name": "bmi_lt60"
+    "name": "bmi_lt60",
+    "unit": "category",
+    "coding": "Only <60 years: normal 0, overweight 2, obese 5; not counted at ≥60 years"
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Yes = 3"
    },
    {
     "name": "depression",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "CES-D above 16 (validation paper: CVHS used CES-D-10 cut-off >11, 20-item version >16) = 2"
    },
    {
     "name": "high_cholesterol_lt60",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Only <60 years: high = 3"
    },
    {
     "name": "tbi",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Traumatic brain injury with loss of consciousness = 4"
    },
    {
-    "name": "smoking"
+    "name": "smoking",
+    "unit": "category",
+    "coding": "Never 0, former 1, current 4"
    },
    {
-    "name": "alcohol"
+    "name": "alcohol",
+    "unit": "category",
+    "coding": "None 0, light to moderate −3; no published points for heavy drinking"
    },
    {
-    "name": "social_engagement"
+    "name": "social_engagement",
+    "unit": "category",
+    "coding": "High 0, medium-high 1, medium-low 4, low 6"
    },
    {
-    "name": "physical_activity"
+    "name": "physical_activity",
+    "unit": "category",
+    "coding": "Low 0, medium −2, high −3"
    },
    {
-    "name": "cognitive_activity"
+    "name": "cognitive_activity",
+    "unit": "category",
+    "coding": "Low 0; medium/high −7/−6 (development paper) or −6/−7 (validation paper); the two papers are opposite"
    },
    {
-    "name": "fish_per_week"
+    "name": "fish_per_week",
+    "unit": "servings/week",
+    "coding": "<0.25 = 0; 0.26–2.0 = −3; 2.1–4.0 = −4; ≥4.1 = −5"
    },
    {
     "name": "pesticide",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Ever exposed = 2 (none of the three validation cohorts has this item)"
    }
   ],
   "equations": [],
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Men and women combined (age by sex)",
+    "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462); checked cell by cell against Anstey 2014 PLoS One Table 2, PDF p. 5",
     "items": [
      {
+      "factor": "Age (men)",
       "category": "<65",
-      "points": 0
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (men)",
       "category": "65–69",
-      "points": 1
+      "points": 1,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (men)",
       "category": "70–74",
-      "points": 12
+      "points": 12,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (men)",
       "category": "75–79",
-      "points": 18
+      "points": 18,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (men)",
       "category": "80–84",
-      "points": 26
+      "points": 26,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (men)",
       "category": "85–89",
-      "points": 33
+      "points": 33,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (men)",
       "category": "≥90",
-      "points": 38
+      "points": 38,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (women)",
       "category": "<65",
-      "points": 0
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (women)",
       "category": "65–69",
-      "points": 5
+      "points": 5,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (women)",
       "category": "70–74",
-      "points": 14
+      "points": 14,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (women)",
       "category": "75–79",
-      "points": 21
+      "points": 21,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (women)",
       "category": "80–84",
-      "points": 29
+      "points": 29,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (women)",
       "category": "85–89",
-      "points": 35
+      "points": 35,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Age (women)",
       "category": "≥90",
-      "points": 41
+      "points": 41,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Education (years)",
       "category": ">11",
-      "points": 0
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Education (years)",
       "category": "8–11",
-      "points": 3
+      "points": 3,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Education (years)",
       "category": "<8",
-      "points": 6
+      "points": 6,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
       "factor": "BMI",
-      "points": 0
+      "category": "Normal",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
       "factor": "BMI",
-      "points": 2
+      "category": "Overweight",
+      "points": 2,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
       "factor": "BMI",
-      "points": 5
+      "category": "Obese",
+      "points": 5,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Diabetes",
+      "category": "No",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 3
+      "factor": "Diabetes",
+      "category": "Yes",
+      "points": 3,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Depressive symptoms",
+      "category": "No",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 2
+      "factor": "Depressive symptoms",
+      "category": "Yes",
+      "points": 2,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "High cholesterol (<60 years)",
+      "category": "No",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 3
+      "factor": "High cholesterol (<60 years)",
+      "category": "Yes",
+      "points": 3,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Traumatic brain injury (TBI)",
+      "category": "No",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 4
+      "factor": "Traumatic brain injury (TBI)",
+      "category": "Yes",
+      "points": 4,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Smoking",
+      "category": "Never",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 1
+      "factor": "Smoking",
+      "category": "Former",
+      "points": 1,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 4
+      "factor": "Smoking",
+      "category": "Current",
+      "points": 4,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Alcohol",
+      "category": "None",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": -3
+      "factor": "Alcohol",
+      "category": "Light to moderate",
+      "points": -3,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Social network",
+      "category": "High",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 1
+      "factor": "Social network",
+      "category": "Medium-high",
+      "points": 1,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 4
+      "factor": "Social network",
+      "category": "Medium-low",
+      "points": 4,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 6
+      "factor": "Social network",
+      "category": "Low",
+      "points": 6,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Physical activity",
+      "category": "Low",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": -2
+      "factor": "Physical activity",
+      "category": "Medium",
+      "points": -2,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": -3
+      "factor": "Physical activity",
+      "category": "High",
+      "points": -3,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Cognitively stimulating activity",
+      "category": "Low",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": -7
+      "factor": "Cognitively stimulating activity",
+      "category": "Medium",
+      "points": -7,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": -6
+      "factor": "Cognitively stimulating activity",
+      "category": "High",
+      "points": -6,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Fish (servings/week)",
       "category": "<0.25",
-      "points": 0
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Fish (servings/week)",
       "category": "0.25–2",
-      "points": -3
+      "points": -3,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Fish (servings/week)",
       "category": "2–4",
-      "points": -4
+      "points": -4,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
+      "factor": "Fish (servings/week)",
       "category": ">4",
-      "points": -5
+      "points": -5,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 0
+      "factor": "Pesticide exposure",
+      "category": "Never",
+      "points": 0,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      },
      {
-      "points": 2
+      "factor": "Pesticide exposure",
+      "category": "Ever",
+      "points": 2,
+      "source": "Anstey 2013 Prev Sci Table 1 (PMC3696462)"
      }
     ]
    }
@@ -1003,33 +1303,43 @@ export const COEFFICIENTS = {
     "id": "paper-range-MAP",
     "origin": "paper",
     "inputs": {
-     "cohort": "MAP"
+     "cohort": "MAP",
+     "factors": "Age, sex, education, diabetes, TBI, cognitive activity, social network, smoking, alcohol, physical activity"
     },
     "expected": {
      "min": -13,
      "max": 64
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Validation paper Methods / Results text, PDF pp. 4–5",
+    "note": "Recomputed: maximum = women ≥90 41 + education 6 + diabetes 3 + TBI 4 + low social network 6 + current smoking 4 = 64; minimum = cognitive −7 + alcohol −3 + exercise −3 = −13. Matches. This check is insensitive to the direction of education (the maximum and minimum are the same), and setting heavy drinking to 0 or to −3 or higher does not affect these two ends."
    },
    {
     "id": "paper-range-CVHS",
     "origin": "paper",
     "inputs": {
-     "cohort": "CVHS"
+     "cohort": "CVHS",
+     "factors": "Age, sex, education, diabetes, depression, smoking, alcohol, physical activity, fish"
     },
     "expected": {
      "min": -11,
      "max": 56
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Validation paper, PDF pp. 4–6",
+    "note": "Maximum = 41 + 6 + 3 + 2 + 4 = 56; minimum = alcohol −3 + physical activity −3 + fish −5 = −11. Matches."
    },
    {
     "id": "self-f77",
     "origin": "self_computed",
     "inputs": {
+     "sex": "Women",
      "age": 77,
      "education_years": 10,
      "diabetes": 1,
+     "smoking": "Never",
+     "alcohol": "Light to moderate",
+     "physical_activity": "Medium",
      "fish_per_week": 1
     },
     "intermediate": {
@@ -1045,7 +1355,9 @@ export const COEFFICIENTS = {
     "expected": {
      "score": 19
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from development paper Table 1",
+    "note": "Self-computed, not checked against the paper or an official calculator; only a relative score, with no risk meaning."
    }
   ]
  },
@@ -1061,9 +1373,15 @@ export const COEFFICIENTS = {
     "validation_prevalence": "Table 7, journal p.1240",
     "derivation_distribution": "Table 6, journal p.1240",
     "logistic_coefficients": "Table 4 (advanced neoplasia, derivation), journal p.1239"
-   }
+   },
+   "license": "Journal copyright belongs to BMJ; the points table is the numeric content published in the paper. Licence not stated (no additional open-licence terms)"
   },
   "model_type": "points",
+  "outcome": "Prevalence of advanced colorectal neoplasia (cancer or advanced adenoma) found at screening colonoscopy; not an X-year risk",
+  "population": {
+   "description": "Asymptomatic Asian adults undergoing screening colonoscopy; derivation 860 people (2004, 11 Asian cities including Taipei, mean age 54.4 years), validation 1,892 people (mean age 51 years)",
+   "age_range": "Unconfirmed (the paper does not state the enrolment age range)"
+  },
   "inputs": [
    {
     "name": "age",
@@ -1078,7 +1396,8 @@ export const COEFFICIENTS = {
     "coding": "0/1"
    },
    {
-    "name": "smoking"
+    "name": "smoking",
+    "coding": "never=0; current or past=1"
    }
   ],
   "points": {
@@ -1131,6 +1450,7 @@ export const COEFFICIENTS = {
    }
   },
   "underlying_logistic_advanced_neoplasia": {
+   "note": "In Table 4 the row labels and values were shifted by one cell in the layout extraction; alignment back-calculated from the OR in the text (age>50 3.2, male 2.4, family history 3.1, smoking 1.8) and the rule \"halve the OR and round\"",
    "male": {
     "b": 0.871,
     "se": 0.373,
@@ -1152,9 +1472,11 @@ export const COEFFICIENTS = {
     "or": 3.1
    },
    "smoking": {
-    "or": 1.8
+    "or": 1.8,
+    "note": "Not significant; b unconfirmed; still given 1 point"
    }
   },
+  "formula": "score = age_pts + sex_pts + fh_pts + smoke_pts; tier = AR(<=1)/MR(2-3)/HR(>=4). Points = adjusted OR halved and rounded (Methods)",
   "examples": [
    {
     "id": "tw-1",
@@ -1278,6 +1600,7 @@ export const COEFFICIENTS = {
    }
   ],
   "paper_examples": {
+   "note": "The paper has no individual example persons; only stratified prevalence",
    "validation_by_tier_pct": {
     "AR": 1.3,
     "MR": 3.2,
@@ -1290,18 +1613,25 @@ export const COEFFICIENTS = {
    }
   },
   "verification": {
-   "date": "2026-11-11"
+   "date": "2026-11-11",
+   "method": "Python recomputation of the poc/shared/risk.js apcs logic, compared with poc/mock-data/*/expected-output.json",
+   "poc_match": "13/13 of those with a score match (p10 and p15 are age <40, applicable:false); refYear=2026 (poc/shared/data.js:16)",
+   "tier_counts_vs_table7": "7/559=1.25%, 31/966=3.21%, 19/367=5.18%, matching 1.3/3.2/5.2"
   }
  },
  "bcsc": {
   "model_id": "bcsc",
   "source": {
    "pdf_key": "Tice2008AnnInternMed",
-   "citation": "Tice JA et al. Ann Intern Med 2008;148:337-347"
+   "citation": "Tice JA et al. Ann Intern Med 2008;148:337-347",
+   "page_note": "Page numbers are the page order within the PDF file; the Appendix Figure is on PDF p. 13"
   },
   "model_type": "absolute_risk_algorithm",
+  "outcome": "5-year invasive breast cancer risk",
   "horizon_years": 5,
   "population": {
+   "sex": "Women",
+   "age_range": "Model age groups 35–≥75 (Appendix adjustment-factor groups); Table 5 lists only 40–74",
    "race": "white|black|asian|hispanic"
   },
   "inputs": [
@@ -1316,20 +1646,24 @@ export const COEFFICIENTS = {
    },
    {
     "name": "birads",
-    "unit": "1-4"
+    "unit": "1-4",
+    "coding": "1 almost entirely fatty; 2 scattered fibroglandular densities; 3 heterogeneously dense; 4 extremely dense"
    },
    {
     "name": "family_history",
-    "unit": "0/1/null"
+    "unit": "0/1/null",
+    "coding": "≥1 first-degree relative with breast cancer; null=don't know"
    },
    {
     "name": "biopsy_history",
-    "unit": "0/1/null"
+    "unit": "0/1/null",
+    "coding": "≥1 breast biopsy; null=don't know"
    }
   ],
   "lookup_tables": {
    "incidence_poly": {
     "source": "Appendix Figure, PDF p.13",
+    "formula": "I(x) = a·x³ + b·x² + c·x + d, in units per 100 person-years (%/year); the paper says \"per 100 000\", but validation against Table 5 shows it must be per 100",
     "rows": {
      "white": {
       "a": -0.000007231,
@@ -1359,6 +1693,7 @@ export const COEFFICIENTS = {
    },
    "nonbc_death_exp": {
     "source": "Appendix Figure, PDF p.13",
+    "formula": "D(x) = n·exp(m·x), same units (per 100 person-years)",
     "rows": {
      "white": {
       "n": 0.003695745,
@@ -1670,10 +2005,12 @@ export const COEFFICIENTS = {
     }
    }
   },
+  "formula": "P(a)=1; P(x)=P(x−1)−I(x−1)−D(x−1); AR=Σ_{x=a}^{a+4} I(x)·P(x); risk = AR × adjust[race][age group] × RH[age<65?][birads] × FH multiplier × biopsy multiplier",
   "examples": [
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; per the Appendix Figure algorithm, I and D are per 100 person-years, and 5 years = x=a..a+4, 5 terms in all (both confirmed by Table 5)",
     "inputs": {
      "age": 50,
      "race": "white",
@@ -1690,6 +2027,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; per the Appendix Figure algorithm, I and D are per 100 person-years, and 5 years = x=a..a+4, 5 terms in all (both confirmed by Table 5)",
     "inputs": {
      "age": 50,
      "race": "white",
@@ -1704,6 +2042,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-3",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; per the Appendix Figure algorithm, I and D are per 100 person-years, and 5 years = x=a..a+4, 5 terms in all (both confirmed by Table 5)",
     "inputs": {
      "age": 42,
      "race": "asian",
@@ -1720,6 +2059,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-4",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; per the Appendix Figure algorithm, I and D are per 100 person-years, and 5 years = x=a..a+4, 5 terms in all (both confirmed by Table 5)",
     "inputs": {
      "age": 67,
      "race": "black",
@@ -1737,6 +2077,7 @@ export const COEFFICIENTS = {
     "id": "paper-table5-b2-40",
     "origin": "paper",
     "source": "Table 5, PDF p.7",
+    "note": "Table 5 is a population average (mixing races, family history and biopsy). Computed for White women, age at the midpoint of the 5-year group, family history and biopsy unknown; tolerance 0.05 percentage points (absolute). This comparison was used to confirm the unit of per 100 and the sum of 5 terms",
     "inputs": {
      "age": 42,
      "race": "white",
@@ -1754,6 +2095,7 @@ export const COEFFICIENTS = {
     "id": "paper-table5-b2-45",
     "origin": "paper",
     "source": "Table 5, PDF p.7",
+    "note": "Table 5 is a population average (mixing races, family history and biopsy). Computed for White women, age at the midpoint of the 5-year group, family history and biopsy unknown; tolerance 0.05 percentage points (absolute). This comparison was used to confirm the unit of per 100 and the sum of 5 terms",
     "inputs": {
      "age": 47,
      "race": "white",
@@ -1771,6 +2113,7 @@ export const COEFFICIENTS = {
     "id": "paper-table5-b2-50",
     "origin": "paper",
     "source": "Table 5, PDF p.7",
+    "note": "Table 5 is a population average (mixing races, family history and biopsy). Computed for White women, age at the midpoint of the 5-year group, family history and biopsy unknown; tolerance 0.05 percentage points (absolute). This comparison was used to confirm the unit of per 100 and the sum of 5 terms",
     "inputs": {
      "age": 52,
      "race": "white",
@@ -1788,6 +2131,7 @@ export const COEFFICIENTS = {
     "id": "paper-table5-b2-55",
     "origin": "paper",
     "source": "Table 5, PDF p.7",
+    "note": "Table 5 is a population average (mixing races, family history and biopsy). Computed for White women, age at the midpoint of the 5-year group, family history and biopsy unknown; tolerance 0.05 percentage points (absolute). This comparison was used to confirm the unit of per 100 and the sum of 5 terms",
     "inputs": {
      "age": 57,
      "race": "white",
@@ -1805,6 +2149,7 @@ export const COEFFICIENTS = {
     "id": "paper-table5-b2-60",
     "origin": "paper",
     "source": "Table 5, PDF p.7",
+    "note": "Table 5 is a population average (mixing races, family history and biopsy). Computed for White women, age at the midpoint of the 5-year group, family history and biopsy unknown; tolerance 0.05 percentage points (absolute). This comparison was used to confirm the unit of per 100 and the sum of 5 terms",
     "inputs": {
      "age": 62,
      "race": "white",
@@ -1822,6 +2167,7 @@ export const COEFFICIENTS = {
     "id": "paper-table5-b2-65",
     "origin": "paper",
     "source": "Table 5, PDF p.7",
+    "note": "Table 5 is a population average (mixing races, family history and biopsy). Computed for White women, age at the midpoint of the 5-year group, family history and biopsy unknown; tolerance 0.05 percentage points (absolute). This comparison was used to confirm the unit of per 100 and the sum of 5 terms",
     "inputs": {
      "age": 67,
      "race": "white",
@@ -1839,6 +2185,7 @@ export const COEFFICIENTS = {
     "id": "paper-table5-b2-70",
     "origin": "paper",
     "source": "Table 5, PDF p.7",
+    "note": "Table 5 is a population average (mixing races, family history and biopsy). Computed for White women, age at the midpoint of the 5-year group, family history and biopsy unknown; tolerance 0.05 percentage points (absolute). This comparison was used to confirm the unit of per 100 and the sum of 5 terms",
     "inputs": {
      "age": 72,
      "race": "white",
@@ -1853,6 +2200,7 @@ export const COEFFICIENTS = {
     "tolerance": 0.05
    }
   ],
+  "paper_examples": "No single-person example in the paper; validated against the Table 5 (p. 7) population averages: White, BI-RADS 2, all 7 age-group midpoints within 0.05 percentage points",
   "schema": "c2-coef-v1"
  },
  "bdsi": {
@@ -1860,62 +2208,103 @@ export const COEFFICIENTS = {
   "model_id": "bdsi",
   "citation": "Barnes DE, et al. Development and validation of a brief dementia screening indicator for primary care. Alzheimers Dement 2014;10(6):656–665.e1. doi:10.1016/j.jalz.2013.11.006",
   "model_type": "points",
+  "outcome": "New-onset dementia within 6 years (for screening triage)",
   "horizon_years": [
    6
   ],
+  "population": {
+   "age_range": "Ages 65–79 (≥80 years are treated directly as high risk)",
+   "sex": "Men and women",
+   "notes": "Four US cohorts: CHS, FHS, HRS, SALSA; C statistics 0.68 / 0.77 / 0.76 / 0.78"
+  },
+  "formula": "Total score = age points + points for each item; ≥22 points is high risk (6-year risk equivalent to that of 80–84 year-olds)",
   "variables": [
    {
-    "unit": ""
+    "name": "Age",
+    "unit": "",
+    "coding": "65 years"
    },
    {
-    "unit": ""
+    "name": "Age",
+    "unit": "",
+    "coding": "66–79 years"
    },
    {
-    "unit": ""
+    "name": "Education <12 years",
+    "unit": "",
+    "coding": "Yes"
    },
    {
     "name": "BMI <18.5",
-    "unit": ""
+    "unit": "",
+    "coding": "Yes"
    },
    {
-    "unit": ""
+    "name": "Diabetes",
+    "unit": "",
+    "coding": "Yes"
    },
    {
-    "unit": ""
+    "name": "Stroke",
+    "unit": "",
+    "coding": "Yes"
    },
    {
-    "unit": ""
+    "name": "Needs help managing money or medications",
+    "unit": "",
+    "coding": "Yes"
    },
    {
-    "unit": ""
+    "name": "Depressive symptoms",
+    "unit": "",
+    "coding": "Yes"
    }
   ],
   "equations": [],
   "points_tables": [
    {
     "id": "bdsi_points",
+    "applies_to": "Ages 65–79",
+    "source": "Table 3 (Points column) + the Results paragraph and Table 3 footnote",
     "items": [
      {
+      "factor": "Age",
+      "category": "65 years",
       "points": 0
      },
-     {},
      {
+      "factor": "Age",
+      "category": "66–79 years",
+      "points": "+1 per year of age (maximum 14)"
+     },
+     {
+      "factor": "Education <12 years",
+      "category": "Yes",
       "points": 9
      },
      {
       "factor": "BMI <18.5",
+      "category": "Yes",
       "points": 8
      },
      {
+      "factor": "Diabetes",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Stroke",
+      "category": "Yes",
       "points": 6
      },
      {
+      "factor": "Needs help managing money or medications",
+      "category": "Yes",
       "points": 10
      },
      {
+      "factor": "Depressive symptoms",
+      "category": "Yes",
       "points": 6
      }
     ]
@@ -1928,7 +2317,8 @@ export const COEFFICIENTS = {
    "diabetes": 1.29,
    "stroke": 1.86,
    "needs_help": 2.65,
-   "depressive": 1.77
+   "depressive": 1.77,
+   "source": "Table 3 Combined column"
   },
   "score_to_risk": [],
   "examples": [
@@ -1941,7 +2331,9 @@ export const COEFFICIENTS = {
     "expected": {
      "points": 4
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Table 3 footnote (age 69 = 4 points)",
+    "note": "Only this one example; total score range 0–56, verified by adding up in Python = 56"
    }
   ]
  },
@@ -1950,19 +2342,31 @@ export const COEFFICIENTS = {
   "model_id": "caide",
   "citation": "Kivipelto M, et al. Risk score for the prediction of dementia risk in 20 years among middle aged people: a longitudinal, population-based study. Lancet Neurol 2006;5:735–741.",
   "model_type": "points",
+  "outcome": "Dementia after 20 years",
   "horizon_years": [
    20
   ],
+  "population": {
+   "age_range": "Midlife baseline, age 39–64 (PDF p. 3)",
+   "sex": "Men and women combined (men get 1 point)",
+   "notes": "CAIDE cohort of 1,409 people, 4% dementia at 20 years"
+  },
+  "formula": "P(dementia) = e^(β0+β1+β2·score) / (1 + e^(β0+β1+β2·score)) (PDF p. 2); or look up the observed risk by score range in Table 3",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "<47, 47–53, >53"
    },
    {
-    "name": "education"
+    "name": "education",
+    "unit": "years",
+    "coding": "≥10, 7–9, 0–6"
    },
    {
     "name": "sex",
-    "unit": "—"
+    "unit": "—",
+    "coding": "Men 1 point"
    },
    {
     "name": "sbp",
@@ -1981,149 +2385,201 @@ export const COEFFICIENTS = {
    },
    {
     "name": "activity",
-    "unit": "—"
+    "unit": "—",
+    "coding": "Leisure activity at least twice a week counts as active (Table 2 note)"
    },
    {
     "name": "apoe4",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Used in Model 2 only"
    }
   ],
   "equations": [
    {
     "id": "model1_beta",
+    "applies_to": "Model 1 (no APOE) individual β",
     "coefficients": [
      {
+      "term": "Age 47–53 (ref <47)",
       "beta": 1.084,
-      "score": 3
+      "score": 3,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Age >53",
       "beta": 1.762,
-      "score": 4
+      "score": 4,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Education 7–9 years (ref ≥10)",
       "beta": 0.91,
-      "score": 2
+      "score": 2,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Education 0–6 years",
       "beta": 1.281,
-      "score": 3
+      "score": 3,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Men (ref women)",
       "beta": 0.47,
-      "score": 1
+      "score": 1,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
       "term": "SBP >140 mmHg",
       "beta": 0.791,
-      "score": 2
+      "score": 2,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
       "term": "BMI >30 kg/m²",
       "beta": 0.831,
-      "score": 2
+      "score": 2,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Total cholesterol >6.5 mmol/L",
       "beta": 0.631,
-      "score": 2
+      "score": 2,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Physical inactivity (leisure activity less than twice a week)",
       "beta": 0.527,
-      "score": 1
+      "score": 1,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
       "term": "Follow-up time",
-      "beta": 0.093
+      "beta": 0.093,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
-      "beta": -7.642
+      "term": "Intercept",
+      "beta": -7.642,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      }
     ]
    },
    {
     "id": "model2_beta",
+    "applies_to": "Model 2 (with APOE ε4) individual β",
     "coefficients": [
      {
+      "term": "Age 47–53 (ref <47)",
       "beta": 1.155,
-      "score": 3
+      "score": 3,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Age >53",
       "beta": 1.874,
-      "score": 5
+      "score": 5,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Education 7–9 years (ref ≥10)",
       "beta": 1.149,
-      "score": 3
+      "score": 3,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Education 0–6 years",
       "beta": 1.587,
-      "score": 4
+      "score": 4,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Men (ref women)",
       "beta": 0.438,
-      "score": 1
+      "score": 1,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
       "term": "SBP >140 mmHg",
       "beta": 0.817,
-      "score": 2
+      "score": 2,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
       "term": "BMI >30 kg/m²",
       "beta": 0.608,
-      "score": 2
+      "score": 2,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Total cholesterol >6.5 mmol/L",
       "beta": 0.46,
-      "score": 1
+      "score": 1,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "Physical inactivity (leisure activity less than twice a week)",
       "beta": 0.579,
-      "score": 1
+      "score": 1,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
+      "term": "APOE ε4 carrier",
       "beta": 0.89,
-      "score": 2
+      "score": 2,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
       "term": "Follow-up time",
-      "beta": 0.093
+      "beta": 0.093,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      },
      {
-      "beta": -8.203
+      "term": "Intercept",
+      "beta": -8.203,
+      "source": "Table 2, PDF p. 3 (journal p. 737)"
      }
     ]
    },
    {
     "id": "model1_score_logistic",
+    "applies_to": "Model 1 score as a continuous formula",
     "coefficients": [
      {
       "term": "score",
-      "beta": 0.401
+      "beta": 0.401,
+      "source": "Statistical methods section, PDF p. 2"
      }
     ],
     "constants": {
      "beta0_intercept": {
-      "value": -7.406
+      "value": -7.406,
+      "source": "Statistical methods section, PDF p. 2"
      },
      "beta1_followup_20y": {
-      "value": 0.796
+      "value": 0.796,
+      "source": "Statistical methods section, PDF p. 2"
      }
     }
    },
    {
     "id": "model2_score_logistic",
+    "applies_to": "Model 2 score as a continuous formula",
     "coefficients": [
      {
       "term": "score",
-      "beta": 0.39
+      "beta": 0.39,
+      "source": "Statistical methods section, PDF p. 2"
      }
     ],
     "constants": {
      "beta0_intercept": {
-      "value": -8.083
+      "value": -8.083,
+      "source": "Statistical methods section, PDF p. 2"
      },
      "beta1_followup_20y": {
-      "value": 1.02
+      "value": 1.02,
+      "source": "Statistical methods section, PDF p. 2"
      }
     }
    }
@@ -2132,34 +2588,51 @@ export const COEFFICIENTS = {
    {
     "id": "model1_points",
     "applies_to": "Model 1",
+    "source": "Table 2, PDF p. 3 (journal p. 737)",
     "items": [
      {
+      "factor": "Age 47–53 (ref <47)",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Age >53",
+      "category": "Yes",
       "points": 4
      },
      {
+      "factor": "Education 7–9 years (ref ≥10)",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Education 0–6 years",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Men (ref women)",
+      "category": "Yes",
       "points": 1
      },
      {
       "factor": "SBP >140 mmHg",
+      "category": "Yes",
       "points": 2
      },
      {
       "factor": "BMI >30 kg/m²",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Total cholesterol >6.5 mmol/L",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Physical inactivity (leisure activity less than twice a week)",
+      "category": "Yes",
       "points": 1
      }
     ]
@@ -2167,37 +2640,56 @@ export const COEFFICIENTS = {
    {
     "id": "model2_points",
     "applies_to": "Model 2",
+    "source": "Table 2, PDF p. 3 (journal p. 737)",
     "items": [
      {
+      "factor": "Age 47–53 (ref <47)",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Age >53",
+      "category": "Yes",
       "points": 5
      },
      {
+      "factor": "Education 7–9 years (ref ≥10)",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Education 0–6 years",
+      "category": "Yes",
       "points": 4
      },
      {
+      "factor": "Men (ref women)",
+      "category": "Yes",
       "points": 1
      },
      {
       "factor": "SBP >140 mmHg",
+      "category": "Yes",
       "points": 2
      },
      {
       "factor": "BMI >30 kg/m²",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Total cholesterol >6.5 mmol/L",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "Physical inactivity (leisure activity less than twice a week)",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "APOE ε4 carrier",
+      "category": "Yes",
       "points": 2
      }
     ]
@@ -2206,7 +2698,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "model1_band",
+    "applies_to": "Model 1 observed risk by score range",
     "horizon_years": 20,
+    "source": "Table 3, PDF p. 3",
     "rows": [
      {
       "score": "0–5",
@@ -2242,7 +2736,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "model2_band",
+    "applies_to": "Model 2 observed risk by score range",
     "horizon_years": 20,
+    "source": "Table 3, PDF p. 3",
     "rows": [
      {
       "score": "0–5",
@@ -2284,6 +2780,7 @@ export const COEFFICIENTS = {
     "equation": "model1_score_logistic",
     "inputs": {
      "age": "<47",
+     "sex": "Women",
      "education": "≥10",
      "sbp": "≤140",
      "bmi": "≤30",
@@ -2296,7 +2793,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_20y": 0.0013
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Table 4, PDF p. 4 (journal p. 738)",
+    "note": "Recomputed with the continuous formula in the statistical methods section, PDF p. 2, giving 0.00135, which agrees with the paper; the score was also re-added using the Table 2 points"
    },
    {
     "id": "paper-low-model2",
@@ -2304,6 +2803,7 @@ export const COEFFICIENTS = {
     "equation": "model2_score_logistic",
     "inputs": {
      "age": "<47",
+     "sex": "Women",
      "education": "≥10",
      "sbp": "≤140",
      "bmi": "≤30",
@@ -2317,7 +2817,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_20y": 0.0009
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Table 4, PDF p. 4 (journal p. 738)",
+    "note": "Recomputed with the continuous formula in the statistical methods section, PDF p. 2, giving 0.00086, which agrees with the paper; the score was also re-added using the Table 2 points"
    },
    {
     "id": "paper-intermediate-model1",
@@ -2325,6 +2827,7 @@ export const COEFFICIENTS = {
     "equation": "model1_score_logistic",
     "inputs": {
      "age": "47–53",
+     "sex": "Women",
      "education": "7–9",
      "sbp": ">140",
      "bmi": "≤30",
@@ -2337,7 +2840,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_20y": 0.0691
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Table 4, PDF p. 4 (journal p. 738)",
+    "note": "Recomputed with the continuous formula in the statistical methods section, PDF p. 2, giving 0.06914, which agrees with the paper; the score was also re-added using the Table 2 points"
    },
    {
     "id": "paper-intermediate-model2",
@@ -2345,6 +2850,7 @@ export const COEFFICIENTS = {
     "equation": "model2_score_logistic",
     "inputs": {
      "age": "47–53",
+     "sex": "Women",
      "education": "7–9",
      "sbp": ">140",
      "bmi": "≤30",
@@ -2358,7 +2864,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_20y": 0.0406
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Table 4, PDF p. 4 (journal p. 738)",
+    "note": "Recomputed with the continuous formula in the statistical methods section, PDF p. 2, giving 0.04058, which agrees with the paper; the score was also re-added using the Table 2 points"
    },
    {
     "id": "paper-high-model1",
@@ -2366,6 +2874,7 @@ export const COEFFICIENTS = {
     "equation": "model1_score_logistic",
     "inputs": {
      "age": ">53",
+     "sex": "Men",
      "education": "≤6",
      "sbp": ">140",
      "bmi": ">30",
@@ -2378,7 +2887,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_20y": 0.3555
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Table 4, PDF p. 4 (journal p. 738)",
+    "note": "Recomputed with the continuous formula in the statistical methods section, PDF p. 2, giving 0.35549, which agrees with the paper; the score was also re-added using the Table 2 points"
    },
    {
     "id": "paper-high-model2",
@@ -2386,6 +2897,7 @@ export const COEFFICIENTS = {
     "equation": "model2_score_logistic",
     "inputs": {
      "age": ">53",
+     "sex": "Men",
      "education": "≤6",
      "sbp": ">140",
      "bmi": ">30",
@@ -2399,7 +2911,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_20y": 0.4893
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Table 4, PDF p. 4 (journal p. 738)",
+    "note": "Recomputed with the continuous formula in the statistical methods section, PDF p. 2, giving 0.48925, which agrees with the paper; the score was also re-added using the Table 2 points"
    }
   ]
  },
@@ -2408,193 +2922,252 @@ export const COEFFICIENTS = {
   "model_id": "chien-2008",
   "citation": "Chien K, et al. A prediction model for type 2 diabetes risk among Chinese people. Diabetologia 2009;52:443–450. doi:10.1007/s00125-008-1232-4",
   "model_type": "points",
+  "outcome": "Type 2 diabetes (10 years)",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "≥35 years (Chin-Shan community cohort, 2,960 people without diabetes)",
+   "sex": "Men and women combined; sex is not in the model",
+   "notes": "Internal 5-fold cross-validation only; AUC 0.702"
+  },
+  "formula": "Look up the total points in Table 3; the authors' conversion formula is Risk = 1 − S0(t)^exp(ΣβX − ΣβX̄) (PDF p. 3), but the S0 value is not published",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "category"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "category"
    },
    {
     "name": "wbc",
-    "unit": "10⁹/l"
+    "unit": "10⁹/l",
+    "coding": "category"
    },
    {
     "name": "tg",
-    "unit": "mmol/l"
+    "unit": "mmol/l",
+    "coding": "category"
    },
    {
     "name": "hdl",
-    "unit": "mmol/l"
+    "unit": "mmol/l",
+    "coding": "category"
    },
    {
     "name": "fpg",
-    "unit": "mmol/l"
+    "unit": "mmol/l",
+    "coding": "category"
    }
   ],
   "equations": [
    {
     "id": "cox_concise",
+    "applies_to": "Men and women combined",
     "coefficients": [
      {
       "term": "Age",
       "beta": 0.008,
       "mean": 54,
-      "rr": "1.01 (1.00–1.02)"
+      "rr": "1.01 (1.00–1.02)",
+      "source": "Table 1, PDF p. 3 (journal p. 445)"
      },
      {
+      "term": "BMI (kg/m²)",
       "beta": 0.082,
       "mean": 23.3,
-      "rr": "1.09 (1.06–1.11)"
+      "rr": "1.09 (1.06–1.11)",
+      "source": "Table 1, PDF p. 3 (journal p. 445)"
      },
      {
+      "term": "White blood cell count (10⁹/l)",
       "beta": 0.086,
       "mean": 6.2,
-      "rr": "1.09 (1.03–1.15)"
+      "rr": "1.09 (1.03–1.15)",
+      "source": "Table 1, PDF p. 3 (journal p. 445)"
      },
      {
+      "term": "Triacylglycerol (mmol/l)",
       "beta": 0.153,
       "mean": 1.31,
-      "rr": "1.17 (1.07–1.27)"
+      "rr": "1.17 (1.07–1.27)",
+      "source": "Table 1, PDF p. 3 (journal p. 445)"
      },
      {
+      "term": "HDL-cholesterol (mmol/l)",
       "beta": -0.367,
       "mean": 1.25,
-      "rr": "0.69 (0.50–0.95)"
+      "rr": "0.69 (0.50–0.95)",
+      "source": "Table 1, PDF p. 3 (journal p. 445)"
      },
      {
+      "term": "Fasting glucose (mmol/l)",
       "beta": 0.695,
       "mean": 5.64,
-      "rr": "2.01 (1.71–2.35)"
+      "rr": "2.01 (1.71–2.35)",
+      "source": "Table 1, PDF p. 3 (journal p. 445)"
      }
-    ]
+    ],
+    "baseline_survival_note": "The paper does not publish the S0(10) value"
    }
   ],
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Men and women combined",
+    "source": "Table 2, PDF p. 3",
     "items": [
      {
+      "factor": "Age (years)",
       "category": "35–44",
       "points": -1
      },
      {
+      "factor": "Age (years)",
       "category": "45–54",
       "points": 0
      },
      {
+      "factor": "Age (years)",
       "category": "55–64",
       "points": 1
      },
      {
+      "factor": "Age (years)",
       "category": "65–74",
       "points": 2
      },
      {
+      "factor": "Age (years)",
       "category": "≥75",
       "points": 3
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "<21",
       "points": -3
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "21–22",
       "points": 0
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "22–24",
       "points": 2
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "24–26",
       "points": 4
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "≥26",
       "points": 8
      },
      {
+      "factor": "White blood cell count (10⁹/l)",
       "category": "<4.9",
       "points": -1
      },
      {
+      "factor": "White blood cell count (10⁹/l)",
       "category": "4.9–5.7",
       "points": 0
      },
      {
+      "factor": "White blood cell count (10⁹/l)",
       "category": "5.7–6.4",
       "points": 1
      },
      {
+      "factor": "White blood cell count (10⁹/l)",
       "category": "6.4–7.5",
       "points": 2
      },
      {
+      "factor": "White blood cell count (10⁹/l)",
       "category": "≥7.5",
       "points": 4
      },
      {
+      "factor": "Triacylglycerol (mmol/l)",
       "category": "<0.70",
       "points": -1
      },
      {
+      "factor": "Triacylglycerol (mmol/l)",
       "category": "0.70–0.92",
       "points": 0
      },
      {
+      "factor": "Triacylglycerol (mmol/l)",
       "category": "0.93–1.19",
       "points": 0
      },
      {
+      "factor": "Triacylglycerol (mmol/l)",
       "category": "1.19–1.71",
       "points": 1
      },
      {
+      "factor": "Triacylglycerol (mmol/l)",
       "category": "≥1.72",
       "points": 5
      },
      {
+      "factor": "HDL (mmol/l)",
       "category": "<0.98",
       "points": 1
      },
      {
+      "factor": "HDL (mmol/l)",
       "category": "0.98–1.13",
       "points": 0
      },
      {
+      "factor": "HDL (mmol/l)",
       "category": "1.14–1.29",
       "points": -1
      },
      {
+      "factor": "HDL (mmol/l)",
       "category": "1.30–1.49",
       "points": -2
      },
      {
+      "factor": "HDL (mmol/l)",
       "category": "≥1.50",
       "points": -4
      },
      {
+      "factor": "Fasting glucose (mmol/l)",
       "category": "<5.16",
       "points": -5
      },
      {
+      "factor": "Fasting glucose (mmol/l)",
       "category": "5.16–5.43",
       "points": 0
      },
      {
+      "factor": "Fasting glucose (mmol/l)",
       "category": "5.44–5.71",
       "points": 3
      },
      {
+      "factor": "Fasting glucose (mmol/l)",
       "category": "5.72–6.10",
       "points": 6
      },
      {
+      "factor": "Fasting glucose (mmol/l)",
       "category": "≥6.11",
       "points": 11
      }
@@ -2604,7 +3177,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "points_to_10y_risk",
+    "applies_to": "Men and women combined",
     "horizon_years": 10,
+    "source": "Table 3, PDF p. 4 (journal p. 446)",
     "rows": [
      {
       "score": -15,
@@ -2828,7 +3403,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.26
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from Table 2 and Table 3",
+    "note": "No example in the paper; self-computed, not checked against the paper"
    },
    {
     "id": "self-extremes",
@@ -2842,7 +3419,9 @@ export const COEFFICIENTS = {
      "risk_min": 0.05,
      "risk_max": 0.86
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Table 3, PDF p. 4 (journal p. 446)",
+    "note": "Both ends of the table, to test the table boundaries"
    }
   ]
  },
@@ -2851,267 +3430,374 @@ export const COEFFICIENTS = {
   "model_id": "chien-2010-ckd",
   "citation": "Chien KL, et al. A Prediction Model for the Risk of Incident Chronic Kidney Disease. Am J Med 2010;123:836–846.",
   "model_type": "points",
+  "outcome": "New-onset CKD (MDRD eGFR <60 mL/min/1.73 m²)",
   "horizon_years": [
    4
   ],
+  "population": {
+   "age_range": "Unconfirmed (mean 51.2 years, SD 10.5; Table 1, PDF p. 5)",
+   "sex": "Men and women combined; sex is not in the model (63.3% men)",
+   "notes": "National Taiwan University Hospital health-checkup cohort of 5,168 people, median follow-up 2.2 years, 190 cases; Chin-Shan community as external validation (clinical version AUC 0.667)"
+  },
+  "formula": "Look up the total points in Table 3 (clinical) or Table 4 (biochemical); the authors' conversion formula is Risk = 1 − S0(t)^exp(ΣβX − ΣβX̄) (PDF p. 3), and the S0 value is not published",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "category"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "Category (clinical)"
    },
    {
     "name": "dbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "category"
    },
    {
     "name": "t2d",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "History of type 2 diabetes (clinical)"
    },
    {
     "name": "stroke",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "History of stroke"
    },
    {
     "name": "uric_acid",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "Biochemical"
    },
    {
     "name": "pp_glucose",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "Postprandial glucose (biochemical)"
    },
    {
     "name": "hba1c",
-    "unit": "%"
+    "unit": "%",
+    "coding": "Biochemical"
    },
    {
     "name": "proteinuria",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Proteinuria ≥100 mg/dL (biochemical)"
    }
   ],
   "equations": [
    {
     "id": "clinical",
+    "applies_to": "Clinical model",
     "coefficients": [
      {
       "term": "Age",
       "beta": 0.077,
-      "mean": 51.2
+      "mean": 51.2,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "BMI (kg/m²)",
       "beta": 0.059,
-      "mean": 23.9
+      "mean": 23.9,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "DBP (mmHg)",
       "beta": 0.018,
-      "mean": 73.7
+      "mean": 73.7,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "History of type 2 diabetes (0/1)",
       "beta": 0.366,
-      "mean": 0.122
+      "mean": 0.122,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "History of stroke (0/1)",
       "beta": 1.24,
-      "mean": 0.004
+      "mean": 0.004,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      }
-    ]
+    ],
+    "baseline_survival_note": "The paper does not publish the S0(4) value"
    },
    {
     "id": "biochemical",
+    "applies_to": "Biochemical model",
     "coefficients": [
      {
       "term": "Age",
       "beta": 0.076,
-      "mean": 51.2
+      "mean": 51.2,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "DBP (mmHg)",
       "beta": 0.018,
-      "mean": 73.7
+      "mean": 73.7,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "History of stroke (0/1)",
       "beta": 1.239,
-      "mean": 0.004
+      "mean": 0.004,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "Postprandial glucose (mg/dL)",
       "beta": 0.002,
-      "mean": 118.4
+      "mean": 118.4,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "HbA1c (%)",
       "beta": 0.162,
-      "mean": 5.52
+      "mean": 5.52,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "Proteinuria ≥100 mg/dL (0/1)",
       "beta": 1.718,
-      "mean": 0.007
+      "mean": 0.007,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      },
      {
+      "term": "Uric acid (mg/dL)",
       "beta": 0.166,
-      "mean": 6.11
+      "mean": 6.11,
+      "source": "Table 2, PDF p. 6 (journal p. 841)",
+      "mean_source": "Table 1, PDF p. 5"
      }
-    ]
+    ],
+    "baseline_survival_note": "The paper does not publish the S0(4) value"
    }
   ],
   "points_tables": [
    {
     "id": "clinical_points",
+    "applies_to": "Clinical model",
+    "source": "Table 3, PDF p. 6",
     "items": [
      {
+      "factor": "Age (years)",
       "category": "<45",
       "points": 0
      },
      {
+      "factor": "Age (years)",
       "category": "45–54.9",
       "points": 3
      },
      {
+      "factor": "Age (years)",
       "category": "55–64.9",
       "points": 5
      },
      {
+      "factor": "Age (years)",
       "category": "≥65",
       "points": 8
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "<21",
       "points": 0
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "21–23.9",
       "points": 1
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "24–25.9",
       "points": 1
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "≥26",
       "points": 2
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "<66",
       "points": 0
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "66–73.9",
       "points": 1
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "74–79.9",
       "points": 1
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "≥80",
       "points": 2
      },
      {
+      "factor": "Type 2 diabetes",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Type 2 diabetes",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "History of stroke",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "History of stroke",
+      "category": "Yes",
       "points": 4
      }
     ]
    },
    {
     "id": "biochemical_points",
+    "applies_to": "Biochemical model",
+    "source": "Table 4, PDF p. 6",
     "items": [
      {
+      "factor": "Age (years)",
       "category": "<45",
       "points": 0
      },
      {
+      "factor": "Age (years)",
       "category": "45–54.9",
       "points": 3
      },
      {
+      "factor": "Age (years)",
       "category": "55–64.9",
       "points": 5
      },
      {
+      "factor": "Age (years)",
       "category": "≥65",
       "points": 8
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "<66",
       "points": 0
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "66–73.9",
       "points": 1
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "74–79.9",
       "points": 1
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "≥80",
       "points": 1
      },
      {
+      "factor": "History of stroke",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "History of stroke",
+      "category": "Yes",
       "points": 4
      },
      {
+      "factor": "Uric acid (mg/dL)",
       "category": "<5.0",
       "points": 0
      },
      {
+      "factor": "Uric acid (mg/dL)",
       "category": "5.0–5.9",
       "points": 1
      },
      {
+      "factor": "Uric acid (mg/dL)",
       "category": "6.0–6.9",
       "points": 1
      },
      {
+      "factor": "Uric acid (mg/dL)",
       "category": "≥7.0",
       "points": 2
      },
      {
+      "factor": "Postprandial glucose (mg/dL)",
       "category": "<88",
       "points": 0
      },
      {
+      "factor": "Postprandial glucose (mg/dL)",
       "category": "88–104",
       "points": 0
      },
      {
+      "factor": "Postprandial glucose (mg/dL)",
       "category": "105–129",
       "points": 0
      },
      {
+      "factor": "Postprandial glucose (mg/dL)",
       "category": "≥130",
       "points": 1
      },
      {
+      "factor": "HbA1c (%)",
       "category": "<5.2",
       "points": 0
      },
      {
+      "factor": "HbA1c (%)",
       "category": "5.2–5.3",
       "points": 0
      },
      {
+      "factor": "HbA1c (%)",
       "category": "5.4–5.6",
       "points": 0
      },
      {
+      "factor": "HbA1c (%)",
       "category": "≥5.7",
       "points": 1
      },
      {
+      "factor": "Proteinuria ≥100 mg/dL",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Proteinuria ≥100 mg/dL",
+      "category": "Yes",
       "points": 6
      }
     ]
@@ -3120,7 +3806,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "clinical_points_to_4y_risk",
+    "applies_to": "Clinical model",
     "horizon_years": 4,
+    "source": "Table 3, PDF p. 6",
     "rows": [
      {
       "score": 0,
@@ -3198,7 +3886,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "biochemical_points_to_4y_risk",
+    "applies_to": "Biochemical model",
     "horizon_years": 4,
+    "source": "Table 4, PDF p. 6",
     "rows": [
      {
       "score": 0,
@@ -3325,7 +4015,9 @@ export const COEFFICIENTS = {
      "risk_4y": 0.23,
      "above_cutoff_7": true
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from Table 3",
+    "note": "No example in the paper; self-computed, not checked against the paper"
    },
    {
     "id": "self-bio-60",
@@ -3355,7 +4047,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_4y": 0.25
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from Table 4",
+    "note": "Self-computed, not checked against the paper"
    }
   ]
  },
@@ -3364,242 +4058,326 @@ export const COEFFICIENTS = {
   "model_id": "chien-2010",
   "citation": "Chien KL, et al. Constructing the Prediction Model for the Risk of Stroke in a Chinese Population: Report From a Cohort Study in Taiwan. Stroke 2010;41:1858–1864.",
   "model_type": "cox",
+  "outcome": "Stroke (10 years)",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "≥35 years, no stroke (Chin-Shan community cohort n=3,513, PDF pp. 1–2)",
+   "sex": "Men and women combined; sex is a variable",
+   "notes": "Internal 5-fold cross-validation only"
+  },
+  "formula": "Risk = 1 − S0(10)^exp(Σβ·X − Σβ·X̄) (PDF p. 2, statistical methods); look up Table 2 for the points version",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "Continuous"
    },
    {
     "name": "gender",
-    "unit": "—"
+    "unit": "—",
+    "coding": "1=male, 2=female (coefficient version); in the points version men get 1 point"
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "Continuous"
    },
    {
     "name": "dbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "Continuous"
    },
    {
     "name": "fh",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "First-degree relative with a stroke event (PDF p. 2)"
    },
    {
     "name": "af",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Atrial fibrillation"
    },
    {
     "name": "dm",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Diabetes (clinical model only)"
    },
    {
     "name": "tc",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "Biochemical model"
    },
    {
     "name": "wbc",
-    "unit": "10³/cc"
+    "unit": "10³/cc",
+    "coding": "Biochemical model"
    },
    {
     "name": "fg",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "Biochemical model"
    }
   ],
   "equations": [
    {
     "id": "clinical",
+    "applies_to": "Clinical model (men and women combined)",
     "coefficients": [
      {
       "term": "Age, +1 year",
       "key": "age",
       "beta": 0.071,
-      "mean": 54.6
+      "mean": 54.6,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
       "term": "Gender",
       "key": "gender",
       "beta": -0.43,
-      "mean": 1.53
+      "mean": 1.53,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Systolic BP (mmHg)",
       "key": "sbp",
       "beta": 0.016,
-      "mean": 125.1
+      "mean": 125.1,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Diastolic BP (mmHg)",
       "key": "dbp",
       "beta": 0.017,
-      "mean": 77
+      "mean": 77,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Family history of stroke (0/1)",
       "key": "fh",
       "beta": 0.463,
-      "mean": 0.2
+      "mean": 0.2,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Atrial fibrillation (0/1)",
       "key": "af",
       "beta": 1.134,
-      "mean": 0.01
+      "mean": 0.01,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Diabetes mellitus (0/1)",
       "key": "dm",
       "beta": 0.376,
-      "mean": 0.13
+      "mean": 0.13,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      }
     ],
     "baseline_survival": {
      "10": 0.9774
-    }
+    },
+    "baseline_survival_source": "Table 1, PDF p. 3 (journal p. 1860), table footnote"
    },
    {
     "id": "biochemical",
+    "applies_to": "Biochemical model (men and women combined)",
     "coefficients": [
      {
       "term": "Age, +1 year",
       "key": "age",
       "beta": 0.073,
-      "mean": 54.6
+      "mean": 54.6,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
       "term": "Gender",
       "key": "gender",
       "beta": -0.458,
-      "mean": 1.53
+      "mean": 1.53,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Systolic BP (mmHg)",
       "key": "sbp",
       "beta": 0.016,
-      "mean": 125.1
+      "mean": 125.1,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Diastolic BP (mmHg)",
       "key": "dbp",
       "beta": 0.017,
-      "mean": 77
+      "mean": 77,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Family history of stroke (0/1)",
       "key": "fh",
       "beta": 0.457,
-      "mean": 0.2
+      "mean": 0.2,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Atrial fibrillation (0/1)",
       "key": "af",
       "beta": 1.247,
-      "mean": 0.01
+      "mean": 0.01,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Total cholesterol (mg/dL)",
       "key": "tc",
       "beta": 0.003,
-      "mean": 197.8
+      "mean": 197.8,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "White blood cell (10³/cc)",
       "key": "wbc",
       "beta": 0.081,
-      "mean": 6.3
+      "mean": 6.3,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      },
      {
+      "term": "Fasting glucose (mg/dL)",
       "key": "fg",
       "beta": 0.005,
-      "mean": 109.9
+      "mean": 109.9,
+      "source": "Table 1, PDF p. 3 (journal p. 1860)"
      }
     ],
     "baseline_survival": {
      "10": 0.9783
-    }
+    },
+    "baseline_survival_source": "Table 1, PDF p. 3 (journal p. 1860), table footnote"
    }
   ],
   "points_tables": [
    {
     "id": "clinical_points",
+    "applies_to": "Clinical model points",
+    "source": "Table 2, PDF p. 4",
     "items": [
      {
+      "factor": "Age",
       "category": "35–39",
       "points": 0
      },
      {
+      "factor": "Age",
       "category": "40–44",
       "points": 1
      },
      {
+      "factor": "Age",
       "category": "45–49",
       "points": 2
      },
      {
+      "factor": "Age",
       "category": "50–54",
       "points": 3
      },
      {
+      "factor": "Age",
       "category": "55–59",
       "points": 4
      },
      {
+      "factor": "Age",
       "category": "60–65",
       "points": 5
      },
      {
+      "factor": "Age",
       "category": "65–69",
       "points": 6
      },
      {
+      "factor": "Age",
       "category": "70–74",
       "points": 7
      },
      {
+      "factor": "Age",
       "category": "≥75",
       "points": 8
      },
      {
+      "factor": "Sex",
+      "category": "Men",
       "points": 1
      },
      {
+      "factor": "Sex",
+      "category": "Women",
       "points": 0
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "<110",
       "points": 0
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "110–129",
       "points": 1
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "130–149",
       "points": 2
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "≥150",
       "points": 3
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "<75",
       "points": 0
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "75–94",
       "points": 1
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "≥95",
       "points": 2
      },
      {
+      "factor": "Family history of stroke",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Family history of stroke",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "Atrial fibrillation",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Atrial fibrillation",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Diabetes",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Diabetes",
+      "category": "Yes",
       "points": 1
      }
     ]
@@ -3608,7 +4386,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "clinical_points_to_10y_risk",
+    "applies_to": "Clinical model points",
     "horizon_years": 10,
+    "source": "Table 2, PDF p. 4",
     "rows": [
      {
       "score": 0,
@@ -3688,6 +4468,7 @@ export const COEFFICIENTS = {
     "equation": "clinical_points",
     "inputs": {
      "age": 62,
+     "sex": "Men",
      "sbp": 140,
      "dbp": 85,
      "family_history_stroke": 0,
@@ -3709,7 +4490,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.085
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from Table 2",
+    "note": "No example in the paper; self-computed, not checked against the paper"
    },
    {
     "id": "self-coef-m62",
@@ -3730,7 +4513,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.08447
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Self-computed from the Table 1 coefficients and means",
+    "note": "No example in the paper; self-computed, not checked against the paper. The coefficients have only 3 decimals, so the result will not exactly match the points version"
    }
   ]
  },
@@ -3739,25 +4524,36 @@ export const COEFFICIENTS = {
   "model_id": "china-par",
   "citation": "Yang X, Li J, Hu D, et al. Predicting the 10-Year Risks of Atherosclerotic Cardiovascular Disease in Chinese Population: The China-PAR Project. Circulation 2016;134:1430–1440. doi:10.1161/CIRCULATIONAHA.116.022367",
   "model_type": "cox",
+  "outcome": "First ASCVD event (MI + stroke), 10 years",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Ages 35–74 (development cohorts 35–59 and 35–74)",
+   "sex": "Separate equations for men and women",
+   "notes": "Four Chinese cohorts; north/south and urbanization are variables"
+  },
+  "formula": "risk = 1 − S10^exp(Σindividual − Σmean); Σindividual = Σ coefficient × variable value; continuous variables (age, SBP, TC mg/dL, HDL mg/dL, waist cm) are first log-transformed (natural log); interaction = ln(age) × the other variable's value; treated and untreated SBP are mutually exclusive (Supplemental Table 2, supplement pp. 3–4)",
   "variables": [
    {
     "name": "age",
+    "unit": "years",
     "coding": "ln"
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "ln; treated and untreated are two mutually exclusive variables"
    },
    {
     "name": "tc",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "ln, not converted to mmol/L"
    },
    {
     "name": "hdl",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "ln, not converted to mmol/L"
    },
    {
     "name": "wc",
@@ -3766,110 +4562,142 @@ export const COEFFICIENTS = {
    },
    {
     "name": "smk",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current smoking"
    },
    {
     "name": "dm",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Diabetes"
    },
    {
     "name": "north",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "North=1"
    },
    {
     "name": "urban",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Urban=1 (men only)"
    },
    {
     "name": "fh",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Family history of ASCVD (men only)"
    }
   ],
   "equations": [
    {
     "id": "male",
+    "applies_to": "Men",
     "coefficients": [
      {
       "term": "ln",
       "key": "lage",
-      "beta": 31.97
+      "beta": 31.97,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "tsbp",
-      "beta": 27.39
+      "beta": 27.39,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "usbp",
-      "beta": 26.15
+      "beta": 26.15,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "tc",
-      "beta": 0.62
+      "beta": 0.62,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln(HDL-C mg/dL)",
       "key": "hdl",
-      "beta": -0.69
+      "beta": -0.69,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "wc",
-      "beta": -0.71
+      "beta": -0.71,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "Current smoking",
       "key": "smk",
-      "beta": 3.96
+      "beta": 3.96,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "Diabetes",
       "key": "dm",
-      "beta": 0.36
+      "beta": 0.36,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "North=1 / South=0",
       "key": "north",
-      "beta": 0.48
+      "beta": 0.48,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "Urban=1 / Rural=0",
       "key": "urban",
-      "beta": -0.16
+      "beta": -0.16,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "Family history of ASCVD",
       "key": "fh",
-      "beta": 6.22
+      "beta": 6.22,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln×ln",
       "key": "a_tsbp",
-      "beta": -6.02
+      "beta": -6.02,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln×ln",
       "key": "a_usbp",
-      "beta": -5.73
+      "beta": -5.73,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "ln(age) × current smoking",
       "key": "a_smk",
-      "beta": -0.94
+      "beta": -0.94,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "ln(age) × family history",
       "key": "a_fh",
-      "beta": -1.53
+      "beta": -1.53,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      }
     ],
     "constants": {
      "mean_sum": {
-      "value": 140.68
+      "value": 140.68,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      "S10_printed_table1": {
-      "value": 0.97
+      "value": 0.97,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      "S10_formula": {
-      "value": 0.9707
+      "value": 0.9707,
+      "source": "Supplemental Table 2, men's equation, supplement p. 4"
      },
      "S10_effective": {
-      "value": 0.9724
+      "value": 0.9724,
+      "source": "Back-calculated: reproduces the four ages in main-text Table 2 and website group D using exact ln values + two-decimal coefficients; not published by the authors"
      }
     },
     "baseline_survival": {
@@ -3878,69 +4706,87 @@ export const COEFFICIENTS = {
    },
    {
     "id": "female",
+    "applies_to": "Women",
     "coefficients": [
      {
       "term": "ln",
       "key": "lage",
-      "beta": 24.87
+      "beta": 24.87,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "tsbp",
-      "beta": 20.71
+      "beta": 20.71,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "usbp",
-      "beta": 19.98
+      "beta": 19.98,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "tc",
-      "beta": 0.06
+      "beta": 0.06,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln(HDL-C mg/dL)",
       "key": "hdl",
-      "beta": -0.22
+      "beta": -0.22,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln",
       "key": "wc",
-      "beta": 1.48
+      "beta": 1.48,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "Current smoking",
       "key": "smk",
-      "beta": 0.49
+      "beta": 0.49,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "Diabetes",
       "key": "dm",
-      "beta": 0.57
+      "beta": 0.57,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
+      "term": "North=1 / South=0",
       "key": "north",
-      "beta": 0.54
+      "beta": 0.54,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln×ln",
       "key": "a_tsbp",
-      "beta": -4.53
+      "beta": -4.53,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      {
       "term": "ln×ln",
       "key": "a_usbp",
-      "beta": -4.36
+      "beta": -4.36,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      }
     ],
     "constants": {
      "mean_sum": {
-      "value": 117.26
+      "value": 117.26,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      "S10_printed_table1": {
-      "value": 0.99
+      "value": 0.99,
+      "source": "Supplemental Table 1, supplement p. 2 (Yang 2016 full text + supplement PDF hosted at cvdrisk.com.cn)"
      },
      "S10_effective": {
-      "value": 0.985
+      "value": 0.985,
+      "source": "Back-calculated (range 0.9848–0.9851): the four ages for women in main-text Table 2 + website A/B/C; the authors printed only 0.99; not published by the authors"
      }
     },
     "baseline_survival": {
@@ -3955,6 +4801,7 @@ export const COEFFICIENTS = {
     "id": "paper-men-60-handsum",
     "origin": "paper",
     "equation": "male",
+    "inputs": "Supplemental Table 1 example: man, age 60, untreated SBP 130, TC 210, HDL 55, waist 80, non-smoker, with diabetes, north and urban, no family history (calculated by hand using the rounded ln values in the table)",
     "expected": {
      "risk_10y": 0.11
     },
@@ -3964,12 +4811,15 @@ export const COEFFICIENTS = {
      "S10": 0.9707,
      "risk_10y": 0.1094
     },
-    "tolerance": 0.002
+    "tolerance": 0.002,
+    "source": "Supplemental Tables 1/2, supplement pp. 2–4",
+    "note": "The ln values in the table are given to two decimals (4.09, 4.87, 5.35…), individual total 142.04; with exact ln values the total is 142.106, which with the same S10 0.9707 gives 11.6% (a difference of 0.6 percentage points)"
    },
    {
     "id": "paper-women-60-handsum",
     "origin": "paper",
     "equation": "female",
+    "inputs": "Same as above, woman aged 60 (the diabetes value for women in the table is printed as 0, but the total 119.22 already includes diabetes 0.57, see unresolved)",
     "expected": {
      "risk_10y": 0.101
     },
@@ -3979,7 +4829,9 @@ export const COEFFICIENTS = {
      "S10_used": 0.985,
      "risk_10y": 0.1017
     },
-    "tolerance": 0.003
+    "tolerance": 0.003,
+    "source": "Supplemental Table 1, supplement p. 2; the 10.1% risk is in main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "For women S10 is printed only as 0.99; only 0.985 (back-calculated) matches, see unresolved"
    },
    {
     "id": "paper-table2-men-40",
@@ -4004,7 +4856,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.9724,
      "risk_10y": 0.022
     },
-    "tolerance": 0.001
+    "tolerance": 0.001,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "Uses exact ln values + effective S10 0.9724 (back-calculated); using the printed 0.9707 would overestimate by 0.1–1.1 percentage points"
    },
    {
     "id": "paper-table2-women-40",
@@ -4029,7 +4883,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.985,
      "risk_10y": 0.0242
     },
-    "tolerance": 0.002
+    "tolerance": 0.002,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "S10 0.985 is back-calculated; the four ages in Table 2 jointly constrain it to 0.98507–0.98509 (within coefficient rounding)"
    },
    {
     "id": "paper-table2-men-50",
@@ -4054,7 +4910,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.9724,
      "risk_10y": 0.0539
     },
-    "tolerance": 0.001
+    "tolerance": 0.001,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "Uses exact ln values + effective S10 0.9724 (back-calculated); using the printed 0.9707 would overestimate by 0.1–1.1 percentage points"
    },
    {
     "id": "paper-table2-women-50",
@@ -4079,7 +4937,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.985,
      "risk_10y": 0.0538
     },
-    "tolerance": 0.002
+    "tolerance": 0.002,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "S10 0.985 is back-calculated; the four ages in Table 2 jointly constrain it to 0.98507–0.98509 (within coefficient rounding)"
    },
    {
     "id": "paper-table2-men-60",
@@ -4104,7 +4964,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.9724,
      "risk_10y": 0.1099
     },
-    "tolerance": 0.001
+    "tolerance": 0.001,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "Uses exact ln values + effective S10 0.9724 (back-calculated); using the printed 0.9707 would overestimate by 0.1–1.1 percentage points"
    },
    {
     "id": "paper-table2-women-60",
@@ -4129,7 +4991,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.985,
      "risk_10y": 0.102
     },
-    "tolerance": 0.002
+    "tolerance": 0.002,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "S10 0.985 is back-calculated; the four ages in Table 2 jointly constrain it to 0.98507–0.98509 (within coefficient rounding)"
    },
    {
     "id": "paper-table2-men-70",
@@ -4154,7 +5018,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.9724,
      "risk_10y": 0.1962
     },
-    "tolerance": 0.001
+    "tolerance": 0.001,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "Uses exact ln values + effective S10 0.9724 (back-calculated); using the printed 0.9707 would overestimate by 0.1–1.1 percentage points"
    },
    {
     "id": "paper-table2-women-70",
@@ -4179,7 +5045,9 @@ export const COEFFICIENTS = {
      "S10_effective": 0.985,
      "risk_10y": 0.172
     },
-    "tolerance": 0.002
+    "tolerance": 0.002,
+    "source": "Main-text Table 2 (Circulation 2016;134:1433)",
+    "note": "S10 0.985 is back-calculated; the four ages in Table 2 jointly constrain it to 0.98507–0.98509 (within coefficient rounding)"
    },
    {
     "id": "web-D",
@@ -4204,7 +5072,9 @@ export const COEFFICIENTS = {
      "S10_used": 0.9724,
      "risk_10y": 0.0369
     },
-    "tolerance": 0.003
+    "tolerance": 0.003,
+    "source": "Measured output from cvdrisk.com.cn/ASCVD/Eval/Result (risk-models-calculator-probe-results.md, section B)",
+    "note": "The website shows 1 decimal, and only an integer when the value is whole (36%); group B includes treated SBP + diabetes + smoking, which is the most sensitive to coefficient rounding"
    },
    {
     "id": "web-A",
@@ -4228,7 +5098,9 @@ export const COEFFICIENTS = {
      "S10_used": 0.985,
      "risk_10y": 0.0259
     },
-    "tolerance": 0.003
+    "tolerance": 0.003,
+    "source": "Measured output from cvdrisk.com.cn/ASCVD/Eval/Result (risk-models-calculator-probe-results.md, section B)",
+    "note": "The website shows 1 decimal, and only an integer when the value is whole (36%); group B includes treated SBP + diabetes + smoking, which is the most sensitive to coefficient rounding"
    },
    {
     "id": "web-B",
@@ -4253,7 +5125,9 @@ export const COEFFICIENTS = {
      "S10_used": 0.985,
      "risk_10y": 0.3509
     },
-    "tolerance": 0.012
+    "tolerance": 0.012,
+    "source": "Measured output from cvdrisk.com.cn/ASCVD/Eval/Result (risk-models-calculator-probe-results.md, section B)",
+    "note": "The website shows 1 decimal, and only an integer when the value is whole (36%); group B includes treated SBP + diabetes + smoking, which is the most sensitive to coefficient rounding"
    },
    {
     "id": "web-C",
@@ -4277,7 +5151,9 @@ export const COEFFICIENTS = {
      "S10_used": 0.985,
      "risk_10y": 0.0309
     },
-    "tolerance": 0.003
+    "tolerance": 0.003,
+    "source": "Measured output from cvdrisk.com.cn/ASCVD/Eval/Result (risk-models-calculator-probe-results.md, section B)",
+    "note": "The website shows 1 decimal, and only an integer when the value is whole (36%); group B includes treated SBP + diabetes + smoking, which is the most sensitive to coefficient rounding"
    }
   ]
  },
@@ -4289,9 +5165,11 @@ export const COEFFICIENTS = {
    "files": [
     "Aberg2022JHepatol_CLivD.pdf",
     "Aberg2022JHepatol_CLivD_supp1.pdf p.19-20"
-   ]
+   ],
+   "license": "Paper is open access; licence terms not checked item by item"
   },
   "model_type": "Cox linear predictor + nomogram",
+  "outcome": "Cumulative probability of a severe liver event at 15 years",
   "horizon_years": 15,
   "population": {
    "eligibility": "AGE 40-70"
@@ -4302,23 +5180,28 @@ export const COEFFICIENTS = {
     "unit": "years 40-70"
    },
    {
-    "name": "SEX"
+    "name": "SEX",
+    "unit": "Male=1 female=2"
    },
    {
     "name": "WHR",
     "unit": "ratio"
    },
    {
-    "name": "ALCOHOL"
+    "name": "ALCOHOL",
+    "unit": "Drinks per week (10 g), values >50 set to 50"
    },
    {
-    "name": "GGT"
+    "name": "GGT",
+    "unit": "U/L, values >200 set to 200 (lab version only)"
    },
    {
-    "name": "DIABETES"
+    "name": "DIABETES",
+    "unit": "Yes=1"
    },
    {
-    "name": "SMOKING"
+    "name": "SMOKING",
+    "unit": "Current=1, otherwise=2"
    }
   ],
   "equations": {
@@ -4327,6 +5210,7 @@ export const COEFFICIENTS = {
    "model_nonlab": "-8.0940103+0.044177151*AGE+0.48927753*(WHR*10)+0.19222894*ALC-0.00015029544*max(ALC-0.1,0)^3-0.0021265611*max(ALC-1,0)^3+0.0029832769*max(ALC-3,0)^3-0.00068765143*max(ALC-9,0)^3-1.8769011e-05*max(ALC-33,0)^3+0.69669285*(DIAB==1)+0.75968055*(SMOK==1)+0.63248362*(SEX==2)-0.59146649*(SMOK==1)*(SEX==2)"
   },
   "risk_groups": {
+   "source": "supp1 p. 20; main-text Fig. 2 legend",
    "lab_cutoffs_lp": {
     "minimal": "<-0.258",
     "low": "-0.259..2.066",
@@ -4338,12 +5222,20 @@ export const COEFFICIENTS = {
     "low": "-0.413..1.912",
     "intermediate": "1.913..2.632",
     "high": ">=2.633"
-   }
+   },
+   "definition": "15-year risk: minimal <0.5% (the legend says <0.05%, a typo or a difference; the main text, Methods and supplement all say 0.5%), low 0.5–4.9%, medium 5–9.9%, high ≥10%",
+   "note": "The Fig. 2 legend says \"<0.05% (minimal), 0.05%-4.9%\", which disagrees with the 0.5% in the Methods and supplement; 0.5% was adopted (the cloglog differences between the supplement's three cut-offs agree with 0.5/5/10)"
   },
   "score_to_risk": {
    "derived": true,
+   "status": "Derived approximation; the authors did not publish a baseline or intercept (the TRIPOD item 15a field points to the nomogram)",
+   "method": "The three cut-offs correspond to 15-year risks of 0.5%, 5% and 10%; the cloglog(p) differences 2.3256 / 0.7198 agree to within 0.003 with the cut-off LP differences 2.324 / 0.718 (lab) and 2.324 / 0.720 (non-lab), which means 15-year cumulative risk ≈ 1-exp(-exp(LP+c))",
    "formula_lab": "risk15=1-exp(-exp(LP_lab-5.036))",
-   "formula_nonlab": "risk15=1-exp(-exp(LP_nonlab-4.883))"
+   "formula_nonlab": "risk15=1-exp(-exp(LP_nonlab-4.883))",
+   "caveat": "With competing risks the actual quantity is a cumulative incidence function, and the error grows the further from the cut-offs; in the Fig. S16 example (man aged 52, diabetes, current smoker, 14 drinks/week, WHR 1.1, GGT 65) the nomogram points 144 → about 6% (supp1 p. 39), while this formula gives LP_lab=2.482 → 7.5% (a difference of about 1.5 percentage points, both within the 5–9.9% medium-risk group); the nomogram points conversion table (Fig. 3 figure text) was not checked point by point",
+   "nomogram_text_layer": {
+    "lab_men": "Bottom of Fig. 3: total points 85, 106, 120, 130, 137, 143, 148, 153, 157, 160, 164, 166, 169, 172, 174, 177, 179, 181, 183, 186, 195, 203, 219 correspond to risk axis 1..20, 25, 30, 40% (the number of entries in the text layer is one off from the risk axis; the starting point alignment is unconfirmed)"
+   }
   },
   "examples": [
    {
@@ -4361,39 +5253,49 @@ export const COEFFICIENTS = {
     "expected_lp_lab": 2.48236,
     "expected_group": "intermediate",
     "paper_value_pct": 6,
-    "derived_pct": 7.47
+    "derived_pct": 7.47,
+    "note": "Nomogram points 144, about 6% in the paper"
    }
-  ]
+  ],
+  "paper_examples": "Fig. S16 (supp1 p. 39)"
  },
  "copd-ps": {
   "model_id": "copd-ps",
   "source": {
    "pdf_key": "Martinez2008COPD",
-   "citation": "Martinez FJ et al. COPD 2008;5:85-95"
+   "citation": "Martinez FJ et al. COPD 2008;5:85-95",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "points",
+  "outcome": "Screening score for current fixed airflow limitation (post-BD FEV1/FVC <70%) (current status, not future risk)",
   "population": {
+   "sex": "Not applicable by sex",
    "age_range": "≥35"
   },
   "inputs": [
    {
     "name": "q1_short_of_breath",
+    "unit": "Options",
     "coding": "none_of_the_time | a_little_of_the_time | some_of_the_time | most_of_the_time | all_of_the_time"
    },
    {
     "name": "q2_cough_phlegm",
+    "unit": "Options",
     "coding": "no_never | only_with_occasional_colds | a_few_days_a_month | most_days_a_week | yes_every_day"
    },
    {
     "name": "q3_activity_limited",
+    "unit": "Options",
     "coding": "strongly_disagree | disagree | unsure | agree | strongly_agree"
    },
    {
     "name": "q4_smoked_100",
+    "unit": "Options",
     "coding": "no | yes"
    },
    {
     "name": "q5_age",
+    "unit": "Options",
     "coding": "35-49 | 50-59 | 60-69 | 70+"
    }
   ],
@@ -4401,6 +5303,7 @@ export const COEFFICIENTS = {
    "items": {
     "q1_short_of_breath": {
      "source": "Table 4, PDF p.5",
+     "question": "How much of the time in the past 4 weeks did you feel short of breath",
      "responses": {
       "none_of_the_time": 0,
       "a_little_of_the_time": 0,
@@ -4411,6 +5314,7 @@ export const COEFFICIENTS = {
     },
     "q2_cough_phlegm": {
      "source": "Table 4, PDF p.5",
+     "question": "Whether you cough up phlegm or similar",
      "responses": {
       "no_never": 0,
       "only_with_occasional_colds": 0,
@@ -4421,6 +5325,7 @@ export const COEFFICIENTS = {
     },
     "q3_activity_limited": {
      "source": "Table 4, PDF p.5",
+     "question": "Have done less than before in the past 12 months because of breathing problems",
      "responses": {
       "strongly_disagree": 0,
       "disagree": 0,
@@ -4431,6 +5336,7 @@ export const COEFFICIENTS = {
     },
     "q4_smoked_100": {
      "source": "Table 4, PDF p.5",
+     "question": "Whether you have smoked at least 100 cigarettes in your lifetime",
      "responses": {
       "no": 0,
       "yes": 2
@@ -4438,6 +5344,7 @@ export const COEFFICIENTS = {
     },
     "q5_age": {
      "source": "Table 4, PDF p.5",
+     "question": "Age",
      "responses": {
       "35-49": 0,
       "50-59": 1,
@@ -4449,7 +5356,8 @@ export const COEFFICIENTS = {
    "score_range": [
     0,
     10
-   ]
+   ],
+   "method": "Sum of 0/1/2 for each question (weighted-sum, PDF p. 6)"
   },
   "lookup_tables": {
    "cutpoint_performance": {
@@ -4538,10 +5446,12 @@ export const COEFFICIENTS = {
     ]
    }
   },
+  "formula": "COPD-PS = q1 + q2 + q3 + q4 + q5 (0–10)",
   "examples": [
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper",
     "inputs": {
      "q1_short_of_breath": "most_of_the_time",
      "q2_cough_phlegm": "a_few_days_a_month",
@@ -4556,6 +5466,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper",
     "inputs": {
      "q1_short_of_breath": "a_little_of_the_time",
      "q2_cough_phlegm": "only_with_occasional_colds",
@@ -4568,6 +5479,7 @@ export const COEFFICIENTS = {
     }
    }
   ],
+  "paper_examples": "No example person in the paper; Table 5 (PDF p. 6) gives only the mean scores for each group",
   "schema": "c2-coef-v1"
  },
  "dementia-risk-score-walters": {
@@ -4575,270 +5487,370 @@ export const COEFFICIENTS = {
   "model_id": "dementia-risk-score-walters",
   "citation": "Walters K, et al. Predicting dementia risk in primary care: development and validation of the Dementia Risk Score using routinely collected data. BMC Med 2016;14:6. Additional file 1: Supplementary tables.",
   "model_type": "cox",
+  "outcome": "First GP-recorded dementia diagnosis within 5 years",
   "horizon_years": [
    5
   ],
+  "population": {
+   "age_range": "Ages 60–79 (there is also an 80–95 model: main-text Table 4 p. 8; the supplement also has the formula, not copied in this file)",
+   "sex": "Men and women combined; sex is a variable",
+   "notes": "UK THIN primary care; development 800,013 people (aged 60–79)"
+  },
+  "formula": "P = Σβ·x (age, BMI and calendar year have a centering constant subtracted first, and age and BMI also have squared terms after centering; binary variables are not centered); 5-year risk = 1 − 0.9969^exp(P) (Walters 2016 Additional file 1, Appendix B)",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "age − 65.608 and its square"
    },
    {
     "name": "fem",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Female=1"
    },
    {
     "name": "calendar_year",
+    "unit": "years",
     "coding": "cal − 2003.719"
    },
    {
     "name": "deprivation_quintile",
-    "unit": "1–5"
+    "unit": "1–5",
+    "coding": "Quintile of deprivation from UK postcode linked to the census; 1=least deprived (reference)"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "bmi − 27.501 and its square"
    },
    {
     "name": "smoking_last5y",
-    "unit": "—"
+    "unit": "—",
+    "coding": "never (reference) / ex / current"
    },
    {
     "name": "binary_history",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current antihypertensive use, heavy drinking or history of alcohol problems, current depression or antidepressant use, current aspirin use, history of stroke/TIA, history of atrial fibrillation, history of diabetes"
    }
   ],
   "equations": [
    {
     "id": "age60_79_supplement",
+    "applies_to": "Ages 60–79 model, high-precision coefficients from the supplement (the implementation uses this set)",
     "coefficients": [
      {
+      "term": "Age (age − 65.608)",
       "key": "age_c",
-      "beta": 0.20921
+      "beta": 0.20921,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Age² (age − 65.608)²",
       "key": "age_c2",
-      "beta": -0.00339
+      "beta": -0.00339,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
       "term": "BMI (bmi − 27.501)",
       "key": "bmi_c",
-      "beta": -0.0616
+      "beta": -0.0616,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
       "term": "BMI² (bmi − 27.501)²",
       "key": "bmi_c2",
-      "beta": 0.002508
+      "beta": 0.002508,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Female I(fem)",
       "key": "fem",
-      "beta": 0.12854
+      "beta": 0.12854,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Current antihypertensive use I(hyp)",
       "key": "hyp",
-      "beta": -0.13199
+      "beta": -0.13199,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Calendar year (cal − 2003.719)",
       "key": "cal_c",
-      "beta": 0.04477
+      "beta": 0.04477,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Deprivation quintile 2 I(t2)",
       "key": "t2",
-      "beta": 0.013371
+      "beta": 0.013371,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Deprivation quintile 3 I(t3)",
       "key": "t3",
-      "beta": 0.117904
+      "beta": 0.117904,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Deprivation quintile 4 I(t4)",
       "key": "t4",
-      "beta": 0.201776
+      "beta": 0.201776,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Deprivation quintile 5 I(t5)",
       "key": "t5",
-      "beta": 0.225529
+      "beta": 0.225529,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Past smoking I(ex)",
       "key": "ex",
-      "beta": -0.06792
+      "beta": -0.06792,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Current smoking I(curr)",
       "key": "curr",
-      "beta": -0.08657
+      "beta": -0.08657,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Heavy drinking / history of alcohol problems I(alc)",
       "key": "alc",
-      "beta": 0.443535
+      "beta": 0.443535,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Current depression or antidepressant use I(dep)",
       "key": "dep",
-      "beta": 0.833612
+      "beta": 0.833612,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "Current aspirin use I(asp)",
       "key": "asp",
-      "beta": 0.252833
+      "beta": 0.252833,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "History of stroke or TIA I(str)",
       "key": "str",
-      "beta": 0.577207
+      "beta": 0.577207,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "History of atrial fibrillation I(af)",
       "key": "af",
-      "beta": 0.220728
+      "beta": 0.220728,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      {
+      "term": "History of diabetes I(dm)",
       "key": "dm",
-      "beta": 0.286701
+      "beta": 0.286701,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      }
     ],
     "constants": {
      "age_centre": {
-      "value": 65.608
+      "value": 65.608,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      "bmi_centre": {
-      "value": 27.501
+      "value": 27.501,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      "calendar_year_centre": {
-      "value": 2003.719
+      "value": 2003.719,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      }
     },
     "baseline_survival": {
      "5": 0.9969
-    }
+    },
+    "baseline_survival_source": "Walters 2016 Additional file 1, Appendix B (Formula); see also the Table 2 footnote, PDF p. 6"
    },
    {
     "id": "age60_79_table2",
+    "applies_to": "Ages 60–79 model, three-decimal version from main-text Table 2 (for comparison only, do not use for implementation)",
     "coefficients": [
      {
+      "term": "Age (age − 65.608)",
       "key": "age_c",
       "beta": 0.209,
       "ci": "0.200 to 0.219",
-      "hr": "1.23"
+      "hr": "1.23",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Age² (age − 65.608)²",
       "key": "age_c2",
       "beta": -0.003,
       "ci": "−0.004 to −0.003",
-      "hr": "0.997"
+      "hr": "0.997",
+      "source": "Table 2, PDF p. 6"
      },
      {
       "term": "BMI (bmi − 27.501)",
       "key": "bmi_c",
       "beta": -0.062,
       "ci": "−0.069 to −0.054",
-      "hr": "0.94"
+      "hr": "0.94",
+      "source": "Table 2, PDF p. 6"
      },
      {
       "term": "BMI² (bmi − 27.501)²",
       "key": "bmi_c2",
       "beta": 0.003,
       "ci": "0.002 to 0.003",
-      "hr": "1.003"
+      "hr": "1.003",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Female I(fem)",
       "key": "fem",
       "beta": 0.129,
       "ci": "0.074 to 0.183",
-      "hr": "1.14"
+      "hr": "1.14",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Current antihypertensive use I(hyp)",
       "key": "hyp",
       "beta": -0.132,
       "ci": "−0.190 to −0.074",
-      "hr": "0.88"
+      "hr": "0.88",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Calendar year (cal − 2003.719)",
       "key": "cal_c",
       "beta": 0.045,
       "ci": "0.035 to 0.054",
-      "hr": "1.05"
+      "hr": "1.05",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Deprivation quintile 2 I(t2)",
       "key": "t2",
       "beta": 0.013,
       "ci": "−0.063 to 0.090",
-      "hr": "1.01"
+      "hr": "1.01",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Deprivation quintile 3 I(t3)",
       "key": "t3",
       "beta": 0.118,
       "ci": "0.041 to 0.194",
-      "hr": "1.13"
+      "hr": "1.13",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Deprivation quintile 4 I(t4)",
       "key": "t4",
       "beta": 0.202,
       "ci": "0.123 to 0.280",
-      "hr": "1.22"
+      "hr": "1.22",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Deprivation quintile 5 I(t5)",
       "key": "t5",
       "beta": 0.226,
       "ci": "0.138 to 0.314",
-      "hr": "1.25"
+      "hr": "1.25",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Past smoking I(ex)",
       "key": "ex",
       "beta": -0.068,
       "ci": "−0.127 to −0.009",
-      "hr": "0.93"
+      "hr": "0.93",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Current smoking I(curr)",
       "key": "curr",
       "beta": -0.087,
       "ci": "−0.168 to −0.005",
-      "hr": "0.92"
+      "hr": "0.92",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Heavy drinking / history of alcohol problems I(alc)",
       "key": "alc",
       "beta": 0.444,
       "ci": "0.287 to 0.600",
-      "hr": "1.56"
+      "hr": "1.56",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Current depression or antidepressant use I(dep)",
       "key": "dep",
       "beta": 0.834,
       "ci": "0.770 to 0.897",
-      "hr": "2.30"
+      "hr": "2.30",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "Current aspirin use I(asp)",
       "key": "asp",
       "beta": 0.253,
       "ci": "0.189 to 0.316",
-      "hr": "1.29"
+      "hr": "1.29",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "History of stroke or TIA I(str)",
       "key": "str",
       "beta": 0.577,
       "ci": "0.500 to 0.654",
-      "hr": "1.78"
+      "hr": "1.78",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "History of atrial fibrillation I(af)",
       "key": "af",
       "beta": 0.221,
       "ci": "0.120 to 0.322",
-      "hr": "1.25"
+      "hr": "1.25",
+      "source": "Table 2, PDF p. 6"
      },
      {
+      "term": "History of diabetes I(dm)",
       "key": "dm",
       "beta": 0.287,
       "ci": "0.205 to 0.368",
-      "hr": "1.33"
+      "hr": "1.33",
+      "source": "Table 2, PDF p. 6"
      }
     ],
     "constants": {
      "age_centre": {
-      "value": 65.608
+      "value": 65.608,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      "bmi_centre": {
-      "value": 27.501
+      "value": 27.501,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
      },
      "calendar_year_centre": {
-      "value": 2003.719
+      "value": 2003.719,
+      "source": "Walters 2016 Additional file 1, Appendix B (Formula)"
+     },
+     "_note": {
+      "source": "Table 2 itself has no centering constants; the values from the supplement are borrowed here"
      }
     },
     "baseline_survival": {
      "5": 0.9969
-    }
+    },
+    "baseline_survival_source": "Table 2 footnote, PDF p. 6"
    }
   ],
   "points_tables": [],
@@ -4850,6 +5862,7 @@ export const COEFFICIENTS = {
     "equation": "age60_79_supplement",
     "inputs": {
      "age": 75,
+     "sex": "Women",
      "deprivation_quintile": 4,
      "bmi": 25,
      "antihypertensive": 0,
@@ -4868,7 +5881,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_5y": 0.118
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Walters 2016 Additional file 1, Appendix B (Worked example)",
+    "note": "Recomputed with the json supplement coefficients: P=3.7017581, 5-year risk 0.11821 (11.82%), which agrees with the paper's 3.7017581 and 11.8%. With the three-decimal coefficients of Table 2, P=3.7418 and risk 12.27% (a difference of about 0.45 percentage points), so the implementation must use the supplement coefficients"
    },
    {
     "id": "self-relative-hr",
@@ -4882,7 +5897,8 @@ export const COEFFICIENTS = {
      "B": {
       "deprivation_quintile": 1,
       "diabetes": 0
-     }
+     },
+     "other_inputs": "A and B otherwise the same"
     },
     "intermediate": {
      "lp_difference": 0.51223
@@ -4890,55 +5906,91 @@ export const COEFFICIENTS = {
     "expected": {
      "hazard_ratio_A_vs_B": 1.669
     },
-    "tolerance": 0.0001
+    "tolerance": 0.0001,
+    "source": "Self-computed from the supplement coefficients",
+    "note": "Self-computed, not checked against the paper; tests relative risk only"
    }
   ],
   "reference_means_table1": {
    "age_mean": 65.6,
    "age_sd": 6.08,
    "bmi_mean": 28.5,
-   "bmi_sd": 5.44
+   "bmi_sd": 5.44,
+   "source": "Table 1, PDF p. 5 (before imputation; BMI covers only the 193,524 people with a record; not a centering constant)"
   }
  },
  "demport": {
   "schema": "c1-coef-1",
   "model_id": "demport",
+  "status": "Not feasible",
+  "status_reason": "The formula and coefficients are public at Big-Life-Lab/DemPoRT, but the licence permits only academic, public-health and non-profit use, must be obtained through the identity-verification procedure at projectbiglife.ca, and prohibits commercialization and \"use to provide a service\"; this repo is hackathon product material, so the coefficients are not copied.",
   "citation": "Fisher S, Manuel DG, Hsu AT, et al. Development and validation of a predictive algorithm for risk of dementia in the community setting. J Epidemiol Community Health 2021;75(9):843–853.",
   "model_type": "fine-gray",
+  "outcome": "Physician-diagnosed dementia within 5 years (case definition from administrative data; death is a competing risk)",
   "horizon_years": [
    5
   ],
+  "population": {
+   "age_range": "Age 55 and over (Ontario)",
+   "sex": "Separate equations for men and women",
+   "notes": "CCHS 2001–2012 Ontario respondents, 75,460 people, 8,448 dementia events, 348,677 person-years (development + validation combined); 5-year cumulative incidence 0.044 in men and 0.057 in women; temporal validation C 0.83 (men and women), calibration slope 0.7859 in men and 0.8666 in women (repo public README and paper)."
+  },
+  "formula": "Not included. Paper: Fine-Gray subdistribution hazard model, 28 predictors (8 continuous), 90 degrees of freedom each for men and women (65 main effects + 25 interactions, including age × all variables except sociodemographic, general health and survey year, with continuous-variable interactions limited to linear), restricted cubic splines and variable centering; the reduced version DemPoRT-R has 74 degrees of freedom.",
   "variables": [],
   "equations": [],
   "locators": [
-   {},
    {
-    "what": "DemPoRT-R"
+    "what": "Model formulas and betas",
+    "where": "Sentence \"Model formulas and beta coefficients\" in the paper's main text: online supplemental digital content 6 (formulas); the betas are at https://github.com/Big-Life-Lab/DemPoRT (Fisher2021JECH.pdf, \"Results\" paragraph)"
    },
    {
-    "what": "DemPoRT-Full"
+    "what": "DemPoRT-R",
+    "where": "Repo path model-export/DemPoRT-R/{male,female}/: fine-and-gray.csv (beta), center.csv (centering values), rcs.csv (spline knots), interactions.csv, model-steps.csv, variables.csv, variable-details.csv"
    },
    {
+    "what": "DemPoRT-Full",
+    "where": "Repo path model-export/DemPoRT-Full/{male,female}/: …-beta-coefficients.csv, …-baseline-hazards.csv, …-center.csv, …-rcs.csv"
+   },
+   {
+    "what": "Online calculator",
     "where": "https://www.projectbiglife.ca/"
    },
-   {},
-   {}
+   {
+    "what": "Licence terms",
+    "where": "licence-terms.md in the repo root (Ottawa Hospital Research Institute, version of 2021-02-16); the GitHub licence field shows NOASSERTION"
+   },
+   {
+    "what": "Survey questionnaire items",
+    "where": "repo survey-questions/limesurvey_survey_682785.lss / .txt (individual-level questionnaire)"
+   }
   ],
-  "license_summary": [],
+  "license_summary": [
+   "Scope of licence: use, reproduction, distribution and derivative works for academic, public-health and non-profit purposes (Article 1, non-exclusive, non-sublicensable).",
+   "Must follow the user identity-verification and access procedure at projectbiglife.ca (Article 2.1.a); when cited in documents, must prominently state \"Copyright © 2020, The Ottawa Hospital Research Institute\" (2.1.b); should follow the Montreal Declaration for Responsible AI as far as possible (2.1.c).",
+   "Prohibited: commercializing or monetizing the algorithm or derivative works (2.2.a); using the algorithm or derivative works \"to provide a service\" (2.2.b). Other uses must be discussed with tto@ohri.ca.",
+   "The institute may stop making it public, modify or revoke it at any time (2.3); breach terminates the licence (2.6); intellectual property in the algorithm belongs to the institute (2.5)."
+  ],
   "examples": []
  },
  "end-pac": {
   "model_id": "end-pac",
   "source": {
    "pdf_key": "Sharma2018Gastroenterology",
-   "citation": "Sharma A et al. Gastroenterology 2018;155:730-739"
+   "citation": "Sharma A et al. Gastroenterology 2018;155:730-739",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "points",
+  "outcome": "Pancreatic cancer within 3 years after new-onset diabetes (glucose-defined)",
   "horizon_years": 3,
+  "population": {
+   "sex": "Not applicable by sex",
+   "eligibility": "Age ≥50, glucose-defined new-onset diabetes (NOD)"
+  },
   "inputs": [
    {
     "name": "bg_1y_before",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "Fasting glucose about 1 year earlier, or estimated average glucose EAG = 28.7×HbA1c − 46.7 (PDF p. 3)"
    },
    {
     "name": "bg_at_nod",
@@ -4946,7 +5998,8 @@ export const COEFFICIENTS = {
    },
    {
     "name": "weight_change",
-    "unit": "kg"
+    "unit": "kg",
+    "coding": "Weight at NOD − weight about 1 year earlier (negative = loss)"
    },
    {
     "name": "age_at_nod",
@@ -5019,12 +6072,15 @@ export const COEFFICIENTS = {
   "risk_groups": {
    "source": "PDF p.1, p.4",
    "high": ">=3",
+   "intermediate": "1-2 (0.54%)",
    "low": "<=0"
   },
+  "formula": "END-PAC = ΔBG points + weight change points + age points",
   "examples": [
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; ΔBG points = glucose category points at NOD − glucose category points about 1 year earlier (inferred, see pitfall 1)",
     "inputs": {
      "age_at_nod": 72,
      "weight_change_kg": -5,
@@ -5042,6 +6098,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; ΔBG points = glucose category points at NOD − glucose category points about 1 year earlier (inferred, see pitfall 1)",
     "inputs": {
      "age_at_nod": 55,
      "weight_change_kg": 3,
@@ -5059,6 +6116,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-3",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; ΔBG points = glucose category points at NOD − glucose category points about 1 year earlier (inferred, see pitfall 1)",
     "inputs": {
      "age_at_nod": 64,
      "weight_change_kg": -2.5,
@@ -5074,31 +6132,38 @@ export const COEFFICIENTS = {
     }
    }
   ],
+  "paper_examples": "The paper has no example person",
   "schema": "c2-coef-v1"
  },
  "erspc-rotterdam": {
   "model_id": "erspc-rotterdam",
   "source": {
    "pdf_key": "Roobol2013EurUrol",
-   "citation": "Roobol MJ et al. Eur Urol 2013;63:627-633"
+   "citation": "Roobol MJ et al. Eur Urol 2013;63:627-633",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "multinomial_logistic",
+  "outcome": "Prostate cancer at repeat screening 4 years after a negative initial screen: none / low-risk / high-risk (clinical >T2b or Gleason ≥7 or PSA >10)",
   "horizon_years": 4,
   "population": {
+   "sex": "Men",
    "age_range": "55–70"
   },
   "inputs": [
    {
     "name": "age",
-    "unit": "years"
+    "unit": "years",
+    "coding": "Centered after log2 (centering value not given in the paper)"
    },
    {
     "name": "psa",
-    "unit": "ng/mL"
+    "unit": "ng/mL",
+    "coding": "Centered after log2"
    },
    {
     "name": "dre",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "1=abnormal"
    },
    {
     "name": "family_history",
@@ -5106,7 +6171,8 @@ export const COEFFICIENTS = {
    },
    {
     "name": "prostate_volume_cc",
-    "unit": "cc"
+    "unit": "cc",
+    "coding": "TRUS volume <30 cm³ coded 25; 30–<50 coded 40; ≥50 coded 60 (PDF p. 2); then centered after log2"
    },
    {
     "name": "previous_negative_biopsy",
@@ -5200,19 +6266,26 @@ export const COEFFICIENTS = {
    }
   ],
   "constants": {
+   "intercepts": {
+    "source": "Not given in the paper (neither the intercept nor the centering values are in the PDF)"
+   },
    "c_low_at_ref": {
     "value": -2.818,
+    "source": "Back-calculated value (an independent checker searched using the six probabilities in Fig. 2A–C; all fall within the paper's rounding range); reference point age 65, PSA 2.5, volume 40, all else 0. The original version, back-calculated from Fig. 2A only, was ln(5.5/92.9)=−2.826776",
     "derived": true
    },
    "c_high_at_ref": {
     "value": -4.022,
+    "source": "Back-calculated value (same as above); from Fig. 2A only it is ln(1.7/92.9)=−4.000895",
     "derived": true
    }
   },
+  "formula": "LP_k = c_k + ln(OR_age,k)·(log2 age − log2 65) + ln(OR_psa,k)·(log2 PSA − log2 2.5) + ln(OR_dre,k)·DRE + ln(OR_fh,k)·FH + ln(OR_vol,k)·(log2 vol − log2 40) + ln(OR_bx,k)·Bx; P_k = e^LP_k/(1+Σe^LP); P_none = 1/(1+Σe^LP)",
   "examples": [
    {
     "id": "paper-A",
     "origin": "paper",
+    "note": "Fig. 2A; expected is recomputed with the back-calculated constants, paper_values are the values shown in the paper",
     "inputs": {
      "age": 65,
      "psa": 2.5,
@@ -5231,11 +6304,13 @@ export const COEFFICIENTS = {
      "no_pca_pct": 92.9,
      "low_risk_pca_pct": 5.5,
      "high_risk_pca_pct": 1.7
-    }
+    },
+    "source": "Fig. 2A–C and the text of section 3.1, PDF pp. 4–5"
    },
    {
     "id": "paper-B",
     "origin": "paper",
+    "note": "Fig. 2B; expected is recomputed with the back-calculated constants",
     "inputs": {
      "age": 65,
      "psa": 2.5,
@@ -5254,11 +6329,13 @@ export const COEFFICIENTS = {
      "no_pca_pct": 89.5,
      "low_risk_pca_pct": 6.4,
      "high_risk_pca_pct": 4.2
-    }
+    },
+    "source": "Fig. 2A–C and the text of section 3.1, PDF pp. 4–5"
    },
    {
     "id": "paper-C",
     "origin": "paper",
+    "note": "Fig. 2C; expected is recomputed with the back-calculated constants",
     "inputs": {
      "age": 65,
      "psa": 2.5,
@@ -5277,11 +6354,13 @@ export const COEFFICIENTS = {
      "no_pca_pct": 96.7,
      "low_risk_pca_pct": 2,
      "high_risk_pca_pct": 1.3
-    }
+    },
+    "source": "Fig. 2A–C and the text of section 3.1, PDF pp. 4–5"
    },
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; uses the back-calculated constants; volume 25 = TRUS <30 cm³",
     "inputs": {
      "age": 60,
      "psa": 4,
@@ -5298,6 +6377,7 @@ export const COEFFICIENTS = {
     "tolerance": 0.15
    }
   ],
+  "paper_examples": "Yes: the three 65-year-old male examples in Fig. 2A–C (PDF p. 5, see also the text on p. 4)",
   "schema": "c2-coef-v1"
  },
  "findrisc": {
@@ -5305,151 +6385,204 @@ export const COEFFICIENTS = {
   "model_id": "findrisc",
   "citation": "Lindström J, Tuomilehto J. The Diabetes Risk Score: a practical tool to predict type 2 diabetes risk. Diabetes Care 2003;26:725–731.",
   "model_type": "points",
+  "outcome": "Drug-treated type 2 diabetes (per the Finnish drug register)",
   "horizon_years": [
    10,
    5
   ],
+  "population": {
+   "age_range": "Ages 35–64 (1987 cohort; ≤34 years excluded, PDF p. 2)",
+   "sex": "Men and women combined; sex is not in the model",
+   "notes": "Developed in the 1987 cohort (about 10 years of follow-up), validated in the 1992 cohort (about 5 years)"
+  },
+  "formula": "Score = sum of the points for 7 items (0–20); computer version probability p = e^(β0+Σβx)/(1+e^(β0+Σβx)), using the full-model coefficients (PDF p. 5)",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "<45, 45–54, 55–64"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "<25, >25–30, >30"
    },
    {
     "name": "waist",
-    "unit": "cm"
+    "unit": "cm",
+    "coding": "Different cut-offs for men and women"
    },
    {
     "name": "bp_med",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "\"Ever used blood-pressure medication\""
    },
    {
     "name": "high_glucose_history",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Ever told by a health professional of having diabetes or borderline diabetes"
    },
    {
     "name": "activity",
-    "unit": "—"
+    "unit": "—",
+    "coding": "<4 h/week scores 2 points (definition in the Table 1 note)"
    },
    {
     "name": "daily_veg",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Eating vegetables, fruit or berries daily scores 0 points, otherwise 1 point"
    }
   ],
   "equations": [
    {
     "id": "full",
+    "applies_to": "Full model (n=4,435, used to set the score)",
     "coefficients": [
      {
+      "term": "Age 45–54 (ref <45)",
       "key": "age45",
       "beta": 0.65,
       "odds_ratio": "1.92 (1.13–3.25)",
-      "score": 2
+      "score": 2,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Age 55–64",
       "key": "age55",
       "beta": 0.94,
       "odds_ratio": "2.56 (1.53–4.28)",
-      "score": 3
+      "score": 3,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "BMI >25 to 30 (ref <25)",
       "key": "bmi25",
       "beta": 0.015,
       "odds_ratio": "1.02 (0.48–2.15)",
-      "score": 1
+      "score": 1,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
       "term": "BMI >30",
       "key": "bmi30",
       "beta": 0.938,
       "odds_ratio": "2.55 (1.10–5.92)",
-      "score": 3
+      "score": 3,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Waist circumference men 94–<102 / women 80–<88 cm",
       "key": "waist1",
       "beta": 1.021,
       "odds_ratio": "2.78 (1.43–5.40)",
-      "score": 3
+      "score": 3,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Waist circumference men ≥102 / women ≥88 cm",
       "key": "waist2",
       "beta": 1.424,
       "odds_ratio": "4.16 (2.00–8.63)",
-      "score": 4
+      "score": 4,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Ever used blood-pressure medication",
       "key": "bpmed",
       "beta": 0.714,
       "odds_ratio": "2.04 (1.45–2.88)",
-      "score": 2
+      "score": 2,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "History of high blood glucose",
       "key": "hbg",
       "beta": 2.263,
       "odds_ratio": "9.61 (6.31–14.63)",
-      "score": 5
+      "score": 5,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Physical activity <4 h/week",
       "key": "inactive",
       "beta": 0.268,
       "odds_ratio": "1.31 (0.88–1.95)",
-      "score": 2
+      "score": 2,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Vegetables, fruit or berries not daily (listed in the table as \"Daily consumption\", see pitfall)",
       "key": "noveg",
       "beta": 0.165,
       "odds_ratio": "1.18 (0.85–1.64)",
-      "score": 1
+      "score": 1,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      }
     ],
     "constants": {
      "intercept": {
-      "value": -5.658
+      "value": -5.658,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      }
     }
    },
    {
     "id": "concise",
+    "applies_to": "Simplified model (n=4,595)",
     "coefficients": [
      {
+      "term": "Age 45–54",
       "key": "age45",
-      "beta": 0.628
+      "beta": 0.628,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Age 55–64",
       "key": "age55",
-      "beta": 0.892
+      "beta": 0.892,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "BMI >25 to 30",
       "key": "bmi25",
-      "beta": 0.165
+      "beta": 0.165,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
       "term": "BMI >30",
       "key": "bmi30",
-      "beta": 1.096
+      "beta": 1.096,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Waist circumference men 94–<102 / women 80–<88 cm",
       "key": "waist1",
-      "beta": 0.857
+      "beta": 0.857,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Waist circumference men ≥102 / women ≥88 cm",
       "key": "waist2",
-      "beta": 1.35
+      "beta": 1.35,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "Ever used blood-pressure medication",
       "key": "bpmed",
-      "beta": 0.711
+      "beta": 0.711,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      },
      {
+      "term": "History of high blood glucose",
       "key": "hbg",
-      "beta": 2.139
+      "beta": 2.139,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      }
     ],
     "constants": {
      "intercept": {
-      "value": -5.514
+      "value": -5.514,
+      "source": "Table 1, PDF p. 2 (journal p. 726)"
      }
     }
    }
@@ -5457,62 +6590,92 @@ export const COEFFICIENTS = {
   "points_tables": [
    {
     "id": "score",
+    "applies_to": "Men and women combined",
+    "source": "Table 1, PDF p. 2 (journal p. 726) (Score column); scoring rules in the text, PDF p. 3 (journal p. 727)",
     "items": [
      {
+      "factor": "Age",
       "category": "<45",
       "points": 0
      },
      {
+      "factor": "Age",
       "category": "45–54",
       "points": 2
      },
      {
+      "factor": "Age",
       "category": "55–64",
       "points": 3
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "<25",
       "points": 0
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": ">25–30",
       "points": 1
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": ">30",
       "points": 3
      },
      {
+      "factor": "Waist circumference (cm)",
+      "category": "Men <94 / women <80",
       "points": 0
      },
      {
+      "factor": "Waist circumference (cm)",
+      "category": "Men 94–<102 / women 80–<88",
       "points": 3
      },
      {
+      "factor": "Waist circumference (cm)",
+      "category": "Men ≥102 / women ≥88",
       "points": 4
      },
      {
+      "factor": "Ever used blood-pressure medication",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Ever used blood-pressure medication",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Ever told of having diabetes or borderline diabetes (history of high blood glucose)",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Ever told of having diabetes or borderline diabetes (history of high blood glucose)",
+      "category": "Yes",
       "points": 5
      },
      {
+      "factor": "Physical activity",
+      "category": "≥4 h/week",
       "points": 0
      },
      {
+      "factor": "Physical activity",
+      "category": "<4 h/week",
       "points": 2
      },
      {
+      "factor": "Vegetables, fruit or berries",
+      "category": "Daily",
       "points": 0
      },
      {
+      "factor": "Vegetables, fruit or berries",
+      "category": "Not daily",
       "points": 1
      }
     ]
@@ -5521,7 +6684,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "1987_men",
+    "applies_to": "1987 cohort, men (about 10 years)",
     "horizon_years": 10,
+    "source": "Table 2, PDF p. 3 (journal p. 727)",
     "rows": [
      {
       "score": "0–3",
@@ -5547,7 +6712,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "1987_women",
+    "applies_to": "1987 cohort, women (about 10 years)",
     "horizon_years": 10,
+    "source": "Table 2, PDF p. 3 (journal p. 727)",
     "rows": [
      {
       "score": "0–3",
@@ -5573,7 +6740,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "1992_men",
+    "applies_to": "1992 cohort, men (about 5 years)",
     "horizon_years": 5,
+    "source": "Table 2, PDF p. 3 (journal p. 727)",
     "rows": [
      {
       "score": "0–3",
@@ -5599,7 +6768,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "1992_women",
+    "applies_to": "1992 cohort, women (about 5 years)",
     "horizon_years": 5,
+    "source": "Table 2, PDF p. 3 (journal p. 727)",
     "rows": [
      {
       "score": "0–3",
@@ -5631,6 +6802,7 @@ export const COEFFICIENTS = {
     "equation": "score",
     "inputs": {
      "age": 50,
+     "sex": "Men",
      "bmi": 27,
      "waist_cm": 98,
      "bp_med": 1,
@@ -5655,7 +6827,9 @@ export const COEFFICIENTS = {
      "score_band": "9–12",
      "observed_incidence_1987_men": 0.105
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from the Table 1 score and Table 2",
+    "note": "No example in the paper; self-computed, not checked against the paper. Table 2 gives observed incidence, not model predictions"
    },
    {
     "id": "self-m50-logistic",
@@ -5679,7 +6853,9 @@ export const COEFFICIENTS = {
     "expected": {
      "p_10y": 0.04788
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Self-computed from the Table 1 full-model coefficients and the formula in the discussion on PDF p. 5",
+    "note": "Self-computed, not checked against the paper"
    },
    {
     "id": "self-all-ref-logistic",
@@ -5703,7 +6879,9 @@ export const COEFFICIENTS = {
     "expected": {
      "p_10y": 0.00348
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Intercept self-computed",
+    "note": "Self-computed; with every variable at its reference category only the intercept remains"
    }
   ]
  },
@@ -5712,12 +6890,20 @@ export const COEFFICIENTS = {
   "model_id": "framingham-general-cvd-d-agostino-2008",
   "citation": "D'Agostino RB Sr, Vasan RS, Pencina MJ, Wolf PA, Cobain M, Massaro JM, Kannel WB. General cardiovascular risk profile for use in primary care: the Framingham Heart Study. Circulation 2008;117:743–753. PMID 18212285.",
   "model_type": "cox",
+  "outcome": "General CVD: coronary death, MI, coronary insufficiency, angina, ischaemic stroke, haemorrhagic stroke, TIA, peripheral artery disease, heart failure (as listed on the official FHS page)",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Ages 30–74, free of CVD at baseline (official FHS page)",
+   "sex": "Separate equations for men and women",
+   "notes": "Follow-up up to 12 years, predicting 10 years (official FHS page). Lipid version (this file); a BMI version (replacing lipids) also has coefficients on the same official page, not included in this file."
+  },
+  "formula": "Risk10 = 1 − S0^exp(Σβ·x − mean), where x is ln(age), ln(TC), ln(HDL), ln(SBP; different β for treated and untreated), smoking 0/1, diabetes 0/1 (footnote on the official FHS page)",
   "variables": [
    {
     "name": "age",
+    "unit": "years",
     "coding": "ln"
    },
    {
@@ -5732,55 +6918,66 @@ export const COEFFICIENTS = {
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "ln; if treated use sbpT, otherwise sbpU"
    },
    {
     "name": "smoker",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current smoking"
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Has diabetes"
    }
   ],
   "equations": [
    {
     "id": "female",
+    "applies_to": "Women",
     "coefficients": [
      {
       "term": "Log of Age",
       "key": "age",
-      "beta": 2.32888
+      "beta": 2.32888,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (women)"
      },
      {
       "term": "Log of Total Cholesterol",
       "key": "tc",
-      "beta": 1.20904
+      "beta": 1.20904,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (women)"
      },
      {
       "term": "Log of HDL Cholesterol",
       "key": "hdl",
-      "beta": -0.70833
+      "beta": -0.70833,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (women)"
      },
      {
       "term": "Log of SBP if not treated",
       "key": "sbpU",
-      "beta": 2.76157
+      "beta": 2.76157,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (women)"
      },
      {
       "term": "Log of SBP if treated",
       "key": "sbpT",
-      "beta": 2.82263
+      "beta": 2.82263,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (women)"
      },
      {
       "term": "Smoking",
       "key": "smk",
-      "beta": 0.52873
+      "beta": 0.52873,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (women)"
      },
      {
       "term": "Diabetes",
       "key": "dm",
-      "beta": 0.69154
+      "beta": 0.69154,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (women)"
      }
     ],
     "constants": {
@@ -5788,45 +6985,54 @@ export const COEFFICIENTS = {
     },
     "baseline_survival": {
      "10": 0.95012
-    }
+    },
+    "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model; footnote formula at the end of the page 1−S0^exp(ΣβX−mean)"
    },
    {
     "id": "male",
+    "applies_to": "Men",
     "coefficients": [
      {
       "term": "Log of Age",
       "key": "age",
-      "beta": 3.06117
+      "beta": 3.06117,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (men)"
      },
      {
       "term": "Log of Total Cholesterol",
       "key": "tc",
-      "beta": 1.1237
+      "beta": 1.1237,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (men)"
      },
      {
       "term": "Log of HDL Cholesterol",
       "key": "hdl",
-      "beta": -0.93263
+      "beta": -0.93263,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (men)"
      },
      {
       "term": "Log of SBP if not treated",
       "key": "sbpU",
-      "beta": 1.93303
+      "beta": 1.93303,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (men)"
      },
      {
       "term": "Log of SBP if treated",
       "key": "sbpT",
-      "beta": 1.99881
+      "beta": 1.99881,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (men)"
      },
      {
       "term": "Smoking",
       "key": "smk",
-      "beta": 0.65451
+      "beta": 0.65451,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (men)"
      },
      {
       "term": "Diabetes",
       "key": "dm",
-      "beta": 0.57367
+      "beta": 0.57367,
+      "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model (men)"
      }
     ],
     "constants": {
@@ -5834,7 +7040,8 @@ export const COEFFICIENTS = {
     },
     "baseline_survival": {
      "10": 0.88936
-    }
+    },
+    "source": "Official FHS page \"Cardiovascular Disease (10-year risk)\", Regression Coefficients and Hazard Ratios – Primary Model; footnote formula at the end of the page 1−S0^exp(ΣβX−mean)"
    }
   ],
   "points_tables": [],
@@ -5861,7 +7068,8 @@ export const COEFFICIENTS = {
      "risk_10y": 0.19063,
      "diff_pp": -0.037
     },
-    "source": "poc/mock-data/p02-lin-metsyn-3years/expected-output.json"
+    "source": "poc/mock-data/p02-lin-metsyn-3years/expected-output.json",
+    "note": "Fictional person; poc refYear=2026, age = 2026 − birth year. p02 is a former smoker, treated as a non-smoker by both the poc and this file. Not an example from the paper"
    },
    {
     "id": "poc-p05",
@@ -5884,7 +7092,8 @@ export const COEFFICIENTS = {
      "risk_10y": 0.38848,
      "diff_pp": 0.048
     },
-    "source": "poc/mock-data/p05-huang-smoker/expected-output.json"
+    "source": "poc/mock-data/p05-huang-smoker/expected-output.json",
+    "note": "Fictional person; poc refYear=2026, age = 2026 − birth year. p02 is a former smoker, treated as a non-smoker by both the poc and this file. Not an example from the paper"
    },
    {
     "id": "self-female-low",
@@ -5905,7 +7114,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.04966
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed in this file, not checked against the paper",
+    "note": "Untreated branch"
    },
    {
     "id": "self-female-high",
@@ -5926,7 +7137,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.60738
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed in this file, not checked against the paper; agrees with the result of running poc/shared/risk.js in node",
+    "note": "Treated / smoking / diabetes branch"
    },
    {
     "id": "self-male-low",
@@ -5947,7 +7160,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.09568
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed in this file, not checked against the paper",
+    "note": "Untreated branch"
    },
    {
     "id": "self-male-high",
@@ -5968,7 +7183,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.84318
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed in this file, not checked against the paper; agrees with the result of running poc/shared/risk.js in node",
+    "note": "Treated / smoking / diabetes branch"
    }
   ]
  },
@@ -5977,25 +7194,36 @@ export const COEFFICIENTS = {
   "model_id": "framingham-offspring-wilson-2007",
   "citation": "Wilson PWF, et al. Prediction of Incident Diabetes Mellitus in Middle-aged Adults: The Framingham Offspring Study. Arch Intern Med 2007;167:1068–1074.",
   "model_type": "points",
+  "outcome": "New-onset type 2 diabetes (start of glucose-lowering drugs or fasting glucose ≥126 mg/dL)",
   "horizon_years": [
    8
   ],
+  "population": {
+   "age_range": "Unconfirmed (the paper gives only mean 54.0 years, SD 9.8; Table 1, PDF p. 2)",
+   "sex": "Men and women combined",
+   "notes": "Framingham Offspring examination 5, 3,140 people, 99% White; diabetes excluded at baseline"
+  },
+  "formula": "Look up the summed points in Table 6 (8-year risk); logistic: p = 1/(1+e^−(intercept+Σ ln OR·x)) (Tables 3/4)",
   "variables": [
    {
     "name": "fpg",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "100–126 counts as yes"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "25.0–29.9 / ≥30.0"
    },
    {
     "name": "hdl",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "Men <40, women <50 counts as low"
    },
    {
     "name": "parental_dm",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "One or both parents with diabetes"
    },
    {
     "name": "tg",
@@ -6004,254 +7232,372 @@ export const COEFFICIENTS = {
    },
    {
     "name": "bp",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "≥130/85 mmHg or antihypertensive treatment"
    }
   ],
   "equations": [
    {
     "id": "simple_bmi",
+    "applies_to": "Simple clinical model (BMI)",
     "auc": 0.852,
     "coefficients": [
      {
+      "term": "Age 50–64 (ref <50)",
       "odds_ratio": 0.98,
       "or_ci": "0.98 (0.64–1.50)",
-      "beta": -0.0202
+      "beta": -0.0202,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Age ≥65",
       "odds_ratio": 0.92,
       "or_ci": "0.92 (0.54–1.59)",
-      "beta": -0.0834
+      "beta": -0.0834,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Men",
       "odds_ratio": 0.99,
       "or_ci": "0.99 (0.70–1.41)",
-      "beta": -0.0101
+      "beta": -0.0101,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Parental diabetes",
       "odds_ratio": 1.76,
       "or_ci": "1.76 (1.17–2.64)",
-      "beta": 0.5653
+      "beta": 0.5653,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "BMI 25.0–29.9 (ref <25)",
       "odds_ratio": 1.35,
       "or_ci": "1.35 (0.78–2.34)",
-      "beta": 0.3001
+      "beta": 0.3001,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
       "term": "BMI ≥30.0",
       "odds_ratio": 2.5,
       "or_ci": "2.50 (1.45–4.30)",
-      "beta": 0.9163
+      "beta": 0.9163,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Blood pressure >130/85 or treated",
       "odds_ratio": 1.65,
       "or_ci": "1.65 (1.10–2.46)",
-      "beta": 0.5008
+      "beta": 0.5008,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "HDL men <40 / women <50 mg/dL",
       "odds_ratio": 2.57,
       "or_ci": "2.57 (1.75–3.77)",
-      "beta": 0.9439
+      "beta": 0.9439,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
       "term": "TG ≥150 mg/dL",
       "odds_ratio": 1.78,
       "or_ci": "1.78 (1.22–2.59)",
-      "beta": 0.5766
+      "beta": 0.5766,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Fasting glucose 100–126 mg/dL",
       "odds_ratio": 7.25,
       "or_ci": "7.25 (4.89–10.74)",
-      "beta": 1.981
+      "beta": 1.981,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      }
     ],
     "constants": {
      "intercept": {
-      "value": -5.517
+      "value": -5.517,
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      }
     }
    },
    {
     "id": "simple_waist",
+    "applies_to": "Simple clinical model (waist circumference)",
     "auc": 0.85,
     "coefficients": [
      {
+      "term": "Age 50–64 (ref <50)",
       "odds_ratio": 0.94,
       "or_ci": "0.94 (0.62–1.44)",
-      "beta": -0.0619
+      "beta": -0.0619,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Age ≥65",
       "odds_ratio": 0.83,
       "or_ci": "0.83 (0.49–1.43)",
-      "beta": -0.1863
+      "beta": -0.1863,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Men",
       "odds_ratio": 1.09,
       "or_ci": "1.09 (0.77–1.54)",
-      "beta": 0.0862
+      "beta": 0.0862,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Parental diabetes",
       "odds_ratio": 1.75,
       "or_ci": "1.75 (1.17–2.61)",
-      "beta": 0.5596
+      "beta": 0.5596,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Blood pressure >130/85 or treated",
       "odds_ratio": 1.73,
       "or_ci": "1.73 (1.16–2.59)",
-      "beta": 0.5481
+      "beta": 0.5481,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "HDL men <40 / women <50 mg/dL",
       "odds_ratio": 2.62,
       "or_ci": "2.62 (1.79–3.84)",
-      "beta": 0.9632
+      "beta": 0.9632,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
       "term": "TG ≥150 mg/dL",
       "odds_ratio": 1.78,
       "or_ci": "1.78 (1.23–2.59)",
-      "beta": 0.5766
+      "beta": 0.5766,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Waist circumference men >102 / women >88 cm",
       "odds_ratio": 1.98,
       "or_ci": "1.98 (1.37–2.84)",
-      "beta": 0.6831
+      "beta": 0.6831,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Fasting glucose 100–126 mg/dL",
       "odds_ratio": 7.17,
       "or_ci": "7.17 (4.86–10.58)",
-      "beta": 1.9699
+      "beta": 1.9699,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      }
     ],
     "constants": {
      "intercept": {
-      "value": -5.434
+      "value": -5.434,
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      }
     }
    },
    {
     "id": "simple_bmi_waist",
+    "applies_to": "Simple clinical model (BMI + waist circumference)",
     "auc": 0.852,
     "coefficients": [
      {
+      "term": "Age 50–64 (ref <50)",
       "odds_ratio": 0.98,
       "or_ci": "0.98 (0.64–1.50)",
-      "beta": -0.0202
+      "beta": -0.0202,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Age ≥65",
       "odds_ratio": 0.91,
       "or_ci": "0.91 (0.53–1.56)",
-      "beta": -0.0943
+      "beta": -0.0943,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Men",
       "odds_ratio": 1.05,
       "or_ci": "1.05 (0.73–1.50)",
-      "beta": 0.0488
+      "beta": 0.0488,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Parental diabetes",
       "odds_ratio": 1.78,
       "or_ci": "1.78 (1.19–2.67)",
-      "beta": 0.5766
+      "beta": 0.5766,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "BMI 25.0–29.9 (ref <25)",
       "odds_ratio": 1.21,
       "or_ci": "1.21 (0.68–2.14)",
-      "beta": 0.1906
+      "beta": 0.1906,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
       "term": "BMI ≥30.0",
       "odds_ratio": 1.86,
       "or_ci": "1.86 (0.94–3.67)",
-      "beta": 0.6206
+      "beta": 0.6206,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Blood pressure >130/85 or treated",
       "odds_ratio": 1.62,
       "or_ci": "1.62 (1.08–2.43)",
-      "beta": 0.4824
+      "beta": 0.4824,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "HDL men <40 / women <50 mg/dL",
       "odds_ratio": 2.55,
       "or_ci": "2.55 (1.74–3.74)",
-      "beta": 0.9361
+      "beta": 0.9361,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
       "term": "TG ≥150 mg/dL",
       "odds_ratio": 1.75,
       "or_ci": "1.75 (1.20–2.56)",
-      "beta": 0.5596
+      "beta": 0.5596,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Waist circumference men >102 / women >88 cm",
       "odds_ratio": 1.42,
       "or_ci": "1.42 (0.88–2.29)",
-      "beta": 0.3507
+      "beta": 0.3507,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      },
      {
+      "term": "Fasting glucose 100–126 mg/dL",
       "odds_ratio": 7.16,
       "or_ci": "7.16 (4.83–10.61)",
-      "beta": 1.9685
+      "beta": 1.9685,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      }
     ],
     "constants": {
      "intercept": {
-      "value": -5.363
+      "value": -5.363,
+      "source": "Table 3, PDF p. 3 (journal p. 1070)"
      }
     }
    },
    {
     "id": "continuous",
+    "applies_to": "Continuous-variable model",
     "auc": 0.881,
     "coefficients": [
      {
+      "term": "Age (years)",
       "odds_ratio": 0.99,
       "or_ci": "0.99 (0.97–1.01)",
-      "beta": -0.0101
+      "beta": -0.0101,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
+      "term": "Men",
       "odds_ratio": 0.65,
       "or_ci": "0.65 (0.41–1.02)",
-      "beta": -0.4308
+      "beta": -0.4308,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
+      "term": "Parental diabetes yes/no",
       "odds_ratio": 1.55,
       "or_ci": "1.55 (1.01–2.38)",
-      "beta": 0.4383
+      "beta": 0.4383,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
       "term": "BMI",
       "odds_ratio": 1.04,
       "or_ci": "1.04 (0.97–1.11)",
-      "beta": 0.0392
+      "beta": 0.0392,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
+      "term": "SBP (mmHg)",
       "odds_ratio": 1.01,
       "or_ci": "1.01 (1.00–1.02)",
-      "beta": 0.01
+      "beta": 0.01,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
       "term": "HDL",
       "odds_ratio": 0.96,
       "or_ci": "0.96 (0.95–0.98)",
-      "beta": -0.0408
+      "beta": -0.0408,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
       "term": "TG",
       "odds_ratio": 1,
       "or_ci": "1.00 (1.00–1.00)",
-      "beta": 0
+      "beta": 0,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
+      "term": "Waist circumference (cm)",
       "odds_ratio": 1.05,
       "or_ci": "1.05 (0.97–1.12)",
-      "beta": 0.0488
+      "beta": 0.0488,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      },
      {
+      "term": "Fasting glucose (mg/dL, limited to <126)",
       "odds_ratio": 1.15,
       "or_ci": "1.15 (1.12–1.17)",
-      "beta": 0.1398
+      "beta": 0.1398,
+      "beta_note": "Self-computed as ln of the OR (the OR has only 2 decimals)",
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      }
     ],
     "constants": {
      "intercept": {
-      "value": -18.607
+      "value": -18.607,
+      "source": "Table 4, PDF p. 4 (journal p. 1071)"
      }
     }
    }
@@ -6259,29 +7605,42 @@ export const COEFFICIENTS = {
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Men and women combined",
+    "source": "Table 6, PDF p. 5 (journal p. 1072)",
     "items": [
      {
+      "factor": "Fasting glucose 100–126 mg/dL",
+      "category": "Yes",
       "points": 10
      },
      {
       "factor": "BMI 25.0–29.9",
+      "category": "Yes",
       "points": 2
      },
      {
       "factor": "BMI ≥30.0",
+      "category": "Yes",
       "points": 5
      },
      {
+      "factor": "HDL men <40 / women <50 mg/dL",
+      "category": "Yes",
       "points": 5
      },
      {
+      "factor": "Parental diabetes",
+      "category": "Yes",
       "points": 3
      },
      {
       "factor": "TG ≥150 mg/dL",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Blood pressure ≥130/85 or treated",
+      "category": "Yes",
       "points": 2
      }
     ]
@@ -6290,7 +7649,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "points_to_8y_risk",
+    "applies_to": "Men and women combined",
     "horizon_years": 8,
+    "source": "Table 6, PDF p. 5 (journal p. 1072)",
     "rows": [
      {
       "score": "≤10",
@@ -6366,6 +7727,7 @@ export const COEFFICIENTS = {
     "equation": "points",
     "inputs": {
      "age": 45,
+     "sex": "Women",
      "fpg_mg_dl": 105,
      "bmi": 27,
      "hdl_mg_dl": 55,
@@ -6387,19 +7749,24 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_8y": 0.06
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Self-computed from Table 6",
+    "note": "No example in the paper; self-computed, not checked against the paper"
    },
    {
     "id": "self-f45-logistic",
     "origin": "self_computed",
     "equation": "simple_bmi",
+    "inputs": "Same as above; age <50 and women are the reference",
     "intermediate": {
      "logit": -2.7351
     },
     "expected": {
      "p": 0.0609
     },
-    "tolerance": 0.002
+    "tolerance": 0.002,
+    "source": "Self-computed from the ln of the Table 3 ORs and the intercept",
+    "note": "Self-computed, not checked against the paper; the OR has only 2 decimals, so the tolerance was widened. The logistic model corresponds to about 7 years of follow-up, while the points table is labelled 8 years"
    },
    {
     "id": "self-max-points",
@@ -6414,7 +7781,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_8y": ">35%"
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Table 6, PDF p. 5 (journal p. 1072)",
+    "note": "10+5+5+3+3+2 = 28; choose one of the two BMI levels"
    }
   ]
  },
@@ -6423,6 +7792,7 @@ export const COEFFICIENTS = {
   "model_id": "framingham-stroke-risk-profile-new-fsrp",
   "citation": "Dufouil C, et al. Revised Framingham Stroke Risk Profile to Reflect Temporal Trends. Circulation 2017;135:1145–1159. doi:10.1161/CIRCULATIONAHA.115.021275",
   "model_type": "cox",
+  "outcome": "First stroke (all stroke)",
   "horizon_years": [
    1,
    2,
@@ -6435,101 +7805,129 @@ export const COEFFICIENTS = {
    9,
    10
   ],
+  "population": {
+   "age_range": "Ages 55–84, free of stroke (FHS contemporary sample, PDF p. 3)",
+   "sex": "Separate equations for men and women",
+   "notes": "External validation: 3C (France, age ≥65) and REGARDS (US)"
+  },
+  "formula": "FSRP(t) = 1 − Sb(t)^exp(L − M); L = Σ βi·xi (PDF p. 12, Figure 4A)",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "Continuous; AGE/10 is used in the formula, plus an Age 65+ indicator variable"
    },
    {
     "name": "smk",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current smoker: smoked within the year before baseline (PDF p. 4)"
    },
    {
     "name": "cvd",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Prior CVD: coronary heart disease, heart failure or peripheral vascular disease (PDF p. 4)"
    },
    {
     "name": "af",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Prior atrial fibrillation (on any ECG)"
    },
    {
     "name": "dm",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Fasting glucose ≥7 mmol/L, random glucose ≥11.1 mmol/L or use of glucose-lowering drugs (PDF p. 4); split into two terms by age"
    },
    {
     "name": "hrx",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Taking antihypertensive medication"
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "(SBP−120)/10 is used in the formula, entering only one of the two terms depending on hrx"
    }
   ],
   "equations": [
    {
     "id": "men",
+    "applies_to": "Men",
     "coefficients": [
      {
       "term": "Age per 10 yrs",
       "key": "age10",
       "beta": 0.49716,
-      "mean": 6.6753588
+      "mean": 6.6753588,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Current SMK",
       "key": "smk",
       "beta": 0.47254,
-      "mean": 0.1244
+      "mean": 0.1244,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Prevalent CVD",
       "key": "cvd",
       "beta": 0.45341,
-      "mean": 0.1798341
+      "mean": 0.1798341,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Prevalent AF",
       "key": "af",
       "beta": 0.08064,
-      "mean": 0.0707115
+      "mean": 0.0707115,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Age 65+",
       "key": "age65",
       "beta": 0.45426,
-      "mean": 0.5229158
+      "mean": 0.5229158,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "DM, if age<65",
       "key": "dm_lt65",
       "beta": 1.35304,
-      "mean": 0.05849
+      "mean": 0.05849,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "DM, if age 65+",
       "key": "dm_ge65",
       "beta": 0.34385,
-      "mean": 0.0921
+      "mean": 0.0921,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "HTN Rx",
       "key": "hrx",
       "beta": 0.82598,
-      "mean": 0.4212134
+      "mean": 0.4212134,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
+      "term": "SBP per 10, if no HRx ((SBP−120)/10 if not on medication, otherwise 0)",
       "key": "sbp_nohrx",
       "beta": 0.27323,
-      "mean": 0.6656045
+      "mean": 0.6656045,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
+      "term": "SBP per 10, if HRx ((SBP−120)/10 if on medication, otherwise 0)",
       "key": "sbp_hrx",
       "beta": 0.09793,
-      "mean": 0.8152772
+      "mean": 0.8152772,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      }
     ],
     "constants": {
      "M": {
-      "value": 4.4227101
+      "value": 4.4227101,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156) (M = Σβ × means)"
      }
     },
     "baseline_survival": {
@@ -6543,73 +7941,88 @@ export const COEFFICIENTS = {
      "8": 0.96179,
      "9": 0.95509,
      "10": 0.94451
-    }
+    },
+    "baseline_survival_source": "Figure 4C, PDF p. 12"
    },
    {
     "id": "women",
+    "applies_to": "Women",
     "coefficients": [
      {
       "term": "Age per 10 yrs",
       "key": "age10",
       "beta": 0.87938,
-      "mean": 6.7870368
+      "mean": 6.7870368,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Current SMK",
       "key": "smk",
       "beta": 0.51127,
-      "mean": 0.1384394
+      "mean": 0.1384394,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Prevalent CVD",
       "key": "cvd",
       "beta": -0.03035,
-      "mean": 0.1006832
+      "mean": 0.1006832,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Prevalent AF",
       "key": "af",
       "beta": 1.2072,
-      "mean": 0.0320029
+      "mean": 0.0320029,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "Age 65+",
       "key": "age65",
       "beta": 0.39796,
-      "mean": 0.568141
+      "mean": 0.568141,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "DM, if age<65",
       "key": "dm_lt65",
       "beta": 1.07111,
-      "mean": 0.0320029
+      "mean": 0.0320029,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "DM, if age 65+",
       "key": "dm_ge65",
       "beta": 0.06565,
-      "mean": 0.0564545
+      "mean": 0.0564545,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
       "term": "HTN Rx",
       "key": "hrx",
       "beta": 0.13085,
-      "mean": 0.39698
+      "mean": 0.39698,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
+      "term": "SBP per 10, if no HRx ((SBP−120)/10 if not on medication, otherwise 0)",
       "key": "sbp_nohrx",
       "beta": 0.11303,
-      "mean": 0.5706221
+      "mean": 0.5706221,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      },
      {
+      "term": "SBP per 10, if HRx ((SBP−120)/10 if on medication, otherwise 0)",
       "key": "sbp_hrx",
       "beta": 0.17234,
-      "mean": 0.9388709
+      "mean": 0.9388709,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156)"
      }
     ],
     "constants": {
      "M": {
-      "value": 6.6170719
+      "value": 6.6170719,
+      "source": "Figure 4B, PDF p. 12 (journal p. 1156) (M = Σβ × means)"
      }
     },
     "baseline_survival": {
@@ -6623,7 +8036,8 @@ export const COEFFICIENTS = {
      "8": 0.97326,
      "9": 0.96581,
      "10": 0.95911
-    }
+    },
+    "baseline_survival_source": "Figure 4C, PDF p. 12"
    }
   ],
   "points_tables": [],
@@ -6649,7 +8063,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.0099
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Figure 4A, PDF p. 12",
+    "note": "Recomputed L=5.182011, risk=0.00989, which agrees with the paper"
    },
    {
     "id": "paper-w2",
@@ -6671,7 +8087,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.0406
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Figure 4A, PDF p. 12",
+    "note": "Recomputed L=6.609026, risk=0.04057, which agrees with the paper"
    },
    {
     "id": "paper-m1",
@@ -6693,7 +8111,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.0174
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Figure 4A, PDF p. 12",
+    "note": "Recomputed L=3.243657, risk=0.01741, which agrees with the paper"
    },
    {
     "id": "paper-m2",
@@ -6715,7 +8135,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.0329
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Figure 4A, PDF p. 12",
+    "note": "Recomputed L=3.887327, risk=0.03287, which agrees with the paper"
    },
    {
     "id": "self-m-70-5y",
@@ -6738,7 +8160,9 @@ export const COEFFICIENTS = {
      "risk_5y": 0.08,
      "risk_10y": 0.21561
     },
-    "tolerance": 0.00005
+    "tolerance": 0.00005,
+    "source": "Self-computed from the Figure 4B/4C coefficients",
+    "note": "Self-computed, not checked against the paper; used to test the diabetes branch at age ≥65 and Sb(5)"
    }
   ]
  },
@@ -6747,89 +8171,119 @@ export const COEFFICIENTS = {
   "model_id": "framingham",
   "citation": "Parikh NI, et al. A Risk Score for Predicting Near-Term Incidence of Hypertension: The Framingham Heart Study. Ann Intern Med 2008;148:102–110. doi:10.7326/0003-4819-148-2-200801150-00005",
   "model_type": "weibull",
+  "outcome": "New-onset hypertension (SBP ≥140 or DBP ≥90 or antihypertensive use)",
   "horizon_years": [
    1,
    2,
    4
   ],
+  "population": {
+   "age_range": "Ages 20–69 (the age rows of the points table go up to 70–79)",
+   "sex": "Men and women combined; sex is a variable",
+   "notes": "Framingham Offspring White participants without hypertension or diabetes, 1,717 people (PDF p. 1); baseline SBP<140 and DBP<90"
+  },
   "formula": "risk(t) = 1 − exp(−exp((ln t − (22.94954 + Σβ·x)) / 0.87692))",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "Continuous"
    },
    {
     "name": "female",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Female=1"
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "Continuous"
    },
    {
     "name": "dbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "Continuous"
    },
    {
     "name": "smk",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current smoking"
    },
    {
     "name": "parhtn",
-    "unit": "0/1/2"
+    "unit": "0/1/2",
+    "coding": "Number of parents with hypertension"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "Continuous"
    }
   ],
   "equations": [
    {
     "id": "weibull",
+    "applies_to": "Men and women combined",
     "coefficients": [
      {
       "term": "Age",
       "key": "age",
-      "beta": -0.15641
+      "beta": -0.15641,
+      "source": "Table 2, PDF p. 4 (journal p. 105)"
      },
      {
       "term": "Women vs men",
       "key": "female",
-      "beta": -0.20293
+      "beta": -0.20293,
+      "source": "Table 2, PDF p. 4 (journal p. 105)"
      },
      {
+      "term": "Systolic BP (mmHg)",
       "key": "sbp",
-      "beta": -0.05933
+      "beta": -0.05933,
+      "source": "Table 2, PDF p. 4 (journal p. 105)"
      },
      {
+      "term": "Diastolic BP (mmHg)",
       "key": "dbp",
-      "beta": -0.12847
+      "beta": -0.12847,
+      "source": "Table 2, PDF p. 4 (journal p. 105)"
      },
      {
+      "term": "Current smoker (0/1)",
       "key": "smk",
-      "beta": -0.19073
+      "beta": -0.19073,
+      "source": "Table 2, PDF p. 4 (journal p. 105)"
      },
      {
       "term": "Parental hypertension",
       "key": "parhtn",
-      "beta": -0.16612
+      "beta": -0.16612,
+      "source": "Table 2, PDF p. 4 (journal p. 105)"
      },
      {
+      "term": "BMI (kg/m²)",
       "key": "bmi",
-      "beta": -0.03388
+      "beta": -0.03388,
+      "source": "Table 2, PDF p. 4 (journal p. 105)"
      },
      {
       "term": "Age × DBP",
       "key": "age_dbp",
       "beta": 0.00162,
-      "beta_backsolved": 0.001624
+      "source": "Table 2, PDF p. 4 (journal p. 105)",
+      "beta_backsolved": 0.001624,
+      "backsolve_note": "Table 2 prints 0.00162 (3 significant figures). Solving back from the two examples in the Appendix (woman aged 60, 0.5750; man aged 50, 0.1489) gives 0.001623979 and 0.001624018; the intersection of the 4-decimal rounding intervals is [0.001623956, 0.001624003]; 0.001624 lies within it and rounds back to 0.00162, consistent with Table 2. Not a value published in the paper; the other βs are assumed as printed in Table 2."
      }
     ],
     "constants": {
      "intercept": {
-      "value": 22.94954
+      "value": 22.94954,
+      "source": "Table 2, PDF p. 4 (journal p. 105), footnote"
      },
      "scale": {
-      "value": 0.87692
+      "value": 0.87692,
+      "source": "Table 2, PDF p. 4 (journal p. 105), footnote"
      }
     }
    }
@@ -6837,156 +8291,242 @@ export const COEFFICIENTS = {
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Men and women combined",
+    "source": "Figure 2, PDF p. 5 (journal p. 106)",
     "items": [
      {
+      "factor": "SBP (mmHg)",
       "category": "<110",
       "points": -4
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "110–114",
       "points": 0
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "115–119",
       "points": 2
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "120–124",
       "points": 4
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "125–129",
       "points": 6
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "130–134",
       "points": 8
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "135–139",
       "points": 10
      },
      {
+      "factor": "Sex",
+      "category": "Women",
       "points": 1
      },
      {
+      "factor": "Sex",
+      "category": "Men",
       "points": 0
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "<25",
       "points": 0
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "25–30",
       "points": 1
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": ">30",
       "points": 3
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 20–29, DBP <70",
       "points": -8
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 20–29, DBP 70–74",
       "points": -3
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 20–29, DBP 75–79",
       "points": 0
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 20–29, DBP 80–84",
       "points": 3
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 20–29, DBP 85–89",
       "points": 6
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 30–39, DBP <70",
       "points": -5
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 30–39, DBP 70–74",
       "points": 0
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 30–39, DBP 75–79",
       "points": 2
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 30–39, DBP 80–84",
       "points": 5
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 30–39, DBP 85–89",
       "points": 7
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 40–49, DBP <70",
       "points": -1
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 40–49, DBP 70–74",
       "points": 3
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 40–49, DBP 75–79",
       "points": 5
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 40–49, DBP 80–84",
       "points": 6
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 40–49, DBP 85–89",
       "points": 8
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 50–59, DBP <70",
       "points": 3
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 50–59, DBP 70–74",
       "points": 5
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 50–59, DBP 75–79",
       "points": 7
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 50–59, DBP 80–84",
       "points": 8
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 50–59, DBP 85–89",
       "points": 9
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 60–69, DBP <70",
       "points": 6
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 60–69, DBP 70–74",
       "points": 8
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 60–69, DBP 75–79",
       "points": 9
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 60–69, DBP 80–84",
       "points": 10
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 60–69, DBP 85–89",
       "points": 10
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 70–79, DBP <70",
       "points": 10
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 70–79, DBP 70–74",
       "points": 11
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 70–79, DBP 75–79",
       "points": 11
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 70–79, DBP 80–84",
       "points": 11
      },
      {
+      "factor": "Age × DBP",
+      "category": "Age 70–79, DBP 85–89",
       "points": 11
      },
      {
+      "factor": "Smoking",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Smoking",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "Parental hypertension",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Parental hypertension",
+      "category": "One parent",
       "points": 1
      },
      {
+      "factor": "Parental hypertension",
+      "category": "Two parents",
       "points": 2
      }
     ]
@@ -6995,11 +8535,13 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "points_to_risk",
+    "applies_to": "Men and women combined",
     "horizon_years": [
      1,
      2,
      4
     ],
+    "source": "Figure 2, PDF p. 5 (journal p. 106)",
     "rows": [
      {
       "score": -12,
@@ -7350,7 +8892,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_4y": 0.575
     },
-    "tolerance": 0.01
+    "tolerance": 0.01,
+    "source": "Appendix, PDF p. 10 (journal p. W-16)",
+    "note": "Recomputed with the coefficients published in Table 2 (interaction 0.00162) this gives 0.5834; the paper gives 0.5750. The difference comes from rounding of the interaction coefficient: back-calculation needs about 0.001624 to reach 0.5750 (0.5750). Test with a tolerance of 0.01, or use 0.001624 for an exact test (back-calculated value, not published in the paper)"
    },
    {
     "id": "paper-w60-points",
@@ -7379,7 +8923,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_4y": 0.5666
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Appendix, PDF p. 10 (journal p. W-16); Figure 2, PDF p. 5 (journal p. 106)",
+    "note": "The paper also says: if a non-smoker with BMI<25, 19 points and 34.63% at 4 years"
    },
    {
     "id": "paper-w60-points-variant",
@@ -7400,7 +8946,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_4y": 0.3463
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Appendix, PDF p. 10 (journal p. W-16)",
+    "note": "BMI 24 is a demonstration value substituted for \"<25\""
    },
    {
     "id": "paper-m50-formula",
@@ -7419,7 +8967,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_4y": 0.1489
     },
-    "tolerance": 0.01
+    "tolerance": 0.01,
+    "source": "Appendix, PDF p. 10 (journal p. W-16)",
+    "note": "In the paper's calculation the interaction term is printed as \"0.0016 × 50 × 80\", but the input DBP is 79; only with DBP=79 and interaction 0.001624 do we get 0.1489 (0.1489), while the published coefficient 0.00162 gives 0.1514. \"80\" is judged to be a misprint, unconfirmed"
    },
    {
     "id": "paper-m50-points",
@@ -7449,6 +8999,7 @@ export const COEFFICIENTS = {
      "risk_4y": 0.1668
     },
     "tolerance": 0,
+    "source": "Appendix, PDF p. 10 (journal p. W-16); Figure 2, PDF p. 5 (journal p. 106)",
     "note": ""
    },
    {
@@ -7471,7 +9022,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_4y": 0.575
     },
-    "tolerance": 0.0001
+    "tolerance": 0.0001,
+    "source": "Appendix, PDF p. 10 (journal p. W-16); β uses the back-solved value 0.001624",
+    "note": "Reproduces 0.5750 (recomputed in this file as 0.57496); with the Table 2 value 0.00162 it would be 0.5834 (difference +0.0084)"
    },
    {
     "id": "paper-m50-formula-backsolved",
@@ -7493,7 +9046,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_4y": 0.1489
     },
-    "tolerance": 0.0001
+    "tolerance": 0.0001,
+    "source": "Appendix, PDF p. 10 (journal p. W-16); β uses the back-solved value 0.001624; the interaction term uses DBP=79",
+    "note": "Reproduces 0.1489 (recomputed in this file as 0.14891); with 0.00162 it would be 0.1514 (difference +0.0025). Computed as printed in the Appendix (50×80), γ=0.0016037 would be needed to reach 0.1489, which is inconsistent with the value back-solved from the female example, so 80 is judged a misprint and 79 was actually used"
    }
   ]
  },
@@ -7502,95 +9057,125 @@ export const COEFFICIENTS = {
   "model_id": "fukushima-is-2024",
   "citation": "Ma E, et al. Prediction of the 4-Year Incidence Risk of Ischemic Stroke in Healthy Japanese Adults: The Fukushima Health Database. J Atheroscler Thromb 2024;31(3):259–272. doi:10.5551/jat.64018",
   "model_type": "cox",
+  "outcome": "Ischaemic stroke (claims/DPC code ICD-10 I63x + specific drug prescription); 4 years",
   "horizon_years": [
    4
   ],
+  "population": {
+   "age_range": "Ages 40–74",
+   "sex": "Men and women",
+   "notes": "Fukushima Prefecture specific health checkups + national health insurance / employee health insurance claims database; Cohort I (2014 checkup, follow-up to 2018/3) n=178,186 is the development set; Cohort II (2015) n=46,099 is the temporal validation set. Ischaemic heart disease and prior stroke excluded. The outcome is a claims code, not a clinical determination"
+  },
+  "formula": "P = 1 − S(4)^exp(Σβx − Σβ·M), S(4)=0.99639; M (proportion in each category) is not listed in the paper, so continuous risk cannot be rebuilt. In practice, use the Fig. 3 points + quantile risk table",
   "variables": [
    {
-    "name": "age_group"
+    "name": "age_group",
+    "unit": "years",
+    "coding": "40-44 (reference) … 70-74, in 5-year groups"
    },
    {
     "name": "sex",
-    "unit": ""
+    "unit": "",
+    "coding": "Male=1"
    },
    {
     "name": "bp_class",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "normal: SBP<120 and DBP<80 (untreated); high-normal: SBP<130 and DBP<80 (untreated); elevated: SBP<140 or DBP<90 (untreated); hypertension: SBP≥140 or DBP≥90 or taking antihypertensive medication"
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current diabetes"
    },
    {
     "name": "hdl_c",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "<40 (reference), 40-59, ≥60"
    },
    {
     "name": "ldl_c",
-    "unit": "mg/dL"
+    "unit": "mg/dL",
+    "coding": "<130 (reference), 130-159, ≥160"
    },
    {
     "name": "smoking",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Smoking"
    },
    {
     "name": "walk_fast",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Fast walking speed (vs average/slow)"
    },
    {
     "name": "wt_change",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Weight change of ±3 kg within one year"
    }
   ],
   "equations": [
    {
     "id": "cox_cohortI",
+    "applies_to": "Japan, ages 40–74",
     "coefficients": [
      {
+      "term": "Age 40-44",
       "beta": 0,
       "source": "Table 2"
      },
      {
+      "term": "Age 45-49",
       "beta": 0.6179,
       "source": "Table 2"
      },
      {
+      "term": "Age 50-54",
       "beta": 0.6784,
       "source": "Table 2"
      },
      {
+      "term": "Age 55-59",
       "beta": 1.2034,
       "source": "Table 2"
      },
      {
+      "term": "Age 60-64",
       "beta": 1.6252,
       "source": "Table 2"
      },
      {
+      "term": "Age 65-69",
       "beta": 2.038,
       "source": "Table 2"
      },
      {
+      "term": "Age 70-74",
       "beta": 2.5434,
       "source": "Table 2"
      },
      {
+      "term": "Sex: male",
       "beta": 0.5988,
       "source": "Table 2"
      },
      {
+      "term": "Blood pressure: high-normal",
       "beta": 0.4883,
       "source": "Table 2"
      },
      {
+      "term": "Blood pressure: elevated",
       "beta": 0.868,
       "source": "Table 2"
      },
      {
+      "term": "Blood pressure: hypertension",
       "beta": 1.0425,
       "source": "Table 2"
      },
      {
+      "term": "Diabetes: yes",
       "beta": 0.5754,
       "source": "Table 2"
      },
@@ -7615,20 +9200,24 @@ export const COEFFICIENTS = {
       "source": "Table 2"
      },
      {
+      "term": "Smoking: yes",
       "beta": 0.4843,
       "source": "Table 2"
      },
      {
+      "term": "Walking speed: fast",
       "beta": -0.1853,
       "source": "Table 2"
      },
      {
+      "term": "Weight change of ±3 kg within one year: yes",
       "beta": 0.2164,
       "source": "Table 2"
      }
     ],
     "constants": {
-     "S0_4y": 0.99639
+     "S0_4y": 0.99639,
+     "source": "Last row of Table 2, \"Baseline survival function at 4-year\""
     }
    }
   ],
@@ -7638,52 +9227,68 @@ export const COEFFICIENTS = {
   "points_tables": [
    {
     "id": "fig3a",
+    "applies_to": "Same as above",
     "source": "Fig.3a",
+    "rule": "Points = round(β / 0.1469) (smallest β = LDL 130-159); recomputed in Python for this file, all 19 items match",
     "items": [
      {
+      "factor": "Age",
       "category": "40-44",
       "points": 0
      },
      {
+      "factor": "Age",
       "category": "45-49",
       "points": 4
      },
      {
+      "factor": "Age",
       "category": "50-54",
       "points": 5
      },
      {
+      "factor": "Age",
       "category": "55-59",
       "points": 8
      },
      {
+      "factor": "Age",
       "category": "60-64",
       "points": 11
      },
      {
+      "factor": "Age",
       "category": "65-69",
       "points": 14
      },
      {
+      "factor": "Age",
       "category": "70-74",
       "points": 17
      },
      {
+      "factor": "Sex",
+      "category": "Men",
       "points": 4
      },
      {
+      "factor": "Blood pressure",
       "category": "high-normal",
       "points": 3
      },
      {
+      "factor": "Blood pressure",
       "category": "elevated",
       "points": 6
      },
      {
+      "factor": "Blood pressure",
       "category": "hypertension",
       "points": 7
      },
      {
+      "factor": "Diabetes",
+      "category": "Yes",
       "points": 4
      },
      {
@@ -7707,13 +9312,18 @@ export const COEFFICIENTS = {
       "points": 2
      },
      {
+      "factor": "Smoking",
+      "category": "Yes",
       "points": 3
      },
      {
+      "factor": "Walking speed",
       "category": "fast",
       "points": -1
      },
      {
+      "factor": "Weight change of ±3 kg within one year",
+      "category": "Yes",
       "points": 1
      }
     ]
@@ -7750,6 +9360,7 @@ export const COEFFICIENTS = {
    {
     "id": "fig3c_age_reference",
     "horizon_years": 4,
+    "source": "Fig. 3c (% → proportion); mean and lowest risk in the same age group",
     "rows": [
      {
       "age": "40-44",
@@ -7795,23 +9406,34 @@ export const COEFFICIENTS = {
   "schema": "c2-coef-v1",
   "model_id": "gail-1989",
   "source": {
-   "citation": "Gail MH, Brinton LA, Byar DP, et al. J Natl Cancer Inst 1989;81(24):1879-1886. doi:10.1093/jnci/81.24.1879"
+   "citation": "Gail MH, Brinton LA, Byar DP, et al. J Natl Cancer Inst 1989;81(24):1879-1886. doi:10.1093/jnci/81.24.1879",
+   "locator": "Equation 1 with Table 1 and Table 2 (PDF pp. 2–3); Table 3 and F(t) (pp. 3–4); Equations 5–6 (p. 4); Table 4 (p. 5); Table 5 (p. 6)",
+   "license": "Paper (NCI authors, journal copyright); the numeric tables and formulas may be cited. The substitute h2 values come from CRAN BCRA 2.1.2 (GPL (>=2)); the values are public NCHS statistics, and no code is pasted in this file."
   },
+  "model_type": "Relative risk from unconditional logistic regression × BCDDP composite baseline rates → discrete absolute risk with competing mortality",
+  "outcome": "Breast cancer (including carcinoma in situ; BCDDP composite rates)",
+  "horizon_years": "Any; Table 4 of the paper gives 10/20/30 years, a+T<=80",
+  "population": "US White women, annual screening (BCDDP); incidence in young, sporadically followed participants is overestimated by about 10–20% (paper p. 7)",
   "inputs": [
    {
-    "name": "AGEMEN"
+    "name": "AGEMEN",
+    "values": ">=14→0; 12–13→1; <12→2"
    },
    {
-    "name": "NBIOPS"
+    "name": "NBIOPS",
+    "values": "0→0; 1→1; >=2→2"
    },
    {
-    "name": "AGEFLB"
+    "name": "AGEFLB",
+    "values": "<20→0; 20–24→1; 25–29 or nulliparous→2; >=30→3"
    },
    {
-    "name": "NUMREL"
+    "name": "NUMREL",
+    "values": "0→0; 1→1; >=2→2"
    },
    {
-    "name": "AGECAT"
+    "name": "AGECAT",
+    "values": "<50→0; >=50→1 (used only for the NBIOPS interaction term)"
    }
   ],
   "constants": {
@@ -7823,7 +9445,8 @@ export const COEFFICIENTS = {
     "NUMREL": 0.9583,
     "AGECAT": 0.01081,
     "NBIOPS_x_AGECAT": -0.28804,
-    "AGEFLB_x_NUMREL": -0.19081
+    "AGEFLB_x_NUMREL": -0.19081,
+    "note": "The intercept and the AGECAT main effect do not enter the relative risk (they are absorbed in the baseline rate); do not multiply by e^0.01081 in the implementation"
    },
    "F_one_minus_AR": {
     "lt50": 0.5229,
@@ -7843,10 +9466,14 @@ export const COEFFICIENTS = {
     "65-69": 356.1,
     "70-74": 307.8,
     "75-79": 301.3
-   }
+   },
+   "h1_star_note": "Table 3 BCDDP composite rates; the three rows for ages 20–34 are SEER×2.10 extrapolations; h1=0 for age <20; h1_j = h1*_j × F × 1e-5; the paper does not say where F switches, so this file uses 0.5229 for <50 and 0.5264 for >=50 (reproduces Tables 4/5)"
   },
   "h2": {
+   "original": "Paper p. 4: \"estimated from 1979 NCHS all-cause mortality excluding breast cancer\" (reference 25), with no values listed — not provided in the paper and unobtainable from the PDF.",
    "substitute_NOT_ORIGINAL": {
+    "label": "Substitute value, not from the paper: White_lambda2 from CRAN BCRA 2.1.2 (NCHS non-breast-cancer mortality for White women 1985–87), per person-year, treated as constant within each 5-year band",
+    "locator": "BCRA/R/absolute.risk.R White_lambda2; lambda2_competing_mortality with race_code=1 in the extracted file coefficients/bcra-rates.csv",
     "values": {
      "20-24": 0.000493,
      "25-29": 0.000531,
@@ -7860,17 +9487,25 @@ export const COEFFICIENTS = {
      "65-69": 0.015028,
      "70-74": 0.023839,
      "75-79": 0.038832
-    }
+    },
+    "why_this_one": "Compared with three candidate sets over 160 Table 4 cells, this set had the smallest residual (see verification)"
    }
+  },
+  "formula": {
+   "relative_risk": "RR = exp(0.09401·AGEMEN + 0.52926·NBIOPS + 0.21863·AGEFLB + 0.95830·NUMREL − 0.28804·NBIOPS·AGECAT − 0.19081·AGEFLB·NUMREL); AGECAT=0 for <50 and AGECAT=1 for >=50",
+   "absolute_risk_eq6": "P = Σ_j { h1j·rj/(h1j·rj+h2j) } · S1(τ_{j-1})/S1(a) · S2(τ_{j-1})/S2(a) · [1 − exp{−Δj(h1j·rj + h2j)}]; S1(τj)=S1(τ_{j-1})·exp(−h1j·rj·Δj), S2 likewise with h2; intervals are [20,25)…[75,80), Δ=5; a and a+T are multiples of 5; intervals with t<50 use the RR at age a (initial RR), intervals with t>=50 use the RR after age 50 (later RR)",
+   "ah_adjustment": "With a biopsy and atypical hyperplasia ×1.82, with a biopsy and no hyperplasia ×0.93 (suggested in the paper pp. 6–7, AH RR 1.96)"
   },
   "examples": [
    {
     "id": "paper-RR-ex",
+    "note": "Paper p. 2 example: age 54, menarche at 15, 1 biopsy, no live births, 1 relative",
     "RR_paper": 3.508,
     "RR_reproduced": 3.508
    },
    {
     "id": "paper-RR-ex2",
+    "note": "Paper p. 5 example: age 40, menarche at 12, 1 biopsy, no children, no relatives",
     "RR_initial_paper": 2.89,
     "RR_later_paper": 2.17,
     "RR_reproduced": [
@@ -7880,6 +9515,7 @@ export const COEFFICIENTS = {
    },
    {
     "id": "Table5-subject1",
+    "note": "Table 5 subject 1 (NBIOPS=1, AGEMEN=1, AGEFLB=2, NUMREL=0; RR 2.888/2.165)",
     "intervals": [
      "30-40",
      "30-60",
@@ -7915,6 +9551,7 @@ export const COEFFICIENTS = {
    },
    {
     "id": "Table5-subject2",
+    "note": "Subject 2 (NBIOPS=1, AGEMEN=2, AGEFLB=0, NUMREL=2; RR 13.93/10.44)",
     "paper_pct": [
      6.1,
      32.7,
@@ -7942,33 +9579,49 @@ export const COEFFICIENTS = {
    },
    {
     "id": "text-interp",
+    "note": "The paper interpolates Table 4 to get 10.1% for age 40, 30 years (RR 2.89→2.17); 3.6% at 10 years",
     "reproduced_exact": [
      10.11,
      3.56
     ]
    }
-  ]
+  ],
+  "verification": {
+   "table4": "Three h2 candidates were compared over 160 Table 4 cells (ages 20/30/40 at 10–30 years including later-RR rows, and ages 50/60/70): BCRA White NCHS 1985–87: mean absolute error 0.086, RMSE 0.119, maximum 0.44 (age 40, 30 years, later RR 30, initial RR 2: 62.04 vs 61.6), 133/160 cells differing by <=0.15; avg 1992–96: 0.129/0.190/0.71; 1995–2003: 0.191/0.293/1.09; h2=0: 0.859/1.331/4.63. The paper prints to 1 decimal (rounding 0.05).",
+   "table4_ocr_note": "Table 4 values were taken with pdftotext; OCR printed \"0.5\" as \"05\", \"5.5\" as \"55\" and \"16.5\" as \"165\", which were restored by hand; each cell still needs to be checked against the PDF figure, see unresolved. Only the RR initial/later columns 1, 2, 5, 10 and some of 20 and 30 are used.",
+   "table5": "Maximum difference over 12 values is 0.20 percentage points (36.99 vs 36.8), the rest <=0.09."
+  }
  },
  "harvard-cancer-risk-index": {
   "model_id": "harvard-cancer-risk-index",
   "source": {
    "pdf_key": "Colditz2000CCC",
-   "citation": "Colditz GA et al. Cancer Causes Control 2000;11:477-488, doi:10.1023/A:1008984432272"
+   "citation": "Colditz GA et al. Cancer Causes Control 2000;11:477-488, doi:10.1023/A:1008984432272",
+   "page_note": "Page numbers are the page order within the PDF file",
+   "license": "Paper is public (no additional licence terms seen); copyright belongs to the publisher, licence not stated"
   },
   "model_type": "points_index",
+  "outcome": "Cancer diagnosis risk over the next 10 years (rank relative to the SEER population average × SEER 10-year risk); this file implements colorectal cancer only",
   "horizon_years": 10,
+  "population": {
+   "sex": "By cancer site",
+   "age_range": "The PDF does not state an applicable age (the catalog says ≥40, not seen in the PDF); the scenario examples use age 50"
+  },
   "inputs": [
    {
     "name": "risk_factors_present",
-    "unit": "list"
+    "unit": "list",
+    "coding": "See the keys of points.colon_women"
    },
    {
     "name": "seer_10y_risk",
-    "unit": "%"
+    "unit": "%",
+    "coding": "SEER 10-year risk by age and sex; the paper gives only 0.6% for colorectal cancer in a 50-year-old woman (PDF p. 7)"
    },
    {
     "name": "population_average_points",
-    "unit": "points"
+    "unit": "points",
+    "coding": "Colorectal cancer, women 16 (Table 5); for men Table 6 gives 18.1"
    }
   ],
   "lookup_tables": {
@@ -7981,22 +9634,27 @@ export const COEFFICIENTS = {
       "points": 0
      },
      {
+      "rr": "0.7<=x<0.9 or 1.1<=x<1.5",
       "association": "weak",
       "points": 5
      },
      {
+      "rr": "0.4<=x<0.7 or 1.5<=x<3.0",
       "association": "moderate",
       "points": 10
      },
      {
+      "rr": "0.2<=x<0.4 or 3.0<=x<7.0",
       "association": "strong",
       "points": 25
      },
      {
+      "rr": "<0.2 or >=7.0",
       "association": "very strong",
       "points": 50
      }
-    ]
+    ],
+    "note": "Protective factors (RR<1) get negative points (PDF p. 3 \"addition and subtraction\", the negative points in Table 5)"
    },
    "ratio_to_level": {
     "source": "Table 3, PDF p.3",
@@ -8050,36 +9708,42 @@ export const COEFFICIENTS = {
     "rows": [
      [
       "a",
+      "Population average",
       18.1,
       1,
       1
      ],
      [
       "b",
+      "No risk factors, not screened",
       10,
       0.75,
       0.7
      ],
      [
       "c",
+      "No risk factors, recent sigmoidoscopy",
       0,
       0.55,
       0.4
      ],
      [
       "d",
+      "No risk factors, recent sigmoidoscopy + exercise",
       "Negative",
       0.4,
       0.2
      ],
      [
       "e",
+      "Obese, not screened, red meat, alcohol",
       35,
       2.3,
       3
      ],
      [
       "f",
+      "Obese, not screened, red meat, family history, low folate",
       50,
       4,
       3
@@ -8095,6 +9759,7 @@ export const COEFFICIENTS = {
      {
       "key": "family_history",
       "rr": 1.8,
+      "description": "Sibling or parent with colorectal cancer",
       "points": 10,
       "us_prevalence": 0.05,
       "population_average_points": 0.5
@@ -8110,6 +9775,7 @@ export const COEFFICIENTS = {
      {
       "key": "no_screening",
       "rr": 2,
+      "description": "Never had flexible sigmoidoscopy or faecal occult blood test",
       "points": 10,
       "us_prevalence": 0.76,
       "population_average_points": 7.6
@@ -8117,6 +9783,7 @@ export const COEFFICIENTS = {
      {
       "key": "alcohol",
       "rr": 1.4,
+      "description": "More than 7 servings per week",
       "points": 5,
       "us_prevalence": 0.02,
       "population_average_points": 0.1
@@ -8124,6 +9791,7 @@ export const COEFFICIENTS = {
      {
       "key": "vegetables",
       "rr": 0.7,
+      "description": "≥3 servings per day",
       "points": -5,
       "us_prevalence": 0.25,
       "population_average_points": -1.25
@@ -8131,6 +9799,7 @@ export const COEFFICIENTS = {
      {
       "key": "height",
       "rr": 1.3,
+      "description": "Height ≥5 ft 7 in",
       "points": 5,
       "us_prevalence": 0.1,
       "population_average_points": 0.5
@@ -8138,6 +9807,7 @@ export const COEFFICIENTS = {
      {
       "key": "physical_activity",
       "rr": 0.6,
+      "description": "Leisure activity ≥3 hours per week",
       "points": -10,
       "us_prevalence": 0.19,
       "population_average_points": -1.9
@@ -8145,6 +9815,7 @@ export const COEFFICIENTS = {
      {
       "key": "red_meat",
       "rr": 1.5,
+      "description": "≥7 servings per week (top quintile)",
       "points": 10,
       "us_prevalence": 0.25,
       "population_average_points": 2.5
@@ -8152,6 +9823,7 @@ export const COEFFICIENTS = {
      {
       "key": "oral_contraceptive",
       "rr": 0.7,
+      "description": "Use for ≥5 years",
       "points": -5,
       "us_prevalence": 0.2,
       "population_average_points": -1
@@ -8159,6 +9831,7 @@ export const COEFFICIENTS = {
      {
       "key": "postmenopausal_hormones",
       "rr": 0.8,
+      "description": "Use for ≥5 years",
       "points": -5,
       "us_prevalence": 0.07,
       "population_average_points": -0.35
@@ -8166,6 +9839,7 @@ export const COEFFICIENTS = {
      {
       "key": "aspirin",
       "rr": 0.7,
+      "description": "Taking daily for ≥15 years",
       "points": -5,
       "us_prevalence": 0.13,
       "population_average_points": -0.65
@@ -8173,6 +9847,7 @@ export const COEFFICIENTS = {
      {
       "key": "low_folate_no_multivitamin",
       "rr": 0.5,
+      "description": "Not taking a multivitamin regularly (low folate)",
       "points": 10,
       "us_prevalence": 0.6,
       "population_average_points": 6
@@ -8180,6 +9855,7 @@ export const COEFFICIENTS = {
      {
       "key": "ibd",
       "rr": 1.5,
+      "description": "Inflammatory bowel disease ≥10 years",
       "points": 10,
       "us_prevalence": 0.001,
       "population_average_points": 0.01
@@ -8187,6 +9863,7 @@ export const COEFFICIENTS = {
     ]
    }
   },
+  "formula": "points = Σ the points for the factors the person has; ratio = points / population average points; look up Table 3 for the category and the SEER multiplier; 10-year risk = SEER 10-year risk × multiplier",
   "examples": [
    {
     "id": "paper-scenario-1",
@@ -8240,6 +9917,7 @@ export const COEFFICIENTS = {
    {
     "id": "paper-scenario-3",
     "origin": "paper",
+    "source": "PDF p. 8; the paper prints 0 points (Scenario 3), but by the scoring of Table 5 / Table 6(c) it is 10 points, see resolutions",
     "inputs": {
      "sex": "F",
      "age": 50,
@@ -8247,7 +9925,8 @@ export const COEFFICIENTS = {
       "family_history"
      ],
      "seer_10y_colon_risk_pct": 0.6,
-     "population_average_points": 16
+     "population_average_points": 16,
+     "note": "Scenario 2 + sigmoidoscopy done = family history only"
     },
     "expected": {
      "points": 10,
@@ -8259,12 +9938,14 @@ export const COEFFICIENTS = {
     "paper_values": {
      "points": 0,
      "seer_multiplier": 0.4,
-     "risk_10y_pct": 0.24
+     "risk_10y_pct": 0.24,
+     "note": "Value as printed in the paper; it comes from double counting (see resolutions). 0.24% is calculated in this file as the paper's multiplier 0.4 × 0.6%, not printed in the paper"
     }
    },
    {
     "id": "paper-scenario-4",
     "origin": "paper",
+    "source": "PDF p. 8; the paper prints −10 points and multiplier 0.2, by the Table 5 scoring it is 0 points, see resolutions",
     "inputs": {
      "sex": "F",
      "age": 50,
@@ -8273,7 +9954,8 @@ export const COEFFICIENTS = {
       "physical_activity"
      ],
      "seer_10y_colon_risk_pct": 0.6,
-     "population_average_points": 16
+     "population_average_points": 16,
+     "note": "Scenario 3 + exercise ≥3 hours per week = family history 10 + exercise −10"
     },
     "expected": {
      "points": 0,
@@ -8285,19 +9967,39 @@ export const COEFFICIENTS = {
     "paper_values": {
      "points": -10,
      "seer_multiplier": 0.2,
-     "risk_10y_pct": 0.12
+     "risk_10y_pct": 0.12,
+     "note": "Value as printed in the paper; 0.12% is calculated in this file as the paper's multiplier 0.2 × 0.6%, not printed in the paper"
     }
    }
   ],
+  "paper_examples": "Yes: colorectal cancer scenarios 1–4 (50-year-old woman, PDF pp. 7–8) and the Table 6 male validation profiles",
   "schema": "c2-coef-v1",
   "resolutions": {
-   "date": "2026-11-11"
+   "date": "2026-11-11",
+   "scenario_3_4": {
+    "finding": "The paper's scores for the two scenarios can be reproduced by applying both \"Table 4 lists screening as a protective factor (RR 0.5, −10 points, colon row on pp. 3–4)\" and \"Table 5 gives +10 points for not being screened\": Scenario 2's 20 points = family history 10 + not screened 10; Scenario 3 = 20 − 10 (remove not screened) − 10 (add the screening protective points) = 0; Scenario 4 = a further −10 for exercise = −10. This is double counting.",
+    "evidence_against_original": "Table 6 (b) no risk factors, not screened = 10; (c) no risk factors, recent sigmoidoscopy = 0; (d) with exercise = negative; that is, the baseline for people who were screened is 0 points, not −10. On this basis Scenario 3 = family history 10 points, and Scenario 4 = 10 − 10 = 0 points.",
+    "recommended_rule": "Adopt the Table 5 / Table 6 scoring: screened = 0 points, not screened = +10 points, with no extra protective points. Scenario 3 → 10 points, ratio 0.625, below average, ×0.7, 0.42%; Scenario 4 → 0 points, ratio 0, far below average, ×0.4, 0.24%.",
+    "confidence": "Medium (the four rows (b)(c)(d)(f) of Table 6 all support this scoring); but the \"authors' intent\" can no longer be confirmed: Scenario 3 in the paper gives its own reason (sigmoidoscopy lowers risk by about 30%, \"this estimate seems appropriate\"), so the authors may have calculated it this way deliberately, and \"double counting\" is our inference; therefore both sets of values are kept in the JSON (expected = recommended; paper_values = values printed in the paper)."
+   },
+   "table6_profile_e": {
+    "finding": "Profile (e): obese 10 + not screened 10 + red meat 10 + alcohol 5 = 35 points, which matches the 35 in the table; 35/18.1 = 1.93, which falls in 1.1 to <2.0 per Table 3 → above average, multiplier 1.5, while the \"scale value 3.0\" in the table does not agree. Profile (f) 50/18.1 = 2.76 → 3.0 agrees.",
+    "judgement": "The 3.0 in (e) is treated as an error in the paper or an unexplained adjustment; the implementation takes 1.5 per Table 3. The observed RR of 2.3 lies between 1.5 and 3.0, and the authors' intent cannot be determined from the data (unconfirmed). Tests should not use the 3.0 of (e)."
+   }
   },
   "verification": {
    "date": "2026-11-11",
+   "method": "Recomputed from the paper's text and Tables 2–6",
    "results": {
     "S1": "10/16=0.625→×0.7→0.42%",
-    "S2": "20/16=1.25→×1.5→0.9%"
+    "S2": "20/16=1.25→×1.5→0.9%",
+    "S3": "Paper: 0 points; Table 5 scoring: 10 points",
+    "S4": "Paper: −10 points; Table 5 scoring: 0 points",
+    "T6_b": "10/18.1=0.55→0.7 agrees",
+    "T6_c": "0→0.4 agrees",
+    "T6_d": "negative→0.2 agrees",
+    "T6_e": "35/18.1=1.93→1.5, paper 3.0 disagrees",
+    "T6_f": "50/18.1=2.76→3.0 agrees"
    }
   }
  },
@@ -8306,15 +10008,24 @@ export const COEFFICIENTS = {
   "model_id": "hisayama-cvd-2009",
   "citation": "Arima H, et al. Development and validation of a cardiovascular risk prediction model for Japanese: the Hisayama study. Hypertens Res 2009;32(12):1119–1122. doi:10.1038/hr.2009.161",
   "model_type": "cox",
+  "outcome": "Cardiovascular disease (first coronary heart disease or stroke); 10 years",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Age ≥40",
+   "sex": "Men and women",
+   "notes": "Hisayama 1988 screening, n=2,634; 2/3 for development (n=1,756, 216 cases), 1/3 for validation (n=878, 125 cases); follow-up 14 years (1988-12 to 2002-11). Validation C 0.81, HL χ² 6.46 (P=0.60)"
+  },
+  "formula": "10-year risk = look up the total points in Table 4 (≥12 points shown as >30%); the baseline survival / means of the continuous formula are not given in the main text",
   "variables": [
    {
+    "name": "Age (per year)",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "Men",
     "unit": "",
     "coding": ""
    },
@@ -8324,6 +10035,7 @@ export const COEFFICIENTS = {
     "coding": ""
    },
    {
+    "name": "Diabetes",
     "unit": "",
     "coding": ""
    },
@@ -8338,6 +10050,7 @@ export const COEFFICIENTS = {
     "coding": ""
    },
    {
+    "name": "Current smoking",
     "unit": "",
     "coding": ""
    }
@@ -8345,13 +10058,16 @@ export const COEFFICIENTS = {
   "equations": [
    {
     "id": "cox_derivation",
+    "applies_to": "Japan, age ≥40",
     "coefficients": [
      {
+      "term": "Age (per year)",
       "beta": 0.05775,
       "hr": 1.059,
       "source": "Table 2"
      },
      {
+      "term": "Men",
       "beta": 0.55569,
       "hr": 1.743,
       "source": "Table 2"
@@ -8363,6 +10079,7 @@ export const COEFFICIENTS = {
       "source": "Table 2"
      },
      {
+      "term": "Diabetes",
       "beta": 0.51977,
       "hr": 1.682,
       "source": "Table 2"
@@ -8380,6 +10097,7 @@ export const COEFFICIENTS = {
       "source": "Table 2"
      },
      {
+      "term": "Current smoking",
       "beta": 0.35287,
       "hr": 1.423,
       "source": "Table 2"
@@ -8456,28 +10174,41 @@ export const COEFFICIENTS = {
   "model_id": "hisayama-dementia-2021",
   "citation": "Honda T, Ohara T, Yoshida D, et al. Development of a dementia prediction model for primary care: The Hisayama Study. Alzheimers Dement (Amst) 2021;13(1):e12221. doi:10.1002/dad2.12221",
   "model_type": "cox",
+  "outcome": "All-cause dementia (including Alzheimer's and vascular); 10 years",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Age ≥65",
+   "sex": "Men and women",
+   "notes": "Hisayama, Fukuoka Prefecture, Japan, baseline 1988, n=795 aged 65 and over, follow-up 1988-12 to 2012-11 with 364 dementia cases; predicting 10 years. A single community cohort, with only internal bootstrap validation (C 0.718, corrected 0.703)"
+  },
+  "formula": "p = 1 − S0(10)^exp(Σβx − 1.543), S0(10)=0.8254; simplified score: p = 1 − 0.8254^exp(total score×0.302 − 1.543)",
   "variables": [
    {
-    "name": "age_group"
+    "name": "age_group",
+    "unit": "years",
+    "coding": "65–69 (reference), 70–74, 75–79, 80–84, ≥85"
    },
    {
     "name": "female",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Female=1"
    },
    {
     "name": "edu_le9",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Formal education ≤9 years = 1"
    },
    {
     "name": "hypertension",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "SBP ≥140, DBP ≥90 mmHg or taking antihypertensive medication (Methods 2.3)"
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Fasting glucose ≥126 mg/dL, 2-hour 75 g OGTT ≥200 mg/dL or taking glucose-lowering drugs (Methods)"
    },
    {
     "name": "bmi_lt18_5",
@@ -8486,20 +10217,24 @@ export const COEFFICIENTS = {
    },
    {
     "name": "stroke_hx",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "History of stroke"
    },
    {
     "name": "current_smoker",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current smoking (vs former/never)"
    },
    {
     "name": "sedentary",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Sedentary = mostly sitting or lying down during the day"
    }
   ],
   "equations": [
    {
     "id": "cox_multivariable",
+    "applies_to": "Japanese aged ≥65, men and women combined",
     "coefficients": [
      {
       "term": "age70_74",
@@ -8576,7 +10311,8 @@ export const COEFFICIENTS = {
     ],
     "constants": {
      "S0_10y": 0.8254,
-     "sum_beta_xbar": 1.543
+     "sum_beta_xbar": 1.543,
+     "source": "Main-text formula p̂ = 1−0.8254^exp(Σβx − 1.543), Results section"
     }
    }
   ],
@@ -8586,51 +10322,74 @@ export const COEFFICIENTS = {
   "points_tables": [
    {
     "id": "simplified_score",
+    "applies_to": "Same as above",
     "source": "Figure 1",
     "constant": 0.302,
+    "rule": "Points = round(β / 0.302); recomputed in Python for this file, all 12 items match the points in the figure",
     "items": [
      {
+      "factor": "Age",
       "category": "65–69",
       "points": 0
      },
      {
+      "factor": "Age",
       "category": "70–74",
       "points": 2
      },
      {
+      "factor": "Age",
       "category": "75–79",
       "points": 3
      },
      {
+      "factor": "Age",
       "category": "80–84",
       "points": 5
      },
      {
+      "factor": "Age",
       "category": "≥85",
       "points": 7
      },
      {
+      "factor": "Sex",
+      "category": "Men",
       "points": 0
      },
      {
+      "factor": "Sex",
+      "category": "Women",
       "points": 1
      },
      {
+      "factor": "Education",
+      "category": ">9 years",
       "points": 0
      },
      {
+      "factor": "Education",
+      "category": "≤9 years",
       "points": 1
      },
      {
+      "factor": "Hypertension",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Hypertension",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "Diabetes",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Diabetes",
+      "category": "Yes",
       "points": 2
      },
      {
@@ -8644,21 +10403,33 @@ export const COEFFICIENTS = {
       "points": 1
      },
      {
+      "factor": "History of stroke",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "History of stroke",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Current smoking",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Current smoking",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "Sedentary (mostly sitting or lying down during the day)",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Sedentary (mostly sitting or lying down during the day)",
+      "category": "Yes",
       "points": 2
      }
     ]
@@ -8668,6 +10439,7 @@ export const COEFFICIENTS = {
    {
     "id": "fig1_10y",
     "horizon_years": 10,
+    "source": "Table on the right side of Figure 1",
     "rows": [
      {
       "score": 0,
@@ -8744,7 +10516,9 @@ export const COEFFICIENTS = {
      "risk_10y_model": 0.29,
      "risk_10y_score": 0.29
     },
-    "tolerance": 0.006
+    "tolerance": 0.006,
+    "source": "Supplementary Table 4 (docx s002); last paragraph of the Results",
+    "note": "Man aged 75–79, education ≤9, BMI<18.5, hypertension, smoker; recomputed in this file as model 0.289 / score formula 0.288"
    },
    {
     "id": "paper-B",
@@ -8761,7 +10535,8 @@ export const COEFFICIENTS = {
      "risk_10y_score": 0.22
     },
     "tolerance": 0.006,
-    "source": "Supplementary Table 4"
+    "source": "Supplementary Table 4",
+    "note": "Same as A but without hypertension"
    },
    {
     "id": "paper-C",
@@ -8776,7 +10551,9 @@ export const COEFFICIENTS = {
      "risk_10y_model": 0.16,
      "risk_10y_score": 0.17
     },
-    "tolerance": 0.006
+    "tolerance": 0.006,
+    "source": "Supplementary Table 4; 16% in the main text",
+    "note": "Same as B but non-smoker; the main text says model 16% and the supplementary table says score 17% (two different models, both agree)"
    }
   ]
  },
@@ -8785,21 +10562,27 @@ export const COEFFICIENTS = {
   "model_id": "kfre-2",
   "citation": "Tangri N, Grams ME, Levey AS, et al. Multinational Assessment of Accuracy of Equations for Predicting Risk of Kidney Failure: A Meta-analysis. JAMA 2016;315(2):164–174. doi:10.1001/jama.2015.18202",
   "model_type": "cox",
+  "outcome": "Kidney failure (dialysis or transplant) at 2 and 5 years",
   "horizon_years": [
    2,
    5
   ],
   "population": {
-   "age_range": "CKD G3–5"
+   "age_range": "CKD G3–5",
+   "sex": "Men and women combined",
+   "notes": "The input ranges validated on the official website were not checked item by item"
   },
+  "formula": "risk = 1 − S^exp(Σβ·(x − x_centre)); x: age/10, male=1, eGFR/5, ln(ACR mg/g), diabetes, hypertension, albumin g/dL, phosphate mg/dL, bicarbonate mEq/L, calcium mg/dL",
   "variables": [
    {
     "name": "age",
+    "unit": "years",
     "coding": "/10"
    },
    {
     "name": "male",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Male=1"
    },
    {
     "name": "egfr",
@@ -8808,44 +10591,57 @@ export const COEFFICIENTS = {
    },
    {
     "name": "acr",
-    "unit": "mg/g"
+    "unit": "mg/g",
+    "coding": "Natural log; mg/mmol is first multiplied by 8.84 (official website)"
    },
    {
     "name": "dm",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "6-variable version"
    },
    {
     "name": "htn",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "6-variable version"
    },
    {
-    "name": "alb/phos/bic/ca"
+    "name": "alb/phos/bic/ca",
+    "unit": "g/dL, mg/dL, mEq/L, mg/dL",
+    "coding": "8-variable version"
    }
   ],
   "equations": [
    {
     "id": "4v-original",
+    "applies_to": "4-variable original",
     "coefficients": [
      {
+      "term": "Age/10 (years)",
       "key": "age",
       "beta": -0.2201,
-      "mean": 7.036
+      "mean": 7.036,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Male=1",
       "key": "male",
       "beta": 0.2467,
-      "mean": 0.5642
+      "mean": 0.5642,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "eGFR/5 (mL/min/1.73m²)",
       "key": "egfr",
       "beta": -0.5567,
-      "mean": 7.222
+      "mean": 7.222,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
       "term": "ln(ACR mg/g)",
       "key": "lacr",
       "beta": 0.451,
-      "mean": 5.137
+      "mean": 5.137,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      }
     ],
     "baseline_survival": {
@@ -8865,27 +10661,35 @@ export const COEFFICIENTS = {
    },
    {
     "id": "4v-pooled",
+    "applies_to": "4-variable pooled",
     "coefficients": [
      {
+      "term": "Age/10 (years)",
       "key": "age",
       "beta": -0.2245,
-      "mean": 7.036
+      "mean": 7.036,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Male=1",
       "key": "male",
       "beta": 0.3212,
-      "mean": 0.5642
+      "mean": 0.5642,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "eGFR/5 (mL/min/1.73m²)",
       "key": "egfr",
       "beta": -0.4553,
-      "mean": 7.222
+      "mean": 7.222,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
       "term": "ln(ACR mg/g)",
       "key": "lacr",
       "beta": 0.4469,
-      "mean": 5.137
+      "mean": 5.137,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      }
     ],
     "baseline_survival": {
@@ -8897,37 +10701,49 @@ export const COEFFICIENTS = {
    },
    {
     "id": "6v-original",
+    "applies_to": "6-variable original",
     "coefficients": [
      {
+      "term": "Age/10 (years)",
       "key": "age",
       "beta": -0.2218,
-      "mean": 7.036
+      "mean": 7.036,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Male=1",
       "key": "male",
       "beta": 0.2553,
-      "mean": 0.5642
+      "mean": 0.5642,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "eGFR/5 (mL/min/1.73m²)",
       "key": "egfr",
       "beta": -0.5541,
-      "mean": 7.222
+      "mean": 7.222,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
       "term": "ln(ACR mg/g)",
       "key": "lacr",
       "beta": 0.4562,
-      "mean": 5.137
+      "mean": 5.137,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Diabetes",
       "key": "dm",
       "beta": -0.1475,
-      "mean": 0.5106
+      "mean": 0.5106,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Hypertension",
       "key": "htn",
       "beta": 0.1426,
-      "mean": 0.8501
+      "mean": 0.8501,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      }
     ],
     "baseline_survival": {
@@ -8947,37 +10763,49 @@ export const COEFFICIENTS = {
    },
    {
     "id": "6v-pooled",
+    "applies_to": "6-variable pooled",
     "coefficients": [
      {
+      "term": "Age/10 (years)",
       "key": "age",
       "beta": -0.2401,
-      "mean": 7.036
+      "mean": 7.036,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Male=1",
       "key": "male",
       "beta": 0.3209,
-      "mean": 0.5642
+      "mean": 0.5642,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "eGFR/5 (mL/min/1.73m²)",
       "key": "egfr",
       "beta": -0.465,
-      "mean": 7.222
+      "mean": 7.222,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
       "term": "ln(ACR mg/g)",
       "key": "lacr",
       "beta": 0.4384,
-      "mean": 5.137
+      "mean": 5.137,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Diabetes",
       "key": "dm",
       "beta": 0.3018,
-      "mean": 0.5106
+      "mean": 0.5106,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Hypertension",
       "key": "htn",
       "beta": 0.171,
-      "mean": 0.8501
+      "mean": 0.8501,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      }
     ],
     "baseline_survival": {
@@ -8989,47 +10817,63 @@ export const COEFFICIENTS = {
    },
    {
     "id": "8v-original",
+    "applies_to": "8-variable original",
     "coefficients": [
      {
+      "term": "Age/10 (years)",
       "key": "age",
       "beta": -0.1992,
-      "mean": 7.036
+      "mean": 7.036,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Male=1",
       "key": "male",
       "beta": 0.1602,
-      "mean": 0.5642
+      "mean": 0.5642,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "eGFR/5 (mL/min/1.73m²)",
       "key": "egfr",
       "beta": -0.4919,
-      "mean": 7.222
+      "mean": 7.222,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
       "term": "ln(ACR mg/g)",
       "key": "lacr",
       "beta": 0.3364,
-      "mean": 5.137
+      "mean": 5.137,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Albumin g/dL",
       "key": "alb",
       "beta": -0.3441,
-      "mean": 3.997
+      "mean": 3.997,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Phosphate mg/dL",
       "key": "phos",
       "beta": 0.2604,
-      "mean": 3.916
+      "mean": 3.916,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Bicarbonate mEq/L",
       "key": "bic",
       "beta": -0.07354,
-      "mean": 25.57
+      "mean": 25.57,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Calcium mg/dL",
       "key": "ca",
       "beta": -0.2228,
-      "mean": 9.355
+      "mean": 9.355,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      }
     ],
     "baseline_survival": {
@@ -9049,47 +10893,63 @@ export const COEFFICIENTS = {
    },
    {
     "id": "8v-pooled",
+    "applies_to": "8-variable pooled",
     "coefficients": [
      {
+      "term": "Age/10 (years)",
       "key": "age",
       "beta": -0.1848,
-      "mean": 7.036
+      "mean": 7.036,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Male=1",
       "key": "male",
       "beta": 0.2906,
-      "mean": 0.5642
+      "mean": 0.5642,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "eGFR/5 (mL/min/1.73m²)",
       "key": "egfr",
       "beta": -0.4156,
-      "mean": 7.222
+      "mean": 7.222,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
       "term": "ln(ACR mg/g)",
       "key": "lacr",
       "beta": 0.348,
-      "mean": 5.137
+      "mean": 5.137,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Albumin g/dL",
       "key": "alb",
       "beta": -0.3569,
-      "mean": 3.997
+      "mean": 3.997,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Phosphate mg/dL",
       "key": "phos",
       "beta": 0.1582,
-      "mean": 3.916
+      "mean": 3.916,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Bicarbonate mEq/L",
       "key": "bic",
       "beta": -0.01199,
-      "mean": 25.57
+      "mean": 25.57,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      },
      {
+      "term": "Calcium mg/dL",
       "key": "ca",
       "beta": -0.1581,
-      "mean": 9.355
+      "mean": 9.355,
+      "source": "eAppendix 2, Tangri2016KFRE_supp1.pdf pp. 9–10 (transcribed in the repo: risk-models-supplement-extraction.md §6b); the 4- and 8-variable Original versions were also cross-checked against the front-end JS of kidneyfailurerisk.com"
      }
     ],
     "baseline_survival": {
@@ -9120,7 +10980,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_5y": 0.1449
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website \"North America\" option"
    },
    {
     "id": "official-4v-nonna-5y-M50-egfr30-acr50",
@@ -9139,7 +11001,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_5y": 0.1219
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website non-North-America option (the site output is truncated at 0.01%)"
    },
    {
     "id": "official-4v-orig-2y-M50-egfr30-acr50",
@@ -9158,7 +11022,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_2y": 0.0489
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website North America"
    },
    {
     "id": "official-4v-nonna-2y-M50-egfr30-acr50",
@@ -9177,7 +11043,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_2y": 0.033
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website non-North-America"
    },
    {
     "id": "official-8v-orig-5y-M50-egfr30-acr50",
@@ -9200,7 +11068,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_5y": 0.1129
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website North America, including the 4 optional items"
    },
    {
     "id": "official-8v-nonna-5y-M50-egfr30-acr50",
@@ -9223,7 +11093,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_5y": 0.1217
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website non-North-America"
    },
    {
     "id": "official-8v-orig-2y-M50-egfr30-acr50",
@@ -9246,7 +11118,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_2y": 0.0361
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website North America"
    },
    {
     "id": "official-8v-nonna-2y-M50-egfr30-acr50",
@@ -9269,7 +11143,9 @@ export const COEFFICIENTS = {
     "computed": {
      "risk_2y": 0.0284
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Calculation function in kidneyfailurerisk.com assets/js/kidney-app.js (actually run in node, not calculated by hand)",
+    "note": "Website non-North-America"
    },
    {
     "id": "official-4v-5y-F65-egfr45-acr300",
@@ -9289,7 +11165,9 @@ export const COEFFICIENTS = {
      "risk_5y_orig_baseline": 0.0365,
      "risk_5y_nonNA_baseline": 0.0304
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Same as above, JS actually run",
+    "note": "Untruncated output"
    },
    {
     "id": "official-4v-5y-M70-egfr15-acr1000",
@@ -9309,7 +11187,9 @@ export const COEFFICIENTS = {
      "risk_5y_orig_baseline": 0.8736,
      "risk_5y_nonNA_baseline": 0.8203
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Same as above, JS actually run",
+    "note": "Untruncated output"
    },
    {
     "id": "official-4v-5y-F40-egfr55-acr5",
@@ -9329,7 +11209,9 @@ export const COEFFICIENTS = {
      "risk_5y_orig_baseline": 0.0033,
      "risk_5y_nonNA_baseline": 0.0028
     },
-    "tolerance": 0.0002
+    "tolerance": 0.0002,
+    "source": "Same as above, JS actually run",
+    "note": "Untruncated output"
    },
    {
     "id": "self-6v-original-5y-dm0htn0",
@@ -9346,7 +11228,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_5y": 0.1386
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed in this file (the official site has no 6-variable version)",
+    "note": "Differs from the same person's 4-variable 0.1449 by −0.6 percentage points; the DM coefficient is negative, giving 0.138 with DM=1 and HTN=1"
    },
    {
     "id": "crosscheck-2011-model3-vs-2016-4v",
@@ -9367,7 +11251,9 @@ export const COEFFICIENTS = {
      "risk_5y_2011_model6_recomputed": 0.1074,
      "risk_5y_2011_model6_sheet": 0.1074
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "2011: default spreadsheet inputs (risk-models-supplement-extraction.md §6a); 2016: this file",
+    "note": "The two 4-variable versions have the same S5 of 0.9240 but different coefficients and centring values (2011: male 0.2694, age −0.2167, eGFR −0.55418, ln ACR 0.45608, ln ACR centred at 5.2774; 2016: 0.2467, −0.2201, −0.5567, 0.4510, centred at 5.137); the same person's 5-year risk is 14.5% vs 13.6%, a difference of 0.9 percentage points, so they are not the same model and digit-by-digit agreement should not be expected"
    }
   ]
  },
@@ -9375,9 +11261,16 @@ export const COEFFICIENTS = {
   "model_id": "klein-2013-panscan",
   "source": {
    "pdf_key": "Klein2013PLoSOne",
-   "citation": "Klein AP et al. PLoS One 2013;8(9):e72311"
+   "citation": "Klein AP et al. PLoS One 2013;8(9):e72311",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "relative_risk_plus_seer",
+  "outcome": "Absolute pancreatic cancer risk (10-year, lifetime), obtained from RR × SEER baseline incidence",
+  "horizon_years": "10-year / lifetime",
+  "population": {
+   "sex": "Sex-specific baseline rates",
+   "race": "Non-Hispanic White (PDF p. 4)"
+  },
   "inputs": [
    {
     "name": "smoking",
@@ -9569,16 +11462,23 @@ export const COEFFICIENTS = {
   ],
   "constants": {
    "average_lifetime_risk_men_pct": {
-    "value": 1.47
+    "value": 1.47,
+    "source": "PDF p. 7 (twice average = 2×1.47% = 2.94%)"
    },
    "average_lifetime_risk_women_pct": {
-    "value": 1.31
+    "value": 1.31,
+    "source": "PDF p. 7 (2×1.31% = 2.62%)"
+   },
+   "baseline_incidence": {
+    "source": "SEER17 2000–2008 age-specific rates for Whites ÷ mean RR of the control group (PDF p. 4); the values are not in the PDF"
    }
   },
+  "formula": "RR(X) = Π OR of each factor (for a SNP, OR^number of alleles); age-specific incidence = r_sex(t)·RR(X), where r_sex(t) = SEER mean rate ÷ mean RR of the control group; lifetime risk must subtract other causes of death (PDF p. 4, values not given)",
   "examples": [
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; computes RR only (no baseline rate, so absolute risk cannot be computed)",
     "inputs": {
      "smoking": "current",
      "diabetes": "gt3y_cohort",
@@ -9594,6 +11494,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; includes ABO and SNPs",
     "inputs": {
      "smoking": "current",
      "diabetes": "gt3y_cohort",
@@ -9613,6 +11514,7 @@ export const COEFFICIENTS = {
     "tolerance": 0.0001
    }
   ],
+  "paper_examples": "No example person in the paper; Figure 1 (PDF p. 7) is a graph of 10-year risk by percentile, with no numeric table",
   "schema": "c2-coef-v1"
  },
  "korea-nhis-dementia-2019": {
@@ -9620,19 +11522,29 @@ export const COEFFICIENTS = {
   "model_id": "korea-nhis-dementia-2019",
   "citation": "Park KM, et al. Population-based dementia prediction model using Korean public health examination data: A cohort study. PLoS One 2019;14(2):e0211957. doi:10.1371/journal.pone.0211957",
   "model_type": "cox",
+  "outcome": "All-cause dementia (ICD-10 F00–F03, G30); 10 years",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Ages 40–69",
+   "sex": "Men and women (there are also sex-specific models, in S3 Table, not obtained)",
+   "notes": "Korea NHIS-HEALS, baseline 2002–2003, n=473,036; development 70% (n=331,126, 15,501 cases = 4.7%), validation 30%; C statistic 0.81 (0.81–0.82)"
+  },
+  "formula": "P = 1 − S(10)^exp(Σβ(x − M)); **S(10) and M (means) are not given in the main text**, only the HR (2 decimals)",
   "variables": [
    {
+    "name": "Age (per 5 years)",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "Women (vs men)",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "BMI <18.5 (vs 18.5–<23)",
     "unit": "",
     "coding": ""
    },
@@ -9647,42 +11559,52 @@ export const COEFFICIENTS = {
     "coding": ""
    },
    {
+    "name": "Blood pressure: prehypertension (SBP 120–139 and DBP 80–89) vs normal (<120 and <80)",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "Blood pressure: stage 1 (140–159 / 90–99)",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "Blood pressure: stage 2 (≥160 and ≥100)",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "History: cardiovascular disease",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "History: diabetes",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "History: hypertension",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "Comorbid psychiatric disorder",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "Comorbid neurological disorder",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "Current smoking",
     "unit": "",
     "coding": ""
    },
    {
+    "name": "No regular exercise",
     "unit": "",
     "coding": ""
    }
@@ -9690,18 +11612,22 @@ export const COEFFICIENTS = {
   "equations": [
    {
     "id": "hr_total",
+    "applies_to": "Korea, ages 40–69",
     "coefficients": [
      {
+      "term": "Age (per 5 years)",
       "hr": 1.99,
       "ci": "1.97–2.02",
       "source": "Table 2"
      },
      {
+      "term": "Women (vs men)",
       "hr": 1.32,
       "ci": "1.27–1.37",
       "source": "Table 2"
      },
      {
+      "term": "BMI <18.5 (vs 18.5–<23)",
       "hr": 1.12,
       "ci": "1.01–1.24",
       "source": "Table 2"
@@ -9719,51 +11645,61 @@ export const COEFFICIENTS = {
       "source": "Table 2"
      },
      {
+      "term": "Blood pressure: prehypertension (SBP 120–139 and DBP 80–89) vs normal (<120 and <80)",
       "hr": 1.03,
       "ci": "1.02–1.11",
       "source": "Table 2"
      },
      {
+      "term": "Blood pressure: stage 1 (140–159 / 90–99)",
       "hr": 1.11,
       "ci": "1.06–1.17",
       "source": "Table 2"
      },
      {
+      "term": "Blood pressure: stage 2 (≥160 and ≥100)",
       "hr": 1.18,
       "ci": "1.08–1.27",
       "source": "Table 2"
      },
      {
+      "term": "History: cardiovascular disease",
       "hr": 1.44,
       "ci": "1.38–1.51",
       "source": "Table 2"
      },
      {
+      "term": "History: diabetes",
       "hr": 1.53,
       "ci": "1.45–1.62",
       "source": "Table 2"
      },
      {
+      "term": "History: hypertension",
       "hr": 1.12,
       "ci": "1.07–1.17",
       "source": "Table 2"
      },
      {
+      "term": "Comorbid psychiatric disorder",
       "hr": 1.59,
       "ci": "1.50–1.69",
       "source": "Table 2"
      },
      {
+      "term": "Comorbid neurological disorder",
       "hr": 1.4,
       "ci": "1.34–1.46",
       "source": "Table 2"
      },
      {
+      "term": "Current smoking",
       "hr": 1.16,
       "ci": "1.11–1.21",
       "source": "Table 2"
      },
      {
+      "term": "No regular exercise",
       "hr": 1.18,
       "ci": "1.14–1.22",
       "source": "Table 2"
@@ -9778,80 +11714,113 @@ export const COEFFICIENTS = {
  "lcrat-lcdrat-nci-lcrisks": {
   "schema": "c2-coef-v1",
   "model_id": "lcrat-lcdrat-nci-lcrisks",
+  "source": {
+   "citation": "Katki HA et al. JAMA 2016;315:2300-2311, doi:10.1001/jama.2016.6255 (LCRAT/LCDRAT); Cheung LC et al. Ann Intern Med 2019;171:623-632; NCI lcrisks 4.1.3 (R package, DCEG website)",
+   "locator": "lcrisks-4.1.3/lcrisks/R/lcrisk.R (risk.kovalchik lines 8–98; lcrisk.main lines 369–567); R/sysdata.rda (coxph objects, coefficients + baseline hazards); man/lcrisk.Rd (example input, no output); the coefficient transcription checked against Katki 2016 Table 3 is in risk-models-open-source-packages.md §5.4–5.5",
+   "license": "Package is GPL-2; NCI licence statement: AS IS, \"NOT INTENDED FOR TREATING OR DIAGNOSING HUMAN SUBJECTS\", no NCI endorsement implied. The formulas in this file were rewritten in Python from the R logic (R source not pasted); the coefficients and baseline hazards are numerical facts. Product copy may only say \"risk estimate from a published formula\"."
+  },
+  "model_type": "Cox (two cause-specific main models LCDRAT/LCRAT + one competing-cause model cox.death) → discrete-time cumulative incidence",
+  "outcome": "LCDRAT: lung cancer death; LCRAT: lung cancer incidence; both account for competing risk of other causes of death",
+  "horizon_years": "nyears 1–10 (lcrisk's nyears has an upper limit of 10); the example uses 5",
+  "population": "US ever-smokers (developed in the PLCO control arm, NHIS-weighted); applicable age about 40–98 (Rd), NCI uses 50–80 for USPSTF eligibility; not applicable to never-smokers",
   "inputs": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "note": "Rd: estimation range 40–98, a warning is given outside it"
    },
    {
-    "name": "female"
+    "name": "female",
+    "values": "1=female, 0=male"
    },
    {
-    "name": "smkyears"
+    "name": "smkyears",
+    "unit": "years",
+    "note": "Years of smoking; the log term requires >0"
    },
    {
-    "name": "qtyears"
+    "name": "qtyears",
+    "unit": "years",
+    "note": "Years since quitting; NA or current smokers → 0 (lcrisk.R line 373)"
    },
    {
-    "name": "cpd"
+    "name": "cpd",
+    "unit": "cigarettes/day"
    },
    {
-    "name": "race"
+    "name": "race",
+    "values": "0=non-Hispanic White, 1=non-Hispanic Black, 2=Hispanic, 3=other (including Asian)"
    },
    {
-    "name": "emp"
+    "name": "emp",
+    "values": "0/1 emphysema or COPD"
    },
    {
-    "name": "fam.lung.trend"
+    "name": "fam.lung.trend",
+    "values": "0/1/2 number of first-degree relatives (parents) with lung cancer"
    },
    {
     "name": "bmi",
     "unit": "kg/m2"
    },
    {
-    "name": "edu6"
+    "name": "edu6",
+    "values": "1=<12th grade, 2=high school graduate, 3=post-high school no college, 4=associate degree/some college, 5=bachelor's, 6=graduate school"
    }
   ],
   "preprocessing": [
-   "pkyr.cat = smkyears * cpd / 20"
+   "pkyr.cat = smkyears * cpd / 20",
+   "pkyr categories (cuts(pkyr.cat, c(0,30,40,50,Inf), right=FALSE)): [0,30) is the reference; [30,40), [40,50), >=50 each have one dummy variable",
+   "I(cpd>20): strictly greater than 20; I(bmi<=18.5): less than or equal to",
+   "qtyears NA→0; race is a 4-level factor (0 is the reference)",
+   "Missing-value imputation (NHIS 2015): not needed if the product has every field supplied by the user; the imputation formulas are at lcrisk.R lines 391–414, not copied in this file",
+   "Output post-processing: LCRAT_final = max(LCRAT, LCDRAT) (line 560)"
   ],
   "coefficients": [
    {
     "term": "female",
+    "meaning": "Female (1=female, 0=male)",
     "LCDRAT": -0.17844721,
     "LCRAT": -0.080572312,
     "cox_death": -0.569709
    },
    {
     "term": "race1",
+    "meaning": "race=1 non-Hispanic Black",
     "LCDRAT": 0.39364405,
     "LCRAT": 0.21789212,
     "cox_death": 0.38385283
    },
    {
     "term": "race2",
+    "meaning": "race=2 Hispanic",
     "LCDRAT": -0.37524932,
     "LCRAT": -0.43413327,
     "cox_death": 0.00087393757
    },
    {
     "term": "race3",
+    "meaning": "race=3 other ethnicity",
     "LCDRAT": -0.42084797,
     "LCRAT": -0.39556189,
     "cox_death": -0.16370954
    },
    {
     "term": "edu6",
+    "meaning": "Education 1-6 (linear trend)",
     "LCDRAT": -0.097081521,
     "LCRAT": -0.071434478,
     "cox_death": -0.044510752
    },
    {
     "term": "fam.lung.trend",
+    "meaning": "Number of first-degree relatives with lung cancer 0/1/2",
     "LCDRAT": 0.42206688,
     "LCRAT": 0.41831425
    },
    {
     "term": "emp",
+    "meaning": "Emphysema/COPD 0/1",
     "LCDRAT": 0.55444917,
     "LCRAT": 0.56342236,
     "cox_death": 0.6511171
@@ -9865,18 +11834,21 @@ export const COEFFICIENTS = {
    },
    {
     "term": "I(cpd>20)",
+    "meaning": "Daily cigarettes >20",
     "LCDRAT": 0.24167163,
     "LCRAT": 0.31060888,
     "cox_death": 0.12105005
    },
    {
     "term": "pkyr[30,40)",
+    "meaning": "pkyr.cat falls in [30,40)",
     "LCDRAT": 0.5555151,
     "LCRAT": 0.49125383,
     "cox_death": 0.077207789
    },
    {
     "term": "pkyr[40,50)",
+    "meaning": "pkyr.cat falls in [40,50)",
     "LCDRAT": 0.74761704,
     "LCRAT": 0.56233378,
     "cox_death": 0.12331876
@@ -9914,24 +11886,39 @@ export const COEFFICIENTS = {
    },
    {
     "term": "smkyears",
+    "meaning": "Years of smoking (linear)",
     "LCRAT": 0.024002072,
     "cox_death": 0.0019489466
    },
    {
     "term": "age^2",
+    "meaning": "Age squared",
     "cox_death": 0.00084162311
    },
    {
     "term": "(bmi-25)^2",
+    "meaning": "(BMI-25) squared",
     "cox_death": 0.0036056278
    }
   ],
   "baseline": {
-   "file": "coefficients/lcrisks-baseline-hazard.csv"
+   "file": "coefficients/lcrisks-baseline-hazard.csv",
+   "tables": {
+    "LCDRAT": "LCDRAT_basehaz and cox.death_basehaz_LCDRAT (982 rows each, same time grid row by row)",
+    "LCRAT": "LCRAT_basehaz and cox.death_basehaz_LCRAT (1,257 rows each)"
+   },
+   "note": "Columns time (years), haz (hazard increment at that time point), surv (baseline survival). The baseline is \"uncentred\" (relative risk = exp(Σβx), without subtracting the means; the R side adds back the centred lp using means·β, which is equivalent). The first row haz of cox.death_basehaz_LCDRAT is -0.00105 (as in the original file)."
+  },
+  "formula": {
+   "relative_risk": "RR_m = exp(Σ β_m,k · x_k), m ∈ {LCDRAT or LCRAT, cox_death} (see coefficients for each x; cox_death has no fam.lung.trend, log(age) or log(bmi), and uses age^2 and (bmi-25)^2 instead)",
+   "absolute_risk_n_years": "risk = Σ_{i: 0<=t_i<=n} [ S1(t_i)^RR1 · h1(t_i) · RR1 · S2(t_i)^RR2 ]; S1, h1 = main-model baseline surv, haz; S2 = the corresponding cox.death baseline surv; RR2 = relative risk from cox_death. LCDRAT pairs with cox.death_basehaz_LCDRAT, LCRAT with cox.death_basehaz_LCRAT",
+   "post": "LCRAT = max(LCRAT, LCDRAT); cxLCDRAT = 0.796·LCDRAT; cxLCRAT = 1.124·LCRAT; USPSTF eligibility = 50<=age<=80 and pkyr.cat>=20 and qtyears<=15",
+   "false_positive_ct": "x = ln(cxLCRAT); η_j = a_j + b_j·x, a = (-0.6357493415, -0.8395325867, -0.9917012534), b = (0.2164720839, 0.1833916315, 0.3066310467); P(Z=j)=exp(η_j)/(1+Σexp η), P(Z=0)=1/(1+Σexp η); source sysdata.rda polytmod; the eMethods example uses ln(0.05)"
   },
   "examples": [
    {
     "id": "Rd-1",
+    "note": "Example person 1 from lcrisk.Rd (input from the Rd; output is the result of this file's Python rewrite, not official)",
     "input": {
      "age": 66,
      "female": 0,
@@ -10022,6 +12009,7 @@ export const COEFFICIENTS = {
    },
    {
     "id": "FP-eMethods",
+    "note": "Number of false-positive CTs, input ln(0.05)",
     "P_0123_percent_reproduced": [
      59.729,
      16.536,
@@ -10035,23 +12023,39 @@ export const COEFFICIENTS = {
      8.843
     ]
    }
-  ]
+  ],
+  "verification": {
+   "coefficients_vs_paper": "Katki 2016 Table 3: 45 of the 47 HRs agree to two decimals, 2 differ by <=0.005 (LCRAT ln(BMI) 0.485 vs 0.49; LCRAT 40–49.9 pack-years 1.755 vs 1.76). This is a previous check (risk-models-open-source-packages.md §5.5), not redone this time.",
+   "transcription_check": "The 5-year risks of 5 people, parsed directly from sysdata.rda (existing parsing tool), match this file's rewrite digit for digit (43.2/60.6, 66.6/103.6, 34.8/46.5, 34.4/50.4, 6.4/11.9 per 1,000).",
+   "false_positive": "Reproduces the Katki 2016 supplementary eMethods example: 59.729/16.536/14.893/8.842 vs paper 59.728/16.536/14.893/8.843 (the paper used four-decimal coefficients; last-digit rounding difference).",
+   "absolute_risk_vs_official": "Unconfirmed: man/lcrisk.Rd has example input but no output; neither Katki 2016 and its supplement nor Katki 2018 publish the individual absolute-risk figures for a full profile (age, race, BMI…); R is not available on this machine. The 5-person results only represent \"a Python rewrite of the R program logic\". Someone with R should run lcrisk(persons,5) to compare (column 3=LCDRAT, column 5=LCRAT, per 1,000)."
+  }
  },
  "lee-index": {
   "schema": "c1-coef-1",
   "model_id": "lee-index",
   "citation": "Lee SJ, Lindquist K, Segal MR, Covinsky KE. Development and validation of a prognostic index for 4-year mortality in older adults. JAMA 2006;295(7):801–808.",
   "model_type": "points",
+  "outcome": "4-year all-cause mortality (HRS 1998 wave, to 2002-12-31)",
   "horizon_years": [
    4
   ],
+  "population": {
+   "age_range": ">50 years (community-dwelling; age points are 0 for <60 years)",
+   "sex": "Men and women combined, men +2 points",
+   "notes": "Development n=11,701 (1,361 deaths), validation n=8,009 (1,072 deaths); US HRS, about 71–81% White. Not applicable to institutional residents."
+  },
+  "formula": "Total score = Σ points (Table 3; consistent with the Box); risk = look up the score group in Table 4 (0–5 / 6–9 / 10–13 / ≥14). No continuous formula and no baseline survival.",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "50–59 = 0, 60–64 = 1, 65–69 = 2, 70–74 = 3, 75–79 = 4, 80–84 = 5, ≥85 = 7"
    },
    {
     "name": "male",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Male = 1"
    },
    {
     "name": "bmi_lt25",
@@ -10060,87 +12064,115 @@ export const COEFFICIENTS = {
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Told by a doctor of diabetes or high blood sugar"
    },
    {
     "name": "cancer",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Cancer or malignant tumour, excluding minor skin cancer"
    },
    {
     "name": "lung_disease",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Chronic lung disease that limits daily activities or needs oxygen at home"
    },
    {
     "name": "heart_failure",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Told by a doctor of congestive heart failure"
    },
    {
     "name": "smoker",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Smoked in the past week (current smoker); former smoking does not score"
    },
    {
     "name": "bathing",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Difficulty bathing because of health or memory problems"
    },
    {
     "name": "finances",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Difficulty managing money because of health or memory problems"
    },
    {
     "name": "walking",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Difficulty walking several blocks because of health problems"
    },
    {
     "name": "push_pull",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Difficulty pushing or pulling large objects (such as a living-room chair)"
    }
   ],
   "equations": [],
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Men and women combined",
+    "source": "Table 3, PDF p. 5 (journal p. 805); Box questionnaire PDF p. 7 (journal p. 807)",
     "items": [
      {
+      "factor": "Age",
       "category": "50–59",
       "points": 0
      },
      {
+      "factor": "Age",
       "category": "60–64",
       "points": 1
      },
      {
+      "factor": "Age",
       "category": "65–69",
       "points": 2
      },
      {
+      "factor": "Age",
       "category": "70–74",
       "points": 3
      },
      {
+      "factor": "Age",
       "category": "75–79",
       "points": 4
      },
      {
+      "factor": "Age",
       "category": "80–84",
       "points": 5
      },
      {
+      "factor": "Age",
       "category": "≥85",
       "points": 7
      },
      {
+      "factor": "Sex",
+      "category": "Men",
       "points": 2
      },
      {
+      "factor": "Diabetes",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "Cancer",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Chronic lung disease",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Heart failure",
+      "category": "Yes",
       "points": 2
      },
      {
@@ -10149,18 +12181,28 @@ export const COEFFICIENTS = {
       "points": 1
      },
      {
+      "factor": "Current smoking",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Difficulty bathing",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Difficulty managing money",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Difficulty walking several blocks",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Difficulty pushing or pulling heavy objects",
+      "category": "Yes",
       "points": 1
      }
     ]
@@ -10169,7 +12211,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "val_groups",
+    "applies_to": "Validation set (n=8,009) 4-year mortality, by score group",
     "horizon_years": 4,
+    "source": "Table 4, PDF p. 6 (journal p. 806); text on PDF p. 5",
     "rows": [
      {
       "score": "0–5",
@@ -10199,7 +12243,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "dev_groups",
+    "applies_to": "Development set (n=11,701) 4-year mortality, by score group",
     "horizon_years": 4,
+    "source": "Table 4, PDF p. 6 (journal p. 806); text on PDF p. 5",
     "rows": [
      {
       "score": "0–5",
@@ -10229,7 +12275,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "val_points",
+    "applies_to": "Validation set, by individual score",
     "horizon_years": 4,
+    "source": "Table 4, PDF p. 6 (journal p. 806)",
     "rows": [
      {
       "score": "0",
@@ -10310,7 +12358,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "dev_points",
+    "applies_to": "Development set, by individual score",
     "horizon_years": 4,
+    "source": "Table 4, PDF p. 6 (journal p. 806)",
     "rows": [
      {
       "score": "0",
@@ -10391,7 +12441,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "val_quartiles",
+    "applies_to": "Validation set, risk quartiles",
     "horizon_years": 4,
+    "source": "Table 4, PDF p. 6 (journal p. 806)",
     "rows": [
      {
       "score": "Q1",
@@ -10417,7 +12469,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "dev_quartiles",
+    "applies_to": "Development set, risk quartiles",
     "horizon_years": 4,
+    "source": "Table 4, PDF p. 6 (journal p. 806)",
     "rows": [
      {
       "score": "Q1",
@@ -10443,7 +12497,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "ext10y_val",
+    "applies_to": "10-year extension (Cruz 2013, same points, validation set)",
     "horizon_years": 10,
+    "source": "Carried over from repo mortality-formulas.md §2 (PMC3760279 author manuscript); not re-read this time",
     "rows": [
      {
       "score": "0",
@@ -10552,7 +12608,9 @@ export const COEFFICIENTS = {
      "group": "≥14",
      "p_4y_validation": 0.64
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Comment section, PDF p. 6 (journal p. 806)",
+    "note": "Paper: \"a 75-year-old male smoker … 16 points … 4-year mortality probability above 64%\". Recomputed 4+2+2+2+2+2+2=16, which matches; 64% is the validation value for the ≥14 group."
    },
    {
     "id": "paper-w78",
@@ -10578,125 +12636,190 @@ export const COEFFICIENTS = {
      "group": "6–9",
      "p_4y_validation": 0.15
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Methods \"Risk Stratification by Points\", PDF p. 5 (journal p. 805)",
+    "note": "The paper's example says \"78 years (3 points) … total score 6 points\", but in Table 3 and the Box ages 75–79 are 4 points, so it should be 7 points. Both are in the 6–9 group (validation 15%), so the risk is unaffected. The age points in the example text are printed inconsistently (suspected misprint); Table 3 governs."
    },
    {
     "id": "recompute-val-groups",
     "origin": "self_computed",
+    "inputs": {
+     "source": "Table 4 validation set, counts by individual score"
+    },
     "expected": {
      "0–5": 0.0413,
      "6–9": 0.1501,
      "10–13": 0.4161,
      "≥14": 0.6385
     },
-    "tolerance": 0.0001
+    "tolerance": 0.0001,
+    "source": "Table 4, PDF p. 6 (journal p. 806)",
+    "note": "Summing the per-score deaths / people: validation 188/4550, 346/2305, 372/894, 166/260; against the printed 4/15/42/64% in the paper, recomputed minus printed is +0.13 / +0.01 / −0.39 / −0.15 percentage points (all within rounding). Development 194/6860, 493/3372, 464/1154, 210/315 = 2.8/14.6/40.2/66.7%, against printed 3/15/40/67%. Total deaths 1,361/1,072 agree with the text."
    }
   ]
  },
  "libra": {
   "schema": "c1-coef-1",
   "model_id": "libra",
+  "citation": "Deckers K, et al. Target risk factors for dementia prevention. Int J Geriatr Psychiatry 2015;30(3):234–246 (source of the factors). Schiepers OJG, et al. Lifestyle for Brain Health (LIBRA): a new model for dementia prevention. Int J Geriatr Psychiatry 2018;33(1):167–175 (doi 10.1002/gps.4700; algorithm and weights in Table 1).",
   "model_type": "points",
+  "outcome": "Relative index of dementia / cognitive decline (no absolute risk)",
   "horizon_years": [],
+  "population": {
+   "age_range": "Unconfirmed (the index itself has no age term; the validation cohort in Schiepers is the Dutch MAAS population, whose age range was not read this time)",
+   "sex": "Not applicable by sex",
+   "notes": "Of the 13 modifiable factors, low unsaturated fat intake has no RR and does not score; the table lists 12 scoring items; theoretical range −5.9 to +12.7."
+  },
+  "formula": "LIBRA = Σ (ln(RR) / 0.30); 0.30 is taken from ln(0.74) = −0.30 for low-to-moderate alcohol use as the reference (Schiepers 2018 Methods \"Risk score\"). Weights are rounded to one decimal.",
   "variables": [
    {
-    "unit": "0/1"
+    "name": "Low-to-moderate alcohol use (protective)",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Coronary heart disease",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Physical inactivity",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Renal dysfunction",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Diabetes",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "High cholesterol",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Smoking",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Obese",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Hypertension",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Mediterranean diet (protective)",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "Depression",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    },
    {
-    "unit": "0/1"
+    "name": "High cognitive activity (protective)",
+    "unit": "0/1",
+    "coding": "Has the factor = 1 (for protective factors: has the protective behaviour = 1)"
    }
   ],
   "equations": [],
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Regardless of sex and age",
+    "source": "Schiepers 2018 Table 1, PDF p. 4 (Int J Geriatr Psychiatry 2018;33:167–175)",
     "items": [
      {
+      "factor": "Low-to-moderate alcohol use (protective)",
+      "category": "Yes",
       "points": -1,
       "rr": 0.74,
       "ln_rr_over_0.30_recomputed": -1
      },
      {
+      "factor": "Coronary heart disease",
+      "category": "Yes",
       "points": 1,
       "rr": 1.36,
       "ln_rr_over_0.30_recomputed": 1.02
      },
      {
+      "factor": "Physical inactivity",
+      "category": "Yes",
       "points": 1.1,
       "rr": 1.39,
       "ln_rr_over_0.30_recomputed": 1.1
      },
      {
+      "factor": "Renal dysfunction",
+      "category": "Yes",
       "points": 1.1,
       "rr": 1.39,
       "ln_rr_over_0.30_recomputed": 1.1
      },
      {
+      "factor": "Diabetes",
+      "category": "Yes",
       "points": 1.3,
       "rr": 1.47,
       "ln_rr_over_0.30_recomputed": 1.28
      },
      {
+      "factor": "High cholesterol",
+      "category": "Yes",
       "points": 1.4,
       "rr": 1.54,
       "ln_rr_over_0.30_recomputed": 1.44
      },
      {
+      "factor": "Smoking",
+      "category": "Yes",
       "points": 1.5,
       "rr": 1.59,
       "ln_rr_over_0.30_recomputed": 1.55
      },
      {
+      "factor": "Obese",
+      "category": "Yes",
       "points": 1.6,
       "rr": 1.6,
       "ln_rr_over_0.30_recomputed": 1.57
      },
      {
+      "factor": "Hypertension",
+      "category": "Yes",
       "points": 1.6,
       "rr": 1.61,
       "ln_rr_over_0.30_recomputed": 1.59
      },
      {
+      "factor": "Mediterranean diet (protective)",
+      "category": "Yes",
       "points": -1.7,
       "rr": 0.6,
       "ln_rr_over_0.30_recomputed": -1.7
      },
      {
+      "factor": "Depression",
+      "category": "Yes",
       "points": 2.1,
       "rr": 1.85,
       "ln_rr_over_0.30_recomputed": 2.05
      },
      {
+      "factor": "High cognitive activity (protective)",
+      "category": "Yes",
       "points": -3.2,
       "rr": 0.38,
       "ln_rr_over_0.30_recomputed": -3.23
@@ -10717,7 +12840,9 @@ export const COEFFICIENTS = {
     "expected": {
      "score": -4.2
     },
-    "tolerance": 0.01
+    "tolerance": 0.01,
+    "source": "Schiepers 2018 Results \"Model 1\", PDF p. 4",
+    "note": "Paper: the LIBRA score range in MAAS is −4.2 (protective) to 9.2 (risk). MAAS has no Mediterranean diet data, so the protective minimum = −1.0 + −3.2 = −4.2, which matches. 9.2 is the observed maximum, not the theoretical value."
    },
    {
     "id": "paper-theory-range",
@@ -10730,7 +12855,9 @@ export const COEFFICIENTS = {
      "min": -5.9,
      "max": 12.7
     },
-    "tolerance": 0.01
+    "tolerance": 0.01,
+    "source": "Recomputed from Table 1; consistent with the theoretical range −5.9 to 12.7 stated in Rosenau 2024 JAD (cited in repo dementia-cvd-formulas.md §2)",
+    "note": "Positive terms 1.0+1.1+1.1+1.3+1.4+1.5+1.6+1.6+2.1 = 12.7; negative terms −1.0−1.7−3.2 = −5.9. This recomputation also shows that the Mediterranean diet must be −1.7 (see the first item in pitfalls)."
    },
    {
     "id": "self-smk-htn-ob",
@@ -10743,7 +12870,9 @@ export const COEFFICIENTS = {
     "expected": {
      "score": 4.7
     },
-    "tolerance": 0.01
+    "tolerance": 0.01,
+    "source": "Self-computed from Table 1",
+    "note": "1.5+1.6+1.6; self-computed, not checked against an official calculator."
    }
   ]
  },
@@ -10752,61 +12881,84 @@ export const COEFFICIENTS = {
   "model_id": "mind-china-dementia-2025",
   "citation": "Liu K, et al. Development and internal validation of a risk prediction model for dementia in a rural older population in China. Alzheimers Dement 2025;21(2):e14617. doi:10.1002/alz.14617",
   "model_type": "cox",
+  "outcome": "Dementia (DSM-IV); 2, 3 and 4 years",
   "horizon_years": [
    2,
    3,
    4
   ],
+  "population": {
+   "age_range": "Age ≥65",
+   "sex": "Men and women",
+   "notes": "Rural Yanlou Town, Yanggu County, Shandong (MIND-China), baseline 2014, follow-up 2018, n=2,220, 134 cases at 4 years; C 0.79 (0.75–0.83), bootstrap-corrected 0.79"
+  },
+  "formula": "P(t) = 1 − S0(t)^exp(Σβx − …); S0(t) and the centring values appear only in the Figure 5 nomogram, not given in the text/tables",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "Continuous"
    },
    {
     "name": "literate",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Literate vs illiterate"
    },
    {
     "name": "unmarried_widowed",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Single or widowed vs married"
    },
    {
     "name": "ad8_ge2",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Self-rated AD8 ≥2"
    },
    {
     "name": "stroke",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "History of stroke"
    }
   ],
   "equations": [
    {
     "id": "cox_multivariable",
+    "applies_to": "Older adults in rural China",
     "coefficients": [
      {
+      "term": "Age (per year)",
       "key": "age",
       "beta": 0.1,
-      "hr": 1.11
+      "hr": 1.11,
+      "source": "Table 2 multivariable column"
      },
      {
+      "term": "Literate (vs illiterate)",
       "key": "literate",
       "beta": -0.71,
-      "hr": 0.49
+      "hr": 0.49,
+      "source": "Table 2 multivariable column"
      },
      {
+      "term": "Single/widowed (vs married)",
       "key": "unmarried_widowed",
       "beta": 0.53,
-      "hr": 1.69
+      "hr": 1.69,
+      "source": "Table 2 multivariable column"
      },
      {
       "term": "AD8 ≥2",
       "key": "ad8_ge2",
       "beta": 0.8,
-      "hr": 2.21
+      "hr": 2.21,
+      "source": "Table 2 multivariable column"
      },
      {
+      "term": "History of stroke",
       "key": "stroke",
       "beta": 1.12,
-      "hr": 3.08
+      "hr": 3.08,
+      "source": "Table 2 multivariable column"
      }
     ]
    }
@@ -10822,10 +12974,15 @@ export const COEFFICIENTS = {
    "citation": "Kim JH et al. J Hepatol 2018, doi:10.1016/j.jhep.2018.07.018",
    "files": [
     "Kim2018JHepatol_mPAGEB.pdf"
-   ]
+   ],
+   "license": "Licence not stated"
   },
   "model_type": "points",
+  "outcome": "5-year HCC in CHB patients on ETV/TDF treatment",
   "horizon_years": 5,
+  "population": {
+   "eligibility": "Asian CHB patients on treatment; derivation 2,001, validation 1,000; the lower age bound starts at <30 in the paper's table"
+  },
   "inputs": [
    {
     "name": "age",
@@ -10845,6 +13002,7 @@ export const COEFFICIENTS = {
    }
   ],
   "points": {
+   "source": "Table 3 and graphical abstract",
    "age": {
     "<30": 0,
     "30-39": 3,
@@ -10869,12 +13027,16 @@ export const COEFFICIENTS = {
     "3.5-4.0": 1,
     "3.0-3.5": 2,
     "<3.0": 3
-   }
+   },
+   "range": "0-21 (11+2+5+3=21)",
+   "boundary_status": "The symbols for age <30 and ≥70 were lost in pdftotext (the graphical abstract shows \"<30\" and \"70\"); adjacent platelet and albumin intervals share endpoints (200, 150, 100, 3.5, 3.0, 4.0) and the text layer of the paper does not say which side they belong to; the implementation is suggested to take >250→0, (200,250]→2, (150,200]→3, (100,150]→4, ≤100→5; albumin >4.0→0, (3.5,4.0]→1, [3.0,3.5]→2, <3.0→3 (this is an implementation assumption, marked unconfirmed)"
   },
   "risk_groups": {
+   "source": "Text of the Results; Table S1 (not obtained)",
    "low": "≤8",
    "intermediate": "9-12",
    "high": "≥13",
+   "boundary_resolution": "Scores are integers and the middle group is written 9-12 (divided by the derivation 25th/75th percentiles of 9 and 12), so the low group = ≤8 and the high group = ≥13, with no >/≥ ambiguity; the Lee 2019 Liver Int external validation likewise writes ≤8 / 9–12 / ≥13",
    "derivation_5y_cum_pct": {
     "low": 0.7,
     "intermediate": 5.1,
@@ -10896,6 +13058,7 @@ export const COEFFICIENTS = {
     293
    ]
   },
+  "score_table_0_21": "Total score = age points + sex points + platelet points + albumin points; possible values 0..21, see points for each combination; strata 0-8 low, 9-12 medium, 13-21 high",
   "examples": [
    {
     "id": "ex1",
@@ -10957,15 +13120,22 @@ export const COEFFICIENTS = {
     "expected_score": 10,
     "expected_group": "intermediate"
    }
-  ]
+  ],
+  "paper_examples": "The paper has no example person"
  },
  "nafld-fibrosis-score": {
   "model_id": "nafld-fibrosis-score",
   "source": {
    "pdf_key": "Angulo2007Hepatology",
-   "citation": "Angulo P et al. Hepatology 2007;45:846-854"
+   "citation": "Angulo P et al. Hepatology 2007;45:846-854",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "logistic_score",
+  "outcome": "Triage for advanced fibrosis (F3–F4) in NAFLD patients (current status)",
+  "population": {
+   "sex": "Not applicable by sex",
+   "eligibility": "NAFLD patients (development 480 people, validation 253 people)"
+  },
   "inputs": [
    {
     "name": "age",
@@ -10977,7 +13147,8 @@ export const COEFFICIENTS = {
    },
    {
     "name": "ifg_or_diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Fasting glucose ≥110 mg/dL or already diagnosed type 2 diabetes (hyperglycemia definition in the Table 1 note, PDF p. 4)"
    },
    {
     "name": "ast",
@@ -10998,7 +13169,8 @@ export const COEFFICIENTS = {
   ],
   "constants": {
    "intercept": {
-    "value": -1.675
+    "value": -1.675,
+    "source": "Formula in the text, PDF p. 4 (journal p. 849)"
    },
    "cutoff_low": {
     "value": -1.455,
@@ -11013,32 +13185,38 @@ export const COEFFICIENTS = {
    {
     "term": "age",
     "value": 0.037,
-    "scale": "beta"
+    "scale": "beta",
+    "source": "Formula in the text, PDF p. 4 (journal p. 849)"
    },
    {
     "term": "bmi",
     "value": 0.094,
-    "scale": "beta"
+    "scale": "beta",
+    "source": "Formula in the text, PDF p. 4 (journal p. 849)"
    },
    {
     "term": "ifg_or_diabetes",
     "value": 1.13,
-    "scale": "beta"
+    "scale": "beta",
+    "source": "Formula in the text, PDF p. 4 (journal p. 849)"
    },
    {
     "term": "ast_alt_ratio",
     "value": 0.99,
-    "scale": "beta"
+    "scale": "beta",
+    "source": "Formula in the text, PDF p. 4 (journal p. 849)"
    },
    {
     "term": "platelets",
     "value": -0.013,
-    "scale": "beta"
+    "scale": "beta",
+    "source": "Formula in the text, PDF p. 4 (journal p. 849)"
    },
    {
     "term": "albumin",
     "value": -0.66,
-    "scale": "beta"
+    "scale": "beta",
+    "source": "Formula in the text, PDF p. 4 (journal p. 849)"
    }
   ],
   "formula": "NFS = −1.675 + 0.037·age + 0.094·BMI + 1.13·IFG/DM + 0.99·AST/ALT − 0.013·platelets − 0.66·albumin",
@@ -11046,6 +13224,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper",
     "inputs": {
      "age": 50,
      "bmi": 30,
@@ -11056,13 +13235,15 @@ export const COEFFICIENTS = {
      "albumin_g_dL": 4.3
     },
     "expected": {
-     "nfs": -0.521
+     "nfs": -0.521,
+     "category": "Indeterminate zone"
     },
     "tolerance": 0.000001
    },
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper; the inputs are the whole-sample means in Table 1 (PDF p. 4), with IFG set to 0",
     "inputs": {
      "age": 47.7,
      "bmi": 32.2,
@@ -11081,6 +13262,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-3",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper",
     "inputs": {
      "age": 65,
      "bmi": 35,
@@ -11097,39 +13279,63 @@ export const COEFFICIENTS = {
     "tolerance": 0.000001
    }
   ],
+  "paper_examples": "The paper has no example person",
   "schema": "c2-coef-v1"
  },
  "nci-bcrat-cran-bcra": {
   "schema": "c2-coef-v1",
   "model_id": "nci-bcrat-cran-bcra",
+  "source": {
+   "citation": "NCI Breast Cancer Risk Assessment Tool (BCRAT); CRAN BCRA 2.1.2 (Zhang F, 2020-07-10); Gail 1989 JNCI 81:1879; Gail 2007 JNCI 99:1782 (CARE); Matsuno 2011 JNCI 103:951 (AABCS)",
+   "locator": "BCRA/R/relative.risk.R lines 2–10, 40–47 (β); R/recode.check.R lines 31–120 (coding); R/absolute.risk.R lines 6–102 (rates and 1-AR), lines 120–190 (algorithm); the rate tables have been extracted into coefficients/bcra-rates.csv",
+   "license": "Package is GPL (>=2); rates come from public SEER/NCHS statistics. The formulas in this file were rewritten in Python (R source not pasted)."
+  },
+  "model_type": "Logistic relative risk × age-specific baseline rates → discrete absolute risk with competing mortality (Gail equation 6)",
+  "outcome": "Invasive breast cancer (with competing mortality λ2)",
+  "horizon_years": "Any interval: starting age T1 in [20,90), end point T2<=90 and T2>T1 (recode.check.R lines 8–16)",
+  "population": "US women in 11 groups (White, Black, Hispanic two kinds, Other, Asian six kinds); not calibrated for Taiwan; Race 6–11 are based on US Asian SEER 1998–2002",
   "inputs": [
    {
-    "name": "T1"
+    "name": "T1",
+    "unit": "years"
    },
    {
-    "name": "T2"
+    "name": "T2",
+    "unit": "years"
    },
    {
-    "name": "AgeMen"
+    "name": "AgeMen",
+    "values": "Age at menarche; 99=unknown"
    },
    {
-    "name": "Age1st"
+    "name": "Age1st",
+    "values": "Age at first live birth; 98=nulliparous, 99=unknown"
    },
    {
-    "name": "N_Biop"
+    "name": "N_Biop",
+    "values": "Number of biopsies; 0 or 99→0"
    },
    {
-    "name": "HypPlas"
+    "name": "HypPlas",
+    "values": "0 no, 1 yes, 99 unknown (must be 99 when N_Biop=0)"
    },
    {
-    "name": "N_Rels"
+    "name": "N_Rels",
+    "values": "Number of first-degree relatives with breast cancer; 99→0"
    },
    {
     "name": "Race",
     "values": "1–11"
    }
   ],
-  "preprocessing": [],
+  "preprocessing": [
+   "NB_Cat: 0/99→0; 1→1; >=2→2",
+   "AM_Cat: >=14 or 99→0; 12–13→1; <12→2 (for Black women 2 is merged into 1; for US-born Hispanic women set to 0)",
+   "AF_Cat: <20 or 99→0; 20–24→1; 25–29 or 98→2; >=30→3 (for Black women set to 0; for Hispanic women 25–29 is merged into 1 and >=30 and nulliparous→2)",
+   "NR_Cat: 0/99→0; 1→1; >=2→2 (for Asian and Hispanic women 2 is merged into 1)",
+   "R_Hyp: NB=0→1.00; NB>0 and HypPlas=0→0.93, =1→1.82, =99→1.00",
+   "Race 3/5: NB_Cat 2 is merged into 1"
+  ],
   "coefficients": {
    "order": "β1 NB, β2 AM, β3 AF, β4 NR, β5 NB×(age>=50), β6 AF×NR",
    "rows": [
@@ -11226,15 +13432,24 @@ export const COEFFICIENTS = {
      0.50316401683903
     ],
     "note": "(<50, >=50)"
-   }
+   },
+   "rates": "coefficients/bcra-rates.csv: λ1 and λ2 for 11 groups × 14 five-year age bands (20–24…85–89), per person-year; expanded to single years of age (each band repeated 5 times)"
+  },
+  "formula": {
+   "relative_risk": "LP1 = NB·β1 + AM·β2 + AF·β3 + NR·β4 + AF·NR·β6 + ln(R_Hyp); LP2 = LP1 + NB·β5; RR*<50 = exp(LP1), RR*>=50 = exp(LP2)",
+   "absolute_risk": "By single year j (cells counted from floor(T1)-20+1), λj = λ1[j]·(1-AR)·RR* + λ2[j] (cells <50 use RR*<50 and 1-AR<50, cells >=50 use those for >=50; cells 1–30 are <50, cells 31–70 are >=50); PI_j = ((1-AR)·RR*·λ1[j]/λj)·exp(-Σ previous λ·length)·(1-exp(-λj·length)); risk% = 100·ΣPI_j. First cell length = 1-(T1-floor(T1)), last cell = T2-floor(T2) (1 if an integer), single cell = T2-T1",
+   "avg_white": "Avg_White=1: RR*=1 and (1-AR)=1; Race 1/4 use the White_avg_1992-96 rates (the '-' rows of bcra-rates.csv)"
   },
   "examples": [
    {
     "id": "Matsuno-T2",
-    "reproduced_max_abs_diff_pct": 0.005
+    "note": "Matsuno 2011 Table 2 (Chinese, fixed RR): 21 cells × 4 RR = 84 values",
+    "reproduced_max_abs_diff_pct": 0.005,
+    "status": "All within the rounding of the paper's two decimals"
    },
    {
     "id": "Matsuno-text",
+    "note": "Example in the text: age 30, nulliparous, menarche at 14, mother with breast cancer, 1 biopsy, 30 years",
     "RR_paper": 6.67,
     "RR_reproduced": 6.6676,
     "risk_paper_exact": 9.9,
@@ -11242,10 +13457,12 @@ export const COEFFICIENTS = {
    },
    {
     "id": "SuppT3-7",
+    "note": "Matsuno Supp Tables 3–7: Japanese, Filipino, Hawaiian, other Pacific Islander, other Asian, 84 values each",
     "reproduced_max_abs_diff_pct": 0.0057
    },
    {
     "id": "White-self-1",
+    "note": "White (self-computed, not official): age 40, menarche at 12, 1 biopsy, nulliparous, no relatives; RR 2.888/2.165",
     "T1": 40,
     "risk_pct": {
      "5y": 1.048,
@@ -11256,6 +13473,7 @@ export const COEFFICIENTS = {
    },
    {
     "id": "White-self-2",
+    "note": "White reference woman (all lowest-risk categories), 5 years",
     "risk_pct": {
      "age35": 0.191,
      "age50": 0.632,
@@ -11264,21 +13482,33 @@ export const COEFFICIENTS = {
    },
    {
     "id": "White-self-3",
+    "note": "White, age 54, menarche at 15, 1 biopsy with atypical hyperplasia, nulliparous, 1 relative, 5 years",
     "RR_lt50": 8.517,
     "RR_ge50": 6.385,
     "risk_pct": 4.664
    }
-  ]
+  ],
+  "verification": {
+   "asian_races_6_to_11": "Checked against the official literature: Matsuno 2011 Table 2 (84 values for Chinese) and Supp Tables 3–7 (84 values each for the other 5 groups), 504 values in all with a maximum difference of 0.0057 percentage points (<= rounding); the Supp Table 1 rates differ from bcra-rates.csv by <=0.05 per 100,000 (rounding). This also validates the absolute.risk.R algorithm, the Asian β and 1-AR, and the rate tables.",
+   "white_and_other_races_1_to_5": "The algorithm and the Asian branch are the same section of code, so the algorithm itself is validated; but for the White/Black/Hispanic rates, β and 1-AR no published output to compare against was found (Gail 1989 Table 4 uses BCDDP rates, which differ). Gail 2007 reports only overall percentages. Therefore the absolute risks for Race 1–5 are \"not checked against official sources\"; only the relative risks reproduce Gail 1989 (2.89/2.17/3.508).",
+   "not_a_valid_check": "An attempt to check against Costantino 1999's \"5-year risk of 1.66% for an average 60-year-old\": with the 1983–87 White rates, RR=1 and 1-AR=1 it gives 1.622%, and with the Avg_White rates it gives 1.780%, neither equals 1.66% (Costantino's definition of average risk and population differ), so it cannot serve as a check and was dropped."
+  }
  },
  "nci-ccrat": {
   "model_id": "nci-ccrat",
   "source": {
    "pdf_key": "Freedman2009JCO",
    "supplement": "Freedman2009CCRAT_appendix.txt",
-   "citation": "Freedman AN et al. J Clin Oncol 2009;27:686-693, doi:10.1200/JCO.2008.17.4797"
+   "citation": "Freedman AN et al. J Clin Oncol 2009;27:686-693, doi:10.1200/JCO.2008.17.4797",
+   "page_note": "Page numbers are the page order within the PDF file; the appendix is web text without page numbers",
+   "license": "Paper is public; the SAS macro and rates are public NCI files, licence not stated"
   },
   "model_type": "absolute_risk_rr_ar_seer",
+  "outcome": "Colorectal cancer (the first of the proximal, distal and rectal sites to occur), after subtracting competing deaths",
+  "horizon_years": "Any interval; the paper's examples are 10 and 20 years",
   "population": {
+   "sex": "Separate equations for men and women",
+   "race": "Non-Hispanic White",
    "age_range": "≥50"
   },
   "inputs": [
@@ -11299,17 +13529,20 @@ export const COEFFICIENTS = {
    },
    {
     "name": "regular_aspirin_nsaid",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "At least 3 times per week; for rectal cancer in men only NSAIDs count, not aspirin"
    },
    {
-    "name": "cigs_per_day"
+    "name": "cigs_per_day",
+    "unit": "cigarettes/day (men)"
    },
    {
     "name": "years_smoking",
     "unit": "years"
    },
    {
-    "name": "vegetables_servings_d"
+    "name": "vegetables_servings_d",
+    "unit": "servings/day"
    },
    {
     "name": "bmi",
@@ -11317,7 +13550,8 @@ export const COEFFICIENTS = {
    },
    {
     "name": "estrogen_last_2y",
-    "unit": "positive/negative"
+    "unit": "positive/negative",
+    "coding": "Premenopausal, or HRT in the past 2 years = positive"
    },
    {
     "name": "age",
@@ -11327,6 +13561,7 @@ export const COEFFICIENTS = {
   "rr_tables": {
    "men": {
     "source": "Table 2, PDF p.4",
+    "order": "(proximal, distal, rectal); a single value = enters only that site's model",
     "rows": {
      "scope_polyp": {
       "neg_scope_no_polyp": [
@@ -11419,6 +13654,7 @@ export const COEFFICIENTS = {
    },
    "women": {
     "source": "Table 3, PDF p.5",
+    "order": "(proximal, distal, rectal) or the sites listed in the title",
     "rows": {
      "scope_polyp": {
       "neg_scope_no_polyp": [
@@ -11531,7 +13767,8 @@ export const COEFFICIENTS = {
      "proximal": 0.86,
      "distal": 0.72,
      "rectal": 0.9
-    }
+    },
+    "source": "PDF p. 4 text"
    },
    "AR_women": {
     "value": {
@@ -11539,7 +13776,8 @@ export const COEFFICIENTS = {
      "distal_lt65": 0.82,
      "distal_ge65": 0.85,
      "rectal": 0.93
-    }
+    },
+    "source": "PDF p. 4 text"
    },
    "one_minus_AR_sas_macro_v1_2": {
     "value": {
@@ -11554,7 +13792,8 @@ export const COEFFICIENTS = {
       "distal_lt65": 0.177983863475,
       "distal_ge65": 0.148075734041
      }
-    }
+    },
+    "source": "Values of SAS macro v1.2 as recorded in Freedman2009JCO_web.txt (already cited in an existing repo document); a different version from the 2009 paper"
    }
   },
   "lookup_tables": {
@@ -11622,6 +13861,7 @@ export const COEFFICIENTS = {
     }
    },
    "competing_mortality_per_100k": {
+    "source": "Appendix Tables A3–A4, column All Cause−CRC",
     "age_bands": [
      "50-54",
      "55-59",
@@ -11648,6 +13888,7 @@ export const COEFFICIENTS = {
     ]
    }
   },
+  "formula": "λ_i(a,x) = λ*_i(a)·(1−AR_i)·rr_i(x), i = proximal/distal/rectal; rr uses \"every factor in its lowest-risk stratum\" as the reference (PDF p. 2); λ_crc = Σλ_i; A(a,b) = ∫_a^b λ_crc(t)·exp(−∫_a^t(λ_crc+λ_M)du) dt, λ_M = all-cause minus CRC mortality; treated as constant within a 5-year band",
   "examples": [
    {
     "id": "paper-men-1",
@@ -11671,7 +13912,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 0.158,
-     "risk_20y_pct": 0.526
+     "risk_20y_pct": 0.526,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor + the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -11695,7 +13937,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 0.957,
-     "risk_20y_pct": 3.09
+     "risk_20y_pct": 3.09,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor (÷ men's P 0.65×0.58×0.60, D 0.71, R 0.51×0.57×0.66) + the paper's AR + the appendix SEER rates; years_smoking for smokers is not given in the paper, so ≥35 years is assumed in the self-computation"
     }
    },
    {
@@ -11720,7 +13963,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 2.701,
-     "risk_20y_pct": 9.058
+     "risk_20y_pct": 9.058,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor (÷ men's P 0.65×0.58×0.60, D 0.71, R 0.51×0.57×0.66) + the paper's AR + the appendix SEER rates; years_smoking for smokers is not given in the paper, so ≥35 years is assumed in the self-computation"
     }
    },
    {
@@ -11745,7 +13989,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 0.262,
-     "risk_20y_pct": 0.734
+     "risk_20y_pct": 0.734,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor + the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -11769,7 +14014,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 2.011,
-     "risk_20y_pct": 5.525
+     "risk_20y_pct": 5.525,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor + the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -11794,7 +14040,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 4.556,
-     "risk_20y_pct": 12.827
+     "risk_20y_pct": 12.827,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor (÷ men's P 0.65×0.58×0.60, D 0.71, R 0.51×0.57×0.66) + the paper's AR + the appendix SEER rates; years_smoking for smokers is not given in the paper, so ≥35 years is assumed in the self-computation"
     }
    },
    {
@@ -11819,7 +14066,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 0.398,
-     "risk_20y_pct": 0.927
+     "risk_20y_pct": 0.927,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor + the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -11843,7 +14091,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 3.044,
-     "risk_20y_pct": 6.901
+     "risk_20y_pct": 6.901,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor + the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -11868,7 +14117,8 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 7.062,
-     "risk_20y_pct": 16.429
+     "risk_20y_pct": 16.429,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor (÷ men's P 0.65×0.58×0.60, D 0.71, R 0.51×0.57×0.66) + the paper's AR + the appendix SEER rates; years_smoking for smokers is not given in the paper, so ≥35 years is assumed in the self-computation"
     }
    },
    {
@@ -11892,7 +14142,9 @@ export const COEFFICIENTS = {
      "risk_20y_pct": 1.07
     },
     "self_reproduction": {
-     "risk_10y_pct": 0.536
+     "risk_10y_pct": 0.536,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor + the paper's AR + the appendix SEER rates",
+     "twenty_year_missing_reason": "The appendix SEER rates go only to ages 75–79"
     }
    },
    {
@@ -11915,7 +14167,9 @@ export const COEFFICIENTS = {
      "risk_20y_pct": 6.78
     },
     "self_reproduction": {
-     "risk_10y_pct": 3.056
+     "risk_10y_pct": 3.056,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor (÷ men's P 0.65×0.58×0.60, D 0.71, R 0.51×0.57×0.66) + the paper's AR + the appendix SEER rates; years_smoking for smokers is not given in the paper, so ≥35 years is assumed in the self-computation",
+     "twenty_year_missing_reason": "The appendix SEER rates go only to ages 75–79"
     }
    },
    {
@@ -11939,7 +14193,9 @@ export const COEFFICIENTS = {
      "risk_20y_pct": 19.4
     },
     "self_reproduction": {
-     "risk_10y_pct": 9.834
+     "risk_10y_pct": 9.834,
+     "method": "RR re-referenced to the lowest-risk stratum of each factor (÷ men's P 0.65×0.58×0.60, D 0.71, R 0.51×0.57×0.66) + the paper's AR + the appendix SEER rates; years_smoking for smokers is not given in the paper, so ≥35 years is assumed in the self-computation",
+     "twenty_year_missing_reason": "The appendix SEER rates go only to ages 75–79"
     }
    },
    {
@@ -11966,7 +14222,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 0.091,
      "risk_20y_pct": 0.298,
      "residual_10y_pct": 1.2,
-     "residual_20y_pct": -3.8
+     "residual_20y_pct": -3.8,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -11992,7 +14249,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 0.698,
      "risk_20y_pct": 2.179,
      "residual_10y_pct": -1.7,
-     "residual_20y_pct": -3.1
+     "residual_20y_pct": -3.1,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12019,7 +14277,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 2.454,
      "risk_20y_pct": 7.871,
      "residual_10y_pct": -2.2,
-     "residual_20y_pct": -2.9
+     "residual_20y_pct": -2.9,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12046,7 +14305,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 0.149,
      "risk_20y_pct": 0.423,
      "residual_10y_pct": -0.9,
-     "residual_20y_pct": -1.7
+     "residual_20y_pct": -1.7,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12072,7 +14332,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 1.801,
      "risk_20y_pct": 4.835,
      "residual_10y_pct": -2.7,
-     "residual_20y_pct": -3.1
+     "residual_20y_pct": -3.1,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12099,7 +14360,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 4.005,
      "risk_20y_pct": 11.022,
      "residual_10y_pct": -3,
-     "residual_20y_pct": -3.1
+     "residual_20y_pct": -3.1,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12126,7 +14388,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 0.217,
      "risk_20y_pct": 0.554,
      "residual_10y_pct": -1.4,
-     "residual_20y_pct": -2.8
+     "residual_20y_pct": -2.8,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12152,7 +14415,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 2.525,
      "risk_20y_pct": 6.136,
      "residual_10y_pct": -3.2,
-     "residual_20y_pct": -3.7
+     "residual_20y_pct": -3.7,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12179,7 +14443,8 @@ export const COEFFICIENTS = {
      "risk_10y_pct": 5.815,
      "risk_20y_pct": 14.211,
      "residual_10y_pct": -3.2,
-     "residual_20y_pct": -3.5
+     "residual_20y_pct": -3.5,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates"
     }
    },
    {
@@ -12204,7 +14469,9 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 0.296,
-     "residual_10y_pct": -1.5
+     "residual_10y_pct": -1.5,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates",
+     "twenty_year_missing_reason": "The appendix SEER rates go only to ages 75–79"
     }
    },
    {
@@ -12228,7 +14495,9 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 2.058,
-     "residual_10y_pct": -3.4
+     "residual_10y_pct": -3.4,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates",
+     "twenty_year_missing_reason": "The appendix SEER rates go only to ages 75–79"
     }
    },
    {
@@ -12253,12 +14522,36 @@ export const COEFFICIENTS = {
     },
     "self_reproduction": {
      "risk_10y_pct": 7.884,
-     "residual_10y_pct": -3.4
+     "residual_10y_pct": -3.4,
+     "method": "Inference (based on the structure of the NCI SAS macro v1.2 women's program and a fit to Table 5, not stated explicitly in the 2009 paper): lowest-risk stratum = proximal 0.65×0.63×0.72×0.68 (excluding \"don't know\" 0.61), distal 0.70×0.48 (excluding the age >65 factor of 0.55; distal also does not multiply 0.55; the age difference is handled through AR <65/≥65), rectal 0.37×0.63×0.70×0.67 (including \"don't know\" 0.37); the paper's AR + the appendix SEER rates",
+     "twenty_year_missing_reason": "The appendix SEER rates go only to ages 75–79"
     }
    }
   ],
+  "paper_examples": "Yes: 12 men's cases in Table 4 and 12 women's cases in Table 5 (PDF p. 6)",
   "schema": "c2-coef-v1",
   "women_official_sas_macro_v1_2": {
+   "source": {
+    "file": "Freedman2009JCO_supp2.zip → Women_CRC_RAM_agerange4090/Women_CRC_RAM_agerange4090 (SAS macro v1.2, Fanni Zhang 2019-01-30), WReadMe_agerange4090.fil, Women_CRC_Template_agerange4090_newrates_test_out.csv",
+    "locators": "betas lines 476–513 (LN_RR data step); 1−AR lines 518–525; H1_Star lines 383–447; H2 lines 449–472; LP lines 1026–1059; integration lines 1062–1097",
+    "license": "Licence not stated (NCI public SAS macro, no licence terms in the code); only the coefficient and rate values are copied here, not the code",
+    "note": "The 2009 paper and macro v1.2 have different versions of the RR; the macro uses SEER18 2000–2015 incidence and 2010–2015 mortality, not paper Appendix A1–A4"
+   },
+   "model_form": "RR = exp(LP) with indicator coding, and the all-zero combination is the baseline stratum (stated officially, no inference needed). λ_i = (1−AR_i)·h1*_i(age 5-year band)·exp(LP_i); Hj = Σλ_i + h2; PI_j = Σλ/Hj·exp(−cumH)·(1−exp(−Hj·L)), iterated year by year; age 5-year bands start from 40 and T1 starts from the floor, see macro lines 1062–1097",
+   "coding": {
+    "Sigmoid_Polyps": "0=endoscopy with no polyps; 1=no endoscopy; 2=endoscopy with polyps; 3=don't know",
+    "Estrogen": "0=oestrogen in the past 2 years (or -9 still menstruating/<2 years); 1=none (No_Strogn)",
+    "Fam_Hist_CRC": "0 (or -9); 1 (or -8); 2=2 or more relatives; for rectal/Rel>=1 use (fam>=1), for proximal and distal use a 0/1/2 linear trend",
+    "NSaids": "0=regular user (or -9); 1=non-user",
+    "Vigorus_Xrcis": "0=0 hours; 1=(0,2]; 2=(2,4]; 3=>4; proximal uses a 3−x linear trend, rectal uses indicators for x=0/1/2 (3 is the reference)",
+    "BMI_ge30": "0/1; distal also has BMI_Strogn = BMI_ge30·(1−No_Strogn)",
+    "Veg_lt5": "0=>=5 servings; 1=<5 servings (the macro documentation says per week, the paper says per day; the paper governs for the unit, unconfirmed)"
+   },
+   "reference_levels": {
+    "rectal": "Reference = endoscopy \"don't know\", oestrogen use, 0 relatives, regular NSAID, exercise >4 h, BMI<30",
+    "proximal": "Reference = endoscopy with no polyps, oestrogen use, 0 relatives, regular NSAID, exercise >4 h, vegetables >=5 (no age term)",
+    "distal": "Reference = endoscopy with no polyps, oestrogen use, 0 relatives, regular NSAID, BMI<30 (and the oestrogen interaction term is 0); no exercise, vegetable or age terms"
+   },
    "ln_rr": {
     "posi0R_Beta": 1.0026582386,
     "posi1R_Beta": 2.0981550009,
@@ -12293,6 +14586,7 @@ export const COEFFICIENTS = {
     "Distl1_1_AR": 0.177983863475,
     "Distl2_1_AR": 0.148075734041
    },
+   "note_distal_AR": "Distl1_1_AR is used for 5-year band numbers 1–5 (age <65), Distl2_1_AR for band numbers >=6 (>=65)",
    "rates_per_person_year": {
     "white": {
      "ages_start": [
@@ -12660,10 +14954,13 @@ export const COEFFICIENTS = {
     }
    ],
    "verification": {
-    "date": "2026-11-11"
+    "date": "2026-11-11",
+    "method": "Python standard-library port of the macro calculation, compared with all 2,880 rows of the macro's accompanying Women_CRC_Template_agerange4090_newrates_test_out.csv (4 populations × several T1/T2 × 768 covariate combinations)",
+    "result": "Maximum difference in absolute risk 4.9e-10 percentage points; maximum difference in LP_R/LP_P/LP_D 4.4e-16; 0 rows differ by >1e-3"
    }
   },
   "women_paper_examples_with_official_betas": {
+   "method": "The official macro v1.2 ln RR and 1−AR, with the 2009-era rates from paper Appendix A1–A4 (5-year bands, per 100,000 person-years)",
    "results_10y_pct_paper_vs_repro": {
     "women-1": [
      0.09,
@@ -12751,7 +15048,9 @@ export const COEFFICIENTS = {
      14.72,
      14.402
     ]
-   }
+   },
+   "residual_summary": "10 years: -2.1% to +2.7% (women-1 only 0.09 vs 0.092, caused by rounding); the others differ by <=0.16 percentage points in absolute terms. Closer than the earlier inferred baseline stratum (-3.4% to +1.2%). 20 years: -0.8% to -2.2% (rates for 80+ are missing from age 65, so three cases were not computed).",
+   "caveat": "The paper version (Table 3 OR) and macro v1.2 have different versions of ln RR, but the difference in the women's results is small; there is still a slight systematic underestimate (about -1% to -2%), the cause is unconfirmed (rounding of paper Appendix rates, differences between the macro's 1−AR and the paper's AR versions)"
   }
  },
  "otsuka-2015": {
@@ -12759,48 +15058,67 @@ export const COEFFICIENTS = {
   "model_id": "otsuka-2015",
   "citation": "Otsuka T, et al. Development of a risk prediction model for incident hypertension in a working-age Japanese male population. Hypertens Res 2015;38:419–425. doi:10.1038/hr.2014.159",
   "model_type": "cox",
+  "outcome": "New-onset hypertension (SBP ≥140, DBP ≥90 or starting antihypertensive medication)",
   "horizon_years": [
    4
   ],
+  "population": {
+   "age_range": "Ages 19–63 (PDF p. 2)",
+   "sex": "Men only",
+   "notes": "Male employees of a Japanese company, 2008 health checkup, 15,025 people (derivation 12,020 / validation 3,005, random 80/20), median follow-up 4.0 years, 1,633 cases; those with hypertension, history of CVD or history of malignancy excluded"
+  },
+  "formula": "Probability = 1 − S0(4)^exp(Σβi·Xi − Σβi·X̄i), S0(4)=0.963, Σβ·X̄=17.119 (PDF p. 2 formula (1); Appendix)",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "Continuous"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "Continuous"
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "Continuous"
    },
    {
     "name": "dbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "Continuous"
    },
    {
     "name": "smk",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Smoking regularly every day at the checkup (PDF p. 2)"
    },
    {
     "name": "alc",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Excessive drinking = drinking ≥6 days per week (PDF p. 2)"
    },
    {
     "name": "parent",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Parental history of hypertension"
    }
   ],
   "equations": [
    {
     "id": "cox_multivariate",
+    "applies_to": "Japanese men (version without interaction terms)",
     "coefficients": [
      {
+      "term": "Age (per year)",
       "key": "age",
       "beta": 0.04,
       "mean": 38.87,
       "se": "0.004",
-      "hr_ci": "1.04 (1.03, 1.05)"
+      "hr_ci": "1.04 (1.03, 1.05)",
+      "source": "Table 2 multivariable column, PDF p. 3",
+      "mean_source": "Appendix, PDF p. 7 (journal p. 425) (the means in the Σβx̄ formula)"
      },
      {
       "term": "BMI",
@@ -12808,7 +15126,9 @@ export const COEFFICIENTS = {
       "beta": 0.071,
       "mean": 22.756,
       "se": "0.009",
-      "hr_ci": "1.07 (1.06, 1.09)"
+      "hr_ci": "1.07 (1.06, 1.09)",
+      "source": "Table 2 multivariable column, PDF p. 3",
+      "mean_source": "Appendix, PDF p. 7 (journal p. 425) (the means in the Σβx̄ formula)"
      },
      {
       "term": "SBP",
@@ -12816,7 +15136,9 @@ export const COEFFICIENTS = {
       "beta": 0.061,
       "mean": 115.55,
       "se": "0.004",
-      "hr_ci": "1.06 (1.05, 1.07)"
+      "hr_ci": "1.06 (1.05, 1.07)",
+      "source": "Table 2 multivariable column, PDF p. 3",
+      "mean_source": "Appendix, PDF p. 7 (journal p. 425) (the means in the Σβx̄ formula)"
      },
      {
       "term": "DBP",
@@ -12824,180 +15146,237 @@ export const COEFFICIENTS = {
       "beta": 0.096,
       "mean": 70.12,
       "se": "0.005",
-      "hr_ci": "1.10 (1.09, 1.11)"
+      "hr_ci": "1.10 (1.09, 1.11)",
+      "source": "Table 2 multivariable column, PDF p. 3",
+      "mean_source": "Appendix, PDF p. 7 (journal p. 425) (the means in the Σβx̄ formula)"
      },
      {
+      "term": "Current smoking (1/0)",
       "key": "smk",
       "beta": 0.242,
       "mean": 0.31,
       "se": "0.058",
-      "hr_ci": "1.27 (1.14, 1.43)"
+      "hr_ci": "1.27 (1.14, 1.43)",
+      "source": "Table 2 multivariable column, PDF p. 3",
+      "mean_source": "Appendix, PDF p. 7 (journal p. 425) (the means in the Σβx̄ formula)"
      },
      {
+      "term": "Excessive drinking (1/0)",
       "key": "alc",
       "beta": 0.202,
       "mean": 0.164,
       "se": "0.065",
-      "hr_ci": "1.22 (1.08, 1.39)"
+      "hr_ci": "1.22 (1.08, 1.39)",
+      "source": "Table 2 multivariable column, PDF p. 3",
+      "mean_source": "Appendix, PDF p. 7 (journal p. 425) (the means in the Σβx̄ formula)"
      },
      {
+      "term": "Parental history of hypertension (1/0)",
       "key": "parent",
       "beta": 0.282,
       "mean": 0.213,
       "se": "0.060",
-      "hr_ci": "1.33 (1.18, 1.49)"
+      "hr_ci": "1.33 (1.18, 1.49)",
+      "source": "Table 2 multivariable column, PDF p. 3",
+      "mean_source": "Appendix, PDF p. 7 (journal p. 425) (the means in the Σβx̄ formula)"
      }
     ],
     "constants": {
      "sum_beta_xbar": {
-      "value": 17.119
+      "value": 17.119,
+      "source": "Appendix, PDF p. 7 (journal p. 425)"
      }
     },
     "baseline_survival": {
      "4": 0.963
-    }
+    },
+    "baseline_survival_source": "PDF p. 3 text; Appendix, PDF p. 7 (journal p. 425)"
    }
   ],
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Japanese men",
+    "source": "Figure 2, PDF p. 4 (journal p. 422)",
     "items": [
      {
+      "factor": "Age (years)",
       "category": "19–22",
       "points": -5
      },
      {
+      "factor": "Age (years)",
       "category": "23–26",
       "points": -4
      },
      {
+      "factor": "Age (years)",
       "category": "27–30",
       "points": -3
      },
      {
+      "factor": "Age (years)",
       "category": "31–34",
       "points": -2
      },
      {
+      "factor": "Age (years)",
       "category": "35–38",
       "points": -1
      },
      {
+      "factor": "Age (years)",
       "category": "39–42",
       "points": 0
      },
      {
+      "factor": "Age (years)",
       "category": "43–46",
       "points": 1
      },
      {
+      "factor": "Age (years)",
       "category": "47–50",
       "points": 2
      },
      {
+      "factor": "Age (years)",
       "category": "51–54",
       "points": 3
      },
      {
+      "factor": "Age (years)",
       "category": "55–58",
       "points": 4
      },
      {
+      "factor": "Age (years)",
       "category": "59–63",
       "points": 5
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "≤109",
       "points": -4
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "110–114",
       "points": 0
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "115–119",
       "points": 2
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "120–124",
       "points": 4
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "125–129",
       "points": 6
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "130–134",
       "points": 8
      },
      {
+      "factor": "SBP (mmHg)",
       "category": "135–139",
       "points": 10
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "≤64",
       "points": -6
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "65–69",
       "points": 0
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "70–74",
       "points": 3
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "75–79",
       "points": 6
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "80–84",
       "points": 9
      },
      {
+      "factor": "DBP (mmHg)",
       "category": "85–89",
       "points": 12
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "≤20.9",
       "points": -1
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "21.0–22.9",
       "points": 0
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "23.0–24.9",
       "points": 1
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "25.0–26.9",
       "points": 2
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "27.0–29.9",
       "points": 3
      },
      {
+      "factor": "BMI (kg/m²)",
       "category": "≥30.0",
       "points": 4
      },
      {
+      "factor": "Current smoking",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Current smoking",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Excessive drinking",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Excessive drinking",
+      "category": "Yes",
       "points": 1
      },
      {
+      "factor": "Parental history of hypertension",
+      "category": "No",
       "points": 0
      },
      {
+      "factor": "Parental history of hypertension",
+      "category": "Yes",
       "points": 2
      }
     ]
@@ -13006,7 +15385,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "points_to_4y_risk_band",
+    "applies_to": "Japanese men",
     "horizon_years": 4,
+    "source": "Figure 2, PDF p. 4 (journal p. 422)",
     "rows": [
      {
       "score": "≤−5",
@@ -13014,36 +15395,43 @@ export const COEFFICIENTS = {
       "risk_upper_exclusive": 0.01
      },
      {
+      "score": "−4 to 6",
       "risk": "1–<5%",
       "risk_lower": 0.01,
       "risk_upper_exclusive": 0.05
      },
      {
+      "score": "7 to 10",
       "risk": "5–<10%",
       "risk_lower": 0.05,
       "risk_upper_exclusive": 0.1
      },
      {
+      "score": "11 to 15",
       "risk": "10–<20%",
       "risk_lower": 0.1,
       "risk_upper_exclusive": 0.2
      },
      {
+      "score": "16 to 18",
       "risk": "20–<30%",
       "risk_lower": 0.2,
       "risk_upper_exclusive": 0.3
      },
      {
+      "score": "19 to 20",
       "risk": "30–<40%",
       "risk_lower": 0.3,
       "risk_upper_exclusive": 0.4
      },
      {
+      "score": "21 to 22",
       "risk": "40–<50%",
       "risk_lower": 0.4,
       "risk_upper_exclusive": 0.5
      },
      {
+      "score": "23 to 24",
       "risk": "50–<60%",
       "risk_lower": 0.5,
       "risk_upper_exclusive": 0.6
@@ -13087,7 +15475,9 @@ export const COEFFICIENTS = {
      "risk_4y_direct": 0.082,
      "risk_4y_band": "5–<10%"
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Appendix, PDF p. 7 (journal p. 425)",
+    "note": "Recomputed with the json: Σβx=17.9375, 4-year risk 0.0819, which agrees with the paper; 9 points looked up in Figure 2 is 5–<10%"
    },
    {
     "id": "paper-case2",
@@ -13119,7 +15509,9 @@ export const COEFFICIENTS = {
      "risk_4y_direct": 0.642,
      "risk_4y_band": "50–<60%"
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Appendix, PDF p. 7 (journal p. 425)",
+    "note": "Recomputed with the json: Σβx=20.4248, 4-year risk 0.6423, which agrees with the paper; the paper gives only the total score of 24, and the item points were split out in this file from Figure 2, summing to the total"
    }
   ]
  },
@@ -13127,10 +15519,17 @@ export const COEFFICIENTS = {
   "model_id": "page-b",
   "source": {
    "pdf_key": "Papatheodoridis2016JHepatol",
-   "citation": "Papatheodoridis G et al. J Hepatol 2016;64:800-806"
+   "citation": "Papatheodoridis G et al. J Hepatol 2016;64:800-806",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "points",
+  "outcome": "HCC within 5 years after starting entecavir/tenofovir treatment",
   "horizon_years": 5,
+  "population": {
+   "sex": "Men and women",
+   "eligibility": "White patients with chronic hepatitis B treated with ETV/TDF",
+   "age_range": "Points table ages 16–≥70"
+  },
   "inputs": [
    {
     "name": "age",
@@ -13198,10 +15597,13 @@ export const COEFFICIENTS = {
   },
   "risk_groups": {
    "source": "PDF p.1, p.4",
-   "low": "<=9"
+   "low": "<=9",
+   "medium": "10-17 (3%)",
+   "high": ">=18 (17%)"
   },
   "lookup_tables": {
    "fig2_score_to_5y_risk_pct": {
+    "source": "Fig. 2, PDF p. 4; converted from PDF vector graphic coordinates (linear interpolation between the y-axis 0–0.6 tick lines), not numbers listed in a table in the paper, with an error of about ±0.05 percentage points; the paper's tabulated version is in Supplementary Table 3 (not obtained)",
     "values": {
      "0": 0.09,
      "2": 0.15,
@@ -13226,10 +15628,12 @@ export const COEFFICIENTS = {
     }
    }
   },
+  "formula": "score = age_pts + sex_pts + platelet_pts; look up the 5-year HCC risk in Fig. 2",
   "examples": [
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper",
     "inputs": {
      "age": 55,
      "sex": "M",
@@ -13244,6 +15648,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper",
     "inputs": {
      "age": 35,
      "sex": "F",
@@ -13256,19 +15661,27 @@ export const COEFFICIENTS = {
     }
    }
   ],
+  "paper_examples": "The paper has no example person",
   "schema": "c2-coef-v1"
  },
  "pcpt-rc-2-0": {
   "model_id": "pcpt-rc-2-0",
   "source": {
    "file": "docs/research/disease-risk/coefficients/pcpt-rc-2-0-ankerst2014.r",
-   "citation": "Ankerst DP et al. Urology 2014"
+   "citation": "Ankerst DP et al. Urology 2014",
+   "page_note": "L in the source column is the line number in the R file"
   },
   "model_type": "multinomial_logistic",
+  "outcome": "Probability of no cancer / low-grade / high-grade (Gleason ≥7) prostate cancer if a biopsy were done now",
+  "population": {
+   "sex": "Men",
+   "eligibility": "People not yet diagnosed with prostate cancer (the R file does not state an age range)"
+  },
   "inputs": [
    {
     "name": "psa",
-    "unit": "ng/mL"
+    "unit": "ng/mL",
+    "coding": "The model uses log2(PSA)"
    },
    {
     "name": "age",
@@ -13284,15 +15697,18 @@ export const COEFFICIENTS = {
    },
    {
     "name": "dre",
-    "unit": "0/1/NA"
+    "unit": "0/1/NA",
+    "coding": "1=suspicious"
    },
    {
     "name": "family_history",
-    "unit": "0/1/NA"
+    "unit": "0/1/NA",
+    "coding": "Father, brother or son with prostate cancer"
    },
    {
     "name": "pct_free_psa",
-    "unit": "%/NA"
+    "unit": "%/NA",
+    "coding": "Fitted data range 5.495801–72.955864 (R L19)"
    },
    {
     "name": "pca3",
@@ -13304,7 +15720,8 @@ export const COEFFICIENTS = {
    },
    {
     "name": "detailed_family_history",
-    "unit": "counts/NA"
+    "unit": "counts/NA",
+    "coding": "FDR_PC_less60, FDR_PC_60, FDR_BC, SDR"
    }
   ],
   "coefficient_sets": {
@@ -13516,6 +15933,7 @@ export const COEFFICIENTS = {
   "lookup_tables": {
    "pct_free_psa_update": {
     "source": "pcpt-rc-2-0-ankerst2014.r L120-139",
+    "note": "log2(%fPSA) ~ Normal(b0 + b1·log2(PSA), sd), one for each of the three outcome groups",
     "high": {
      "b0": 4.8059009,
      "b1": -0.3483031,
@@ -13534,6 +15952,7 @@ export const COEFFICIENTS = {
    },
    "pca3_update": {
     "source": "pcpt-rc-2-0-ankerst2014.r L156-168",
+    "note": "log2(PCA3) ~ Normal(b0 + 0.058·age + 0.733·race, sd=1.51); the older coefficients in the comments are not used",
     "sd": 1.51,
     "high": [
      1.568,
@@ -13707,11 +16126,13 @@ export const COEFFICIENTS = {
      ]
     ],
     "sdr_multiplier": {
-     "value": 1.09
+     "value": 1.09,
+     "condition": "Applied only when FDR_PC_less60=0 and FDR_PC_60=0 (L244)"
     }
    },
    "snp_LR": {
     "source": "pcpt-rc-2-0-ankerst2014.r L303-307",
+    "note": "30 SNPs numbered according to \"Table1\"; the SNP identities are not in the R file",
     "LR0": [
      0.949,
      0.959,
@@ -13810,10 +16231,12 @@ export const COEFFICIENTS = {
     ]
    }
   },
+  "formula": "S1 = β_low·x, S2 = β_high·x (x selects the coefficient set according to the available variables); P_no = 1/(1+e^S1+e^S2), P_low = e^S1/(…), P_high = 1−P_no−P_low; %fPSA/PCA3 update: odds_k = P_k·f_k/Σ_{j≠k}P_j·f_j, P_k = odds_k/(1+odds_k), P_high = 1−P_low−P_no; family history/SNP update: odds(cancer) × LR",
   "examples": [
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed (rewritten in Python from the R file coefficients, the R file was not run), not checked against the paper; the integer rounding at the end of the R file was not done",
     "inputs": {
      "psa": 4,
      "age": 65,
@@ -13834,6 +16257,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed (rewritten in Python from the R file coefficients, the R file was not run), not checked against the paper; the integer rounding at the end of the R file was not done",
     "inputs": {
      "psa": 6.5,
      "age": 70,
@@ -13854,6 +16278,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-3",
     "origin": "self_computed",
+    "note": "Self-computed (rewritten in Python from the R file coefficients, the R file was not run), not checked against the paper; the integer rounding at the end of the R file was not done",
     "inputs": {
      "psa": 4,
      "age": 65,
@@ -13876,20 +16301,29 @@ export const COEFFICIENTS = {
     "tolerance": 0.000001
    }
   ],
+  "paper_examples": "No worked example in the R file or the repo; the Ankerst 2014 PDF is out of scope this time",
   "schema": "c2-coef-v1"
  },
  "plcom2012": {
   "model_id": "plcom2012",
   "source": {
    "pdf_key": "Tammemagi2013NEJM",
-   "citation": "Tammemägi MC et al. N Engl J Med 2013;368:728-36"
+   "citation": "Tammemägi MC et al. N Engl J Med 2013;368:728-36",
+   "page_note": "Page numbers are the page order within the PDF file"
   },
   "model_type": "logistic",
+  "outcome": "Lung cancer diagnosis probability within 6 years (ever-smokers)",
   "horizon_years": 6,
+  "population": {
+   "sex": "Not applicable by sex (the model does not include sex)",
+   "eligibility": "Ever-smokers",
+   "age_range": "Table 2 of the paper gives no applicable age range; the development sample is 36,286 ever-smokers in the PLCO control arm (PDF p. 4)"
+  },
   "inputs": [
    {
     "name": "age",
-    "unit": "years"
+    "unit": "years",
+    "coding": "Continuous, centred at 62"
    },
    {
     "name": "race",
@@ -13898,11 +16332,13 @@ export const COEFFICIENTS = {
    },
    {
     "name": "education_level",
-    "unit": "1-6"
+    "unit": "1-6",
+    "coding": "1 did not finish high school; 2 high school graduate; 3 post-high-school vocational training; 4 some college; 5 college graduate; 6 postgraduate or professional degree; centred at 4"
    },
    {
     "name": "bmi",
-    "unit": "kg/m2"
+    "unit": "kg/m2",
+    "coding": "Continuous, centred at 27"
    },
    {
     "name": "copd",
@@ -13918,18 +16354,23 @@ export const COEFFICIENTS = {
    },
    {
     "name": "current_smoker",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "1=current smoker, 0=former smoker"
    },
    {
-    "name": "cigarettes_per_day"
+    "name": "cigarettes_per_day",
+    "unit": "cigarettes/day (average)",
+    "coding": "Transform: (cpd/10)^-1 − 0.4021541613"
    },
    {
     "name": "smoking_duration_years",
-    "unit": "years"
+    "unit": "years",
+    "coding": "Centred at 27"
    },
    {
     "name": "quit_years",
-    "unit": "years"
+    "unit": "years",
+    "coding": "Centred at 10; current smokers enter 0 (not explicitly stated in the paper, see the md pitfall)"
    }
   ],
   "constants": {
@@ -13958,7 +16399,8 @@ export const COEFFICIENTS = {
     "source": "Table 2, PDF p.4"
    },
    "intensity_center": {
-    "value": 0.4021541613
+    "value": 0.4021541613,
+    "source": "Table 2, PDF p. 4, footnote"
    }
   },
   "coefficients": [
@@ -14065,6 +16507,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-1",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper. The inputs are the reference person of Figure 1 (PDF p. 5), with cpd taken as 20",
     "inputs": {
      "age": 62,
      "race": "white",
@@ -14087,6 +16530,7 @@ export const COEFFICIENTS = {
    {
     "id": "self-2",
     "origin": "self_computed",
+    "note": "Self-computed, not checked against the paper",
     "inputs": {
      "age": 65,
      "race": "asian",
@@ -14107,18 +16551,29 @@ export const COEFFICIENTS = {
     "tolerance": 0.000001
    }
   ],
+  "paper_examples": "No numeric example in the paper; Figure 1 (PDF p. 5) gives only the reference person's settings and the smoking-intensity curve, without point-by-point values",
   "schema": "c2-coef-v1"
  },
  "pooled-cohort-equations-pce": {
   "schema": "c1-coef-1",
   "model_id": "pooled-cohort-equations-pce",
+  "citation": "Goff DC Jr, Lloyd-Jones DM, Bennett G, et al. 2013 ACC/AHA Guideline on the Assessment of Cardiovascular Risk. Circulation 2014;129(25 Suppl 2):S49–S73. DOI 10.1161/01.cir.0000437741.48606.98; JACC 2014;63(25 Pt B):2935–2959, PMC4700825.",
   "model_type": "cox",
+  "outcome": "First hard ASCVD event (non-fatal MI, CHD death, fatal/non-fatal stroke)",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Ages 40–79 (guideline: risk assessment is for ages 40–79; the Table A example is age 55)",
+   "sex": "Separate equations for men and women",
+   "notes": "One equation each for non-Hispanic White and African American populations; for other groups the guideline recommends, with COR IIb, that the White equation may be considered. Development cohorts ARIC, CHS, CARDIA, Framingham Original/Offspring."
+  },
+  "formula": "Risk10 = 1 − S10^exp(IndividualSum − MeanSum); IndividualSum = Σ(coefficient×value), lipid unit mg/dL, continuous variables are natural-log transformed (Table A)",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "Take ln; there is also (ln age)² (White women only) and several ln age × term interactions"
    },
    {
     "name": "total_chol",
@@ -14132,20 +16587,24 @@ export const COEFFICIENTS = {
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "ln; treated and untreated use different coefficients, choose one of the two"
    },
    {
     "name": "smoker",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current smoking"
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Has diabetes"
    }
   ],
   "equations": [
    {
     "id": "white_female",
+    "applies_to": "White women",
     "coefficients": [
      {
       "term": "Ln Age (y)",
@@ -14191,7 +16650,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Treated SBP",
-      "key": "lnagetsbp"
+      "key": "lnagetsbp",
+      "source": "Table A (White women column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln Untreated SBP",
@@ -14201,7 +16661,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Untreated SBP",
-      "key": "lnageusbp"
+      "key": "lnageusbp",
+      "source": "Table A (White women column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Current Smoker (1=Yes)",
@@ -14227,10 +16688,12 @@ export const COEFFICIENTS = {
     },
     "baseline_survival": {
      "10": 0.9665
-    }
+    },
+    "source": "Table A rows \"Mean (Coefficient×Value)\" and \"Baseline Survival\""
    },
    {
     "id": "aa_female",
+    "applies_to": "African American women",
     "coefficients": [
      {
       "term": "Ln Age (y)",
@@ -14240,7 +16703,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age, Squared",
-      "key": "lnage2"
+      "key": "lnage2",
+      "source": "Table A (African American women column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln Total Cholesterol",
@@ -14250,7 +16714,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Total Cholesterol",
-      "key": "lnagetc"
+      "key": "lnagetc",
+      "source": "Table A (African American women column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln HDL-C",
@@ -14296,7 +16761,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Current Smoker",
-      "key": "lnagesmk"
+      "key": "lnagesmk",
+      "source": "Table A (African American women column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Diabetes (1=Yes)",
@@ -14310,10 +16776,12 @@ export const COEFFICIENTS = {
     },
     "baseline_survival": {
      "10": 0.9533
-    }
+    },
+    "source": "Table A rows \"Mean (Coefficient×Value)\" and \"Baseline Survival\""
    },
    {
     "id": "white_male",
+    "applies_to": "White men",
     "coefficients": [
      {
       "term": "Ln Age (y)",
@@ -14323,7 +16791,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age, Squared",
-      "key": "lnage2"
+      "key": "lnage2",
+      "source": "Table A (White men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln Total Cholesterol",
@@ -14357,7 +16826,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Treated SBP",
-      "key": "lnagetsbp"
+      "key": "lnagetsbp",
+      "source": "Table A (White men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln Untreated SBP",
@@ -14367,7 +16837,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Untreated SBP",
-      "key": "lnageusbp"
+      "key": "lnageusbp",
+      "source": "Table A (White men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Current Smoker (1=Yes)",
@@ -14393,10 +16864,12 @@ export const COEFFICIENTS = {
     },
     "baseline_survival": {
      "10": 0.9144
-    }
+    },
+    "source": "Table A rows \"Mean (Coefficient×Value)\" and \"Baseline Survival\""
    },
    {
     "id": "aa_male",
+    "applies_to": "African American men",
     "coefficients": [
      {
       "term": "Ln Age (y)",
@@ -14406,7 +16879,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age, Squared",
-      "key": "lnage2"
+      "key": "lnage2",
+      "source": "Table A (African American men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln Total Cholesterol",
@@ -14416,7 +16890,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Total Cholesterol",
-      "key": "lnagetc"
+      "key": "lnagetc",
+      "source": "Table A (African American men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln HDL-C",
@@ -14426,7 +16901,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln HDL-C",
-      "key": "lnagehdl"
+      "key": "lnagehdl",
+      "source": "Table A (African American men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln Treated SBP",
@@ -14436,7 +16912,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Treated SBP",
-      "key": "lnagetsbp"
+      "key": "lnagetsbp",
+      "source": "Table A (African American men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Ln Untreated SBP",
@@ -14446,7 +16923,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Ln Untreated SBP",
-      "key": "lnageusbp"
+      "key": "lnageusbp",
+      "source": "Table A (African American men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Current Smoker (1=Yes)",
@@ -14456,7 +16934,8 @@ export const COEFFICIENTS = {
      },
      {
       "term": "Ln Age × Current Smoker",
-      "key": "lnagesmk"
+      "key": "lnagesmk",
+      "source": "Table A (African American men column); N/A in the paper, this equation has no such term"
      },
      {
       "term": "Diabetes (1=Yes)",
@@ -14470,7 +16949,8 @@ export const COEFFICIENTS = {
     },
     "baseline_survival": {
      "10": 0.8954
-    }
+    },
+    "source": "Table A rows \"Mean (Coefficient×Value)\" and \"Baseline Survival\""
    }
   ],
   "points_tables": [],
@@ -14501,7 +16981,9 @@ export const COEFFICIENTS = {
     "reproduced": {
      "risk_10y": 0.02052,
      "diff_pp": -0.048
-    }
+    },
+    "source": "Table A example (age 55); the paper gives the risk only as a percentage to one decimal (2.1 / 3.0 / 5.3 / 6.1%)",
+    "note": "Tolerance ±0.1 percentage points (the paper rounds to 0.1%); the reproduced values are not rounded"
    },
    {
     "id": "paper-aa_female",
@@ -14528,7 +17010,9 @@ export const COEFFICIENTS = {
     "reproduced": {
      "risk_10y": 0.03026,
      "diff_pp": 0.026
-    }
+    },
+    "source": "Table A example (age 55); the paper gives the risk only as a percentage to one decimal (2.1 / 3.0 / 5.3 / 6.1%)",
+    "note": "Tolerance ±0.1 percentage points (the paper rounds to 0.1%); the reproduced values are not rounded"
    },
    {
     "id": "paper-white_male",
@@ -14555,7 +17039,9 @@ export const COEFFICIENTS = {
     "reproduced": {
      "risk_10y": 0.05384,
      "diff_pp": 0.084
-    }
+    },
+    "source": "Table A example (age 55); the paper gives the risk only as a percentage to one decimal (2.1 / 3.0 / 5.3 / 6.1%)",
+    "note": "Tolerance ±0.1 percentage points (the paper rounds to 0.1%); the reproduced values are not rounded"
    },
    {
     "id": "paper-aa_male",
@@ -14582,7 +17068,9 @@ export const COEFFICIENTS = {
     "reproduced": {
      "risk_10y": 0.06073,
      "diff_pp": -0.027
-    }
+    },
+    "source": "Table A example (age 55); the paper gives the risk only as a percentage to one decimal (2.1 / 3.0 / 5.3 / 6.1%)",
+    "note": "Tolerance ±0.1 percentage points (the paper rounds to 0.1%); the reproduced values are not rounded"
    },
    {
     "id": "self-white_female-treated-smoker-dm",
@@ -14600,7 +17088,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.35764
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed from the Table A coefficients in this file (Mean to 2 decimals), not checked against the paper",
+    "note": "Tests the treated/smoking/diabetes branch and interaction terms; if Mean were the 4-decimal version (source not seen), the four equations in the age-55 example differ by <=0.015 percentage points in measurements in this file"
    },
    {
     "id": "self-aa_female-treated-smoker-dm",
@@ -14618,7 +17108,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.51779
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed from the Table A coefficients in this file (Mean to 2 decimals), not checked against the paper",
+    "note": "Tests the treated/smoking/diabetes branch and interaction terms; if Mean were the 4-decimal version (source not seen), the four equations in the age-55 example differ by <=0.015 percentage points in measurements in this file"
    },
    {
     "id": "self-white_male-treated-smoker-dm",
@@ -14636,7 +17128,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.48437
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed from the Table A coefficients in this file (Mean to 2 decimals), not checked against the paper",
+    "note": "Tests the treated/smoking/diabetes branch and interaction terms; if Mean were the 4-decimal version (source not seen), the four equations in the age-55 example differ by <=0.015 percentage points in measurements in this file"
    },
    {
     "id": "self-aa_male-treated-smoker-dm",
@@ -14654,7 +17148,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.5683
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed from the Table A coefficients in this file (Mean to 2 decimals), not checked against the paper",
+    "note": "Tests the treated/smoking/diabetes branch and interaction terms; if Mean were the 4-decimal version (source not seen), the four equations in the age-55 example differ by <=0.015 percentage points in measurements in this file"
    }
   ]
  },
@@ -14664,289 +17160,407 @@ export const COEFFICIENTS = {
   "status": "not_feasible_coefficients_not_obtained",
   "source": {
    "citation": "Hippisley-Cox J, Coupland C. BMJ Open 2015;5:e007825 (doi:10.1136/bmjopen-2015-007825)",
-   "pdf_key": "HippisleyCox2015BMJOpen"
+   "pdf_key": "HippisleyCox2015BMJOpen",
+   "license": "Paper is open access; the algorithm is promised as open source under GNU LGPL v3, with closed-source use requiring a paid licence (paper Data sharing statement, last page of the PDF). Source code actually obtained: none."
   },
   "model_type": "Cox",
+  "outcome": "10-year diagnosis risk for 11 cancers (one set each for men and women)",
   "horizon_years": 10,
+  "population": {
+   "age_range": "25-84 (paper); the qcancer.org page also says 25-89, unconfirmed",
+   "country": "QResearch, England and Wales"
+  },
   "inputs": [
+   "Age",
+   "Ethnicity",
    "Townsend",
-   "BMI"
+   "BMI",
+   "Smoking",
+   "Alcohol",
+   "History of cancer",
+   "Family history",
+   "Comorbidities",
+   "Medication"
   ],
   "examples": [],
   "attempts": [
    {
-    "target": "https://qcancer.org/10yr/"
+    "target": "https://qcancer.org/10yr/",
+    "result": "There are only calculator links for men and women, no source code or download link; the site states that it is forbidden to use the website as a web service or for developing/testing software"
    },
    {
-    "target": "https://qcancer.org/"
+    "target": "https://qcancer.org/",
+    "result": "The links are only the calculator versions, QCancer-Overview-Dec-2012.pdf, Using-QCancer-in-a-clinical-setting.pdf and the EMIS help page; no source code"
    },
    {
-    "target": "https://qcancer.org/10yr/male"
+    "target": "https://qcancer.org/10yr/male",
+    "result": "Calculator page (loads form.v001.js); under the site's terms the coefficients are not extracted from the calculator"
    },
    {
-    "target": "https://clinrisk.co.uk/"
+    "target": "https://clinrisk.co.uk/",
+    "result": "ClinRisk has been merged into Endeavour Predict CIC, redirecting to endeavourpredict.org; no QCancer source download was found again"
    },
    {
-    "target": "https://archive.org/wayback/available?url=qcancer.org/10yr/source"
+    "target": "https://archive.org/wayback/available?url=qcancer.org/10yr/source",
+    "result": "No archive"
    },
-   {},
-   {}
+   {
+    "target": "GitHub repo search for qcancer",
+    "result": "Only the third-party PurinSuk/qcancer_explanation (AGPL-3.0, an explanatory web app, not an official source of coefficients) and unrelated repos; the ClinRisk-Ltd organization page returns 404"
+   },
+   {
+    "target": "The paper PDF itself",
+    "result": "Only HRs (from Table 2), no baseline survival function or full coefficients; no appendix code"
+   }
   ],
-  "next_steps": []
+  "next_steps": [
+   "Ask Endeavour Predict / QResearch for a source code download",
+   "Or switch to another multi-cancer model with public coefficients"
+  ]
  },
  "qdiabetes-2018-2": {
   "schema": "c1-coef-1",
   "model_id": "qdiabetes-2018-2",
+  "citation": "Hippisley-Cox J, Coupland C. Development and validation of QDiabetes-2018 risk prediction algorithm to estimate future risk of type 2 diabetes: cohort study. BMJ 2017;359:j5019. doi:10.1136/bmj.j5019 (PMC5694979, CC BY 4.0)",
   "model_type": "cox",
+  "outcome": "Type 2 diabetes (diagnosis)",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Ages 25 to <85",
+   "sex": "One set each for men and women",
+   "notes": "Adults without diabetes in QResearch, England; Model B (adds fasting glucose) and Model C (adds HbA1c)"
+  },
+  "formula": "risk10 = 1 − S0^exp(score); score = ethnicity + smoking + Σ(FP terms × β, centring value subtracted) + β_tds × (tds − centre) + Σ binary terms + Σ age interaction terms. S0 is in equations[].baseline_survival.",
   "variables": [
    {
     "name": "sex",
-    "unit": "Female/Male"
+    "unit": "Female/Male",
+    "coding": "One set of coefficients each for men and women"
    },
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "25 to <85"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "Clamped to [20, 40] in R; height 1.4–2.1 m and weight 40–180 kg can also be given"
    },
    {
-    "name": "ethn"
+    "name": "ethn",
+    "unit": "category",
+    "coding": "WhiteNA / Indian / Pakistani / Bangladeshi / OtherAsian / BlackCaribbean / BlackAfrican / Chinese / Other"
    },
    {
-    "name": "smoke"
+    "name": "smoke",
+    "unit": "category",
+    "coding": "Non / Ex / Light / Moderate / Heavy"
    },
    {
-    "name": "tds"
+    "name": "tds",
+    "unit": "Townsend score",
+    "coding": "-8 to 14; R default 0 (population mean about 0.39 for women / 0.52 for men); no equivalent in Taiwan"
    },
    {
     "name": "fhdm,htn,cvd,gdm,pcos,learn,psy,ster,stat,apsy",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "For men, gdm and pcos must be 0"
    },
    {
     "name": "fpg",
-    "unit": "mmol/L"
+    "unit": "mmol/L",
+    "coding": "2 to <7"
    },
    {
     "name": "hba1c",
-    "unit": "mmol/mol"
+    "unit": "mmol/mol",
+    "coding": "15 to <48 (a % must be converted first)"
    }
   ],
   "equations": [
    {
     "id": "female_B",
+    "applies_to": "Women | Model B",
     "coefficients": [
      {
+      "term": "Ethnicity Indian (reference = WhiteNA)",
       "key": "eth_Indian",
-      "beta": 0.9898906127239111
+      "beta": 0.9898906127239111,
+      "source": "R/QDR2018B.R line 142 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Pakistani (reference = WhiteNA)",
       "key": "eth_Pakistani",
-      "beta": 1.2511504196326508
+      "beta": 1.2511504196326508,
+      "source": "R/QDR2018B.R line 143 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Bangladeshi (reference = WhiteNA)",
       "key": "eth_Bangladeshi",
-      "beta": 1.493475756819612
+      "beta": 1.493475756819612,
+      "source": "R/QDR2018B.R line 144 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity OtherAsian (reference = WhiteNA)",
       "key": "eth_OtherAsian",
-      "beta": 0.9673887434565966
+      "beta": 0.9673887434565966,
+      "source": "R/QDR2018B.R line 145 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackCaribbean (reference = WhiteNA)",
       "key": "eth_BlackCaribbean",
-      "beta": 0.4844644519593178
+      "beta": 0.4844644519593178,
+      "source": "R/QDR2018B.R line 146 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackAfrican (reference = WhiteNA)",
       "key": "eth_BlackAfrican",
-      "beta": 0.47842149553601027
+      "beta": 0.47842149553601027,
+      "source": "R/QDR2018B.R line 147 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Chinese (reference = WhiteNA)",
       "key": "eth_Chinese",
-      "beta": 0.7520946270805577
+      "beta": 0.7520946270805577,
+      "source": "R/QDR2018B.R line 148 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Other (reference = WhiteNA)",
       "key": "eth_Other",
-      "beta": 0.40508807415414244
+      "beta": 0.40508807415414244,
+      "source": "R/QDR2018B.R line 149 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Ex (reference = Non)",
       "key": "smoke_Ex",
-      "beta": 0.03741563072369632
+      "beta": 0.03741563072369632,
+      "source": "R/QDR2018B.R line 152 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Light (reference = Non)",
       "key": "smoke_Light",
-      "beta": 0.22529736725144828
+      "beta": 0.22529736725144828,
+      "source": "R/QDR2018B.R line 153 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Moderate (reference = Non)",
       "key": "smoke_Moderate",
-      "beta": 0.3099736428023663
+      "beta": 0.3099736428023663,
+      "source": "R/QDR2018B.R line 154 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Heavy (reference = Non)",
       "key": "smoke_Heavy",
-      "beta": 0.43619421394964175
+      "beta": 0.43619421394964175,
+      "source": "R/QDR2018B.R line 155 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 = (age/10)^0.5",
       "key": "age_1",
       "beta": 3.765012950751728,
-      "mean": 2.123332023620606
+      "mean": 2.123332023620606,
+      "source": "R/QDR2018B.R lines 159 (CRAN archive QDiabetes_1.0-2)–161 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "age_2 = (age/10)^3",
       "key": "age_2",
       "beta": -0.005604334343661494,
-      "mean": 91.64474487304688
+      "mean": 91.64474487304688,
+      "source": "R/QDR2018B.R lines 159 (CRAN archive QDiabetes_1.0-2)–161 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_1 = bmi/10",
       "key": "bmi_1",
       "beta": 2.441093503167247,
-      "mean": 2.571253299713135
+      "mean": 2.571253299713135,
+      "source": "R/QDR2018B.R lines 165 (CRAN archive QDiabetes_1.0-2)–167 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_2 = (bmi/10)^3",
       "key": "bmi_2",
       "beta": -0.04215263347990964,
-      "mean": 16.999439239501953
+      "mean": 16.999439239501953,
+      "source": "R/QDR2018B.R lines 165 (CRAN archive QDiabetes_1.0-2)–167 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "fpg_1 = fpg^-1",
       "key": "fpg_1",
       "beta": -2.188789194633731,
-      "mean": 0.20830936729908
+      "mean": 0.20830936729908,
+      "source": "R/QDR2018B.R lines 176 (CRAN archive QDiabetes_1.0-2)–178 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "fpg_2 = ln(fpg)*fpg^-1",
       "key": "fpg_2",
       "beta": -69.96084198286603,
-      "mean": 0.326781362295151
+      "mean": 0.326781362295151,
+      "source": "R/QDR2018B.R lines 176 (CRAN archive QDiabetes_1.0-2)–178 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
+      "term": "Townsend deprivation score (per 1 unit; centring value subtracted)",
       "key": "tds",
       "beta": 0.03580462976631265,
-      "mean": 0.391116052865982
+      "mean": 0.391116052865982,
+      "source": "R/QDR2018B.R lines 170 (CRAN archive QDiabetes_1.0-2)–171"
      },
      {
+      "term": "Atypical antipsychotic (0/1)",
       "key": "apsy",
-      "beta": 0.47483785502538534
+      "beta": 0.47483785502538534,
+      "source": "R/QDR2018B.R line 181 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Corticosteroid (0/1)",
       "key": "ster",
-      "beta": 0.37679334437547285
+      "beta": 0.37679334437547285,
+      "source": "R/QDR2018B.R line 182 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "History of cardiovascular disease (0/1)",
       "key": "cvd",
-      "beta": 0.1967261568066525
+      "beta": 0.1967261568066525,
+      "source": "R/QDR2018B.R line 183 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Gestational diabetes (0/1)",
       "key": "gdm",
-      "beta": 1.0689325033692647
+      "beta": 1.0689325033692647,
+      "source": "R/QDR2018B.R line 184 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Learning disability (0/1)",
       "key": "learn",
-      "beta": 0.4542293408951035
+      "beta": 0.4542293408951035,
+      "source": "R/QDR2018B.R line 185 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Schizophrenia/bipolar disorder (0/1)",
       "key": "psy",
-      "beta": 0.16161718890842605
+      "beta": 0.16161718890842605,
+      "source": "R/QDR2018B.R line 186 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Polycystic ovary syndrome (0/1)",
       "key": "pcos",
-      "beta": 0.3565365789576717
+      "beta": 0.3565365789576717,
+      "source": "R/QDR2018B.R line 187 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Statin (0/1)",
       "key": "stat",
-      "beta": 0.5809287382718668
+      "beta": 0.5809287382718668,
+      "source": "R/QDR2018B.R line 188 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Treated hypertension (0/1)",
       "key": "htn",
-      "beta": 0.2836632020122907
+      "beta": 0.2836632020122907,
+      "source": "R/QDR2018B.R line 189 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Family history of diabetes (0/1)",
       "key": "fhdm",
-      "beta": 0.45221497662061116
+      "beta": 0.45221497662061116,
+      "source": "R/QDR2018B.R line 190 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × apsy",
       "key": "age_1*apsy",
-      "beta": -0.7683591642786523
+      "beta": -0.7683591642786523,
+      "source": "R/QDR2018B.R line 193 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × apsy",
       "key": "age_2*apsy",
-      "beta": 0.0005194455624413476
+      "beta": 0.0005194455624413476,
+      "source": "R/QDR2018B.R line 194 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × learn",
       "key": "age_1*learn",
-      "beta": -0.7983128124297588
+      "beta": -0.7983128124297588,
+      "source": "R/QDR2018B.R line 195 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × learn",
       "key": "age_2*learn",
-      "beta": 0.00030283275671618906
+      "beta": 0.00030283275671618906,
+      "source": "R/QDR2018B.R line 196 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × stat",
       "key": "age_1*stat",
-      "beta": -1.9033508839833257
+      "beta": -1.9033508839833257,
+      "source": "R/QDR2018B.R line 197 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × stat",
       "key": "age_2*stat",
-      "beta": 0.002439711140601871
+      "beta": 0.002439711140601871,
+      "source": "R/QDR2018B.R line 198 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_1",
       "key": "age_1*bmi_1",
-      "beta": 0.4844747602404915
+      "beta": 0.4844747602404915,
+      "source": "R/QDR2018B.R line 199 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_1",
       "key": "age_2*bmi_1",
-      "beta": -0.004157297668215406
+      "beta": -0.004157297668215406,
+      "source": "R/QDR2018B.R line 200 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_2",
       "key": "age_1*bmi_2",
-      "beta": -0.031939988307181345
+      "beta": -0.031939988307181345,
+      "source": "R/QDR2018B.R line 201 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_2",
       "key": "age_2*bmi_2",
-      "beta": 0.00011268821942042522
+      "beta": 0.00011268821942042522,
+      "source": "R/QDR2018B.R line 202 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fpg_1",
       "key": "age_1*fpg_1",
-      "beta": 2.244290304740435
+      "beta": 2.244290304740435,
+      "source": "R/QDR2018B.R line 203 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fpg_1",
       "key": "age_2*fpg_1",
-      "beta": 0.019934530853431255
+      "beta": 0.019934530853431255,
+      "source": "R/QDR2018B.R line 204 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fpg_2",
       "key": "age_1*fpg_2",
-      "beta": 13.006838869978303
+      "beta": 13.006838869978303,
+      "source": "R/QDR2018B.R line 205 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fpg_2",
       "key": "age_2*fpg_2",
-      "beta": -0.07166771875293067
+      "beta": -0.07166771875293067,
+      "source": "R/QDR2018B.R line 206 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fhdm",
       "key": "age_1*fhdm",
-      "beta": -0.30406273740345013
+      "beta": -0.30406273740345013,
+      "source": "R/QDR2018B.R line 207 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fhdm",
       "key": "age_2*fhdm",
-      "beta": 0.00045236396712023254
+      "beta": 0.00045236396712023254,
+      "source": "R/QDR2018B.R line 208 (CRAN archive QDiabetes_1.0-2)"
      }
     ],
     "transforms": {
@@ -14959,7 +17573,8 @@ export const COEFFICIENTS = {
     },
     "constants": {
      "S0_10y": {
-      "value": 0.990905702114105
+      "value": 0.990905702114105,
+      "source": "R/QDR2018B.R line 282 (CRAN archive QDiabetes_1.0-2)"
      }
     },
     "baseline_survival": {
@@ -14968,207 +17583,272 @@ export const COEFFICIENTS = {
    },
    {
     "id": "male_B",
+    "applies_to": "Men | Model B",
     "coefficients": [
      {
+      "term": "Ethnicity Indian (reference = WhiteNA)",
       "key": "eth_Indian",
-      "beta": 1.0081475800686235
+      "beta": 1.0081475800686235,
+      "source": "R/QDR2018B.R line 212 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Pakistani (reference = WhiteNA)",
       "key": "eth_Pakistani",
-      "beta": 1.3359138425778705
+      "beta": 1.3359138425778705,
+      "source": "R/QDR2018B.R line 213 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Bangladeshi (reference = WhiteNA)",
       "key": "eth_Bangladeshi",
-      "beta": 1.4815419524892652
+      "beta": 1.4815419524892652,
+      "source": "R/QDR2018B.R line 214 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity OtherAsian (reference = WhiteNA)",
       "key": "eth_OtherAsian",
-      "beta": 1.0384996851820663
+      "beta": 1.0384996851820663,
+      "source": "R/QDR2018B.R line 215 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackCaribbean (reference = WhiteNA)",
       "key": "eth_BlackCaribbean",
-      "beta": 0.5202348070887525
+      "beta": 0.5202348070887525,
+      "source": "R/QDR2018B.R line 216 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackAfrican (reference = WhiteNA)",
       "key": "eth_BlackAfrican",
-      "beta": 0.8579673418258559
+      "beta": 0.8579673418258559,
+      "source": "R/QDR2018B.R line 217 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Chinese (reference = WhiteNA)",
       "key": "eth_Chinese",
-      "beta": 0.6413108960765616
+      "beta": 0.6413108960765616,
+      "source": "R/QDR2018B.R line 218 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Other (reference = WhiteNA)",
       "key": "eth_Other",
-      "beta": 0.4838340220821505
+      "beta": 0.4838340220821505,
+      "source": "R/QDR2018B.R line 219 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Ex (reference = Non)",
       "key": "smoke_Ex",
-      "beta": 0.11194757923641625
+      "beta": 0.11194757923641625,
+      "source": "R/QDR2018B.R line 222 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Light (reference = Non)",
       "key": "smoke_Light",
-      "beta": 0.31101320954122047
+      "beta": 0.31101320954122047,
+      "source": "R/QDR2018B.R line 223 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Moderate (reference = Non)",
       "key": "smoke_Moderate",
-      "beta": 0.3328898469326042
+      "beta": 0.3328898469326042,
+      "source": "R/QDR2018B.R line 224 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Heavy (reference = Non)",
       "key": "smoke_Heavy",
-      "beta": 0.4257069026941993
+      "beta": 0.4257069026941993,
+      "source": "R/QDR2018B.R line 225 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 = ln(age/10)",
       "key": "age_1",
       "beta": 4.114914330236472,
-      "mean": 1.496392488479614
+      "mean": 1.496392488479614,
+      "source": "R/QDR2018B.R lines 229 (CRAN archive QDiabetes_1.0-2)–231 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "age_2 = (age/10)^3",
       "key": "age_2",
       "beta": -0.004759357666850536,
-      "mean": 89.04817199707031
+      "mean": 89.04817199707031,
+      "source": "R/QDR2018B.R lines 229 (CRAN archive QDiabetes_1.0-2)–231 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_1 = (bmi/10)^2",
       "key": "bmi_1",
       "beta": 0.8169361587644297,
-      "mean": 6.817805767059326
+      "mean": 6.817805767059326,
+      "source": "R/QDR2018B.R lines 235 (CRAN archive QDiabetes_1.0-2)–237 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_2 = (bmi/10)^3",
       "key": "bmi_2",
       "beta": -0.12502377403433362,
-      "mean": 17.801923751831055
+      "mean": 17.801923751831055,
+      "source": "R/QDR2018B.R lines 235 (CRAN archive QDiabetes_1.0-2)–237 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "fpg_1 = fpg^-0.5",
       "key": "fpg_1",
       "beta": -54.84178812809711,
-      "mean": 0.448028832674026
+      "mean": 0.448028832674026,
+      "source": "R/QDR2018B.R lines 246 (CRAN archive QDiabetes_1.0-2)–248 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "fpg_2 = ln(fpg)*fpg^-0.5",
       "key": "fpg_2",
       "beta": -53.11207849848136,
-      "mean": 0.71944260597229
+      "mean": 0.71944260597229,
+      "source": "R/QDR2018B.R lines 246 (CRAN archive QDiabetes_1.0-2)–248 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
+      "term": "Townsend deprivation score (per 1 unit; centring value subtracted)",
       "key": "tds",
       "beta": 0.025374175519894356,
-      "mean": 0.515986680984497
+      "mean": 0.515986680984497,
+      "source": "R/QDR2018B.R lines 240 (CRAN archive QDiabetes_1.0-2)–241"
      },
      {
+      "term": "Atypical antipsychotic (0/1)",
       "key": "apsy",
-      "beta": 0.44179340888895774
+      "beta": 0.44179340888895774,
+      "source": "R/QDR2018B.R line 251 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Corticosteroid (0/1)",
       "key": "ster",
-      "beta": 0.3413547348339454
+      "beta": 0.3413547348339454,
+      "source": "R/QDR2018B.R line 252 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "History of cardiovascular disease (0/1)",
       "key": "cvd",
-      "beta": 0.21589774543727566
+      "beta": 0.21589774543727566,
+      "source": "R/QDR2018B.R line 253 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Learning disability (0/1)",
       "key": "learn",
-      "beta": 0.40128850275853
+      "beta": 0.40128850275853,
+      "source": "R/QDR2018B.R line 254 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Schizophrenia/bipolar disorder (0/1)",
       "key": "psy",
-      "beta": 0.21817693913997793
+      "beta": 0.21817693913997793,
+      "source": "R/QDR2018B.R line 255 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Statin (0/1)",
       "key": "stat",
-      "beta": 0.5147657600111735
+      "beta": 0.5147657600111735,
+      "source": "R/QDR2018B.R line 256 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Treated hypertension (0/1)",
       "key": "htn",
-      "beta": 0.24672092874070373
+      "beta": 0.24672092874070373,
+      "source": "R/QDR2018B.R line 257 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Family history of diabetes (0/1)",
       "key": "fhdm",
-      "beta": 0.5749437333987513
+      "beta": 0.5749437333987513,
+      "source": "R/QDR2018B.R line 258 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × apsy",
       "key": "age_1*apsy",
-      "beta": -0.9502224313823127
+      "beta": -0.9502224313823127,
+      "source": "R/QDR2018B.R line 261 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × apsy",
       "key": "age_2*apsy",
-      "beta": 0.00014729720771628743
+      "beta": 0.00014729720771628743,
+      "source": "R/QDR2018B.R line 262 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × learn",
       "key": "age_1*learn",
-      "beta": -0.8358370163090045
+      "beta": -0.8358370163090045,
+      "source": "R/QDR2018B.R line 263 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × learn",
       "key": "age_2*learn",
-      "beta": 0.0006012919264966409
+      "beta": 0.0006012919264966409,
+      "source": "R/QDR2018B.R line 264 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × stat",
       "key": "age_1*stat",
-      "beta": -1.814178691926946
+      "beta": -1.814178691926946,
+      "source": "R/QDR2018B.R line 265 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × stat",
       "key": "age_2*stat",
-      "beta": 0.0016393484911405418
+      "beta": 0.0016393484911405418,
+      "source": "R/QDR2018B.R line 266 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_1",
       "key": "age_1*bmi_1",
-      "beta": 0.37484820920783846
+      "beta": 0.37484820920783846,
+      "source": "R/QDR2018B.R line 267 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_1",
       "key": "age_2*bmi_1",
-      "beta": -0.0010774782221531713
+      "beta": -0.0010774782221531713,
+      "source": "R/QDR2018B.R line 268 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_2",
       "key": "age_1*bmi_2",
-      "beta": -0.09098365795624874
+      "beta": -0.09098365795624874,
+      "source": "R/QDR2018B.R line 269 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_2",
       "key": "age_2*bmi_2",
-      "beta": 0.00019110487304583101
+      "beta": 0.00019110487304583101,
+      "source": "R/QDR2018B.R line 270 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fpg_1",
       "key": "age_1*fpg_1",
-      "beta": 21.011730121764334
+      "beta": 21.011730121764334,
+      "source": "R/QDR2018B.R line 271 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fpg_1",
       "key": "age_2*fpg_1",
-      "beta": -0.03900460792238353
+      "beta": -0.03900460792238353,
+      "source": "R/QDR2018B.R line 272 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fpg_2",
       "key": "age_1*fpg_2",
-      "beta": 23.824460044746974
+      "beta": 23.824460044746974,
+      "source": "R/QDR2018B.R line 273 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fpg_2",
       "key": "age_2*fpg_2",
-      "beta": -0.04112771980589595
+      "beta": -0.04112771980589595,
+      "source": "R/QDR2018B.R line 274 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fhdm",
       "key": "age_1*fhdm",
-      "beta": -0.6780647705291666
+      "beta": -0.6780647705291666,
+      "source": "R/QDR2018B.R line 275 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fhdm",
       "key": "age_2*fhdm",
-      "beta": 0.0006257588248859499
+      "beta": 0.0006257588248859499,
+      "source": "R/QDR2018B.R line 276 (CRAN archive QDiabetes_1.0-2)"
      }
     ],
     "transforms": {
@@ -15181,7 +17861,8 @@ export const COEFFICIENTS = {
     },
     "constants": {
      "S0_10y": {
-      "value": 0.985019445419312
+      "value": 0.985019445419312,
+      "source": "R/QDR2018B.R line 283 (CRAN archive QDiabetes_1.0-2)"
      }
     },
     "baseline_survival": {
@@ -15190,215 +17871,284 @@ export const COEFFICIENTS = {
    },
    {
     "id": "female_C",
+    "applies_to": "Women | Model C",
     "coefficients": [
      {
+      "term": "Ethnicity Indian (reference = WhiteNA)",
       "key": "eth_Indian",
-      "beta": 0.599095159929154
+      "beta": 0.599095159929154,
+      "source": "R/QDR2018C.R line 143 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Pakistani (reference = WhiteNA)",
       "key": "eth_Pakistani",
-      "beta": 0.7832030965635389
+      "beta": 0.7832030965635389,
+      "source": "R/QDR2018C.R line 144 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Bangladeshi (reference = WhiteNA)",
       "key": "eth_Bangladeshi",
-      "beta": 1.1947351247960103
+      "beta": 1.1947351247960103,
+      "source": "R/QDR2018C.R line 145 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity OtherAsian (reference = WhiteNA)",
       "key": "eth_OtherAsian",
-      "beta": 0.7141744699168143
+      "beta": 0.7141744699168143,
+      "source": "R/QDR2018C.R line 146 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackCaribbean (reference = WhiteNA)",
       "key": "eth_BlackCaribbean",
-      "beta": 0.11953284683887688
+      "beta": 0.11953284683887688,
+      "source": "R/QDR2018C.R line 147 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackAfrican (reference = WhiteNA)",
       "key": "eth_BlackAfrican",
-      "beta": 0.013668872878490427
+      "beta": 0.013668872878490427,
+      "source": "R/QDR2018C.R line 148 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Chinese (reference = WhiteNA)",
       "key": "eth_Chinese",
-      "beta": 0.5709226537693946
+      "beta": 0.5709226537693946,
+      "source": "R/QDR2018C.R line 149 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Other (reference = WhiteNA)",
       "key": "eth_Other",
-      "beta": 0.17091076281069292
+      "beta": 0.17091076281069292,
+      "source": "R/QDR2018C.R line 150 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Ex (reference = Non)",
       "key": "smoke_Ex",
-      "beta": 0.06584825851000067
+      "beta": 0.06584825851000067,
+      "source": "R/QDR2018C.R line 153 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Light (reference = Non)",
       "key": "smoke_Light",
-      "beta": 0.1458413689734224
+      "beta": 0.1458413689734224,
+      "source": "R/QDR2018C.R line 154 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Moderate (reference = Non)",
       "key": "smoke_Moderate",
-      "beta": 0.15258642474801187
+      "beta": 0.15258642474801187,
+      "source": "R/QDR2018C.R line 155 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Heavy (reference = Non)",
       "key": "smoke_Heavy",
-      "beta": 0.30787416796613976
+      "beta": 0.30787416796613976,
+      "source": "R/QDR2018C.R line 156 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 = (age/10)^0.5",
       "key": "age_1",
       "beta": 3.565521489194772,
-      "mean": 2.123332023620606
+      "mean": 2.123332023620606,
+      "source": "R/QDR2018C.R lines 160 (CRAN archive QDiabetes_1.0-2)–162 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "age_2 = (age/10)^3",
       "key": "age_2",
       "beta": -0.0056158243572733135,
-      "mean": 91.64474487304688
+      "mean": 91.64474487304688,
+      "source": "R/QDR2018C.R lines 160 (CRAN archive QDiabetes_1.0-2)–162 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_1 = bmi/10",
       "key": "bmi_1",
       "beta": 2.504302887454484,
-      "mean": 2.571253299713135
+      "mean": 2.571253299713135,
+      "source": "R/QDR2018C.R lines 166 (CRAN archive QDiabetes_1.0-2)–168 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_2 = (bmi/10)^3",
       "key": "bmi_2",
       "beta": -0.04287580189269046,
-      "mean": 16.999439239501953
+      "mean": 16.999439239501953,
+      "source": "R/QDR2018C.R lines 166 (CRAN archive QDiabetes_1.0-2)–168 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "hba1c_1 = (hba1c/10)^0.5",
       "key": "hba1c_1",
       "beta": 8.736803130736218,
-      "mean": 1.886751174926758
+      "mean": 1.886751174926758,
+      "source": "R/QDR2018C.R lines 175 (CRAN archive QDiabetes_1.0-2)–177 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "hba1c_2 = hba1c/10",
       "key": "hba1c_2",
       "beta": -0.07823138666994997,
-      "mean": 3.559829950332642
+      "mean": 3.559829950332642,
+      "source": "R/QDR2018C.R lines 175 (CRAN archive QDiabetes_1.0-2)–177 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
+      "term": "Townsend deprivation score (per 1 unit; centring value subtracted)",
       "key": "tds",
       "beta": 0.035866822056348294,
-      "mean": 0.391116052865982
+      "mean": 0.391116052865982,
+      "source": "R/QDR2018C.R lines 171 (CRAN archive QDiabetes_1.0-2)–172"
      },
      {
+      "term": "Atypical antipsychotic (0/1)",
       "key": "apsy",
-      "beta": 0.54976333110422
+      "beta": 0.54976333110422,
+      "source": "R/QDR2018C.R line 180 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Corticosteroid (0/1)",
       "key": "ster",
-      "beta": 0.16872205506389704
+      "beta": 0.16872205506389704,
+      "source": "R/QDR2018C.R line 181 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "History of cardiovascular disease (0/1)",
       "key": "cvd",
-      "beta": 0.16443300362739344
+      "beta": 0.16443300362739344,
+      "source": "R/QDR2018C.R line 182 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Gestational diabetes (0/1)",
       "key": "gdm",
-      "beta": 1.125009810517114
+      "beta": 1.125009810517114,
+      "source": "R/QDR2018C.R line 183 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Learning disability (0/1)",
       "key": "learn",
-      "beta": 0.2891205831073966
+      "beta": 0.2891205831073966,
+      "source": "R/QDR2018C.R line 184 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Schizophrenia/bipolar disorder (0/1)",
       "key": "psy",
-      "beta": 0.31825122490684077
+      "beta": 0.31825122490684077,
+      "source": "R/QDR2018C.R line 185 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Polycystic ovary syndrome (0/1)",
       "key": "pcos",
-      "beta": 0.33806444140981745
+      "beta": 0.33806444140981745,
+      "source": "R/QDR2018C.R line 186 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Statin (0/1)",
       "key": "stat",
-      "beta": 0.45593968473811164
+      "beta": 0.45593968473811164,
+      "source": "R/QDR2018C.R line 187 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Treated hypertension (0/1)",
       "key": "htn",
-      "beta": 0.4040022295023758
+      "beta": 0.4040022295023758,
+      "source": "R/QDR2018C.R line 188 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Family history of diabetes (0/1)",
       "key": "fhdm",
-      "beta": 0.4428015404826032
+      "beta": 0.4428015404826032,
+      "source": "R/QDR2018C.R line 189 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × apsy",
       "key": "age_1*apsy",
-      "beta": -0.8125434197162131
+      "beta": -0.8125434197162131,
+      "source": "R/QDR2018C.R line 192 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × apsy",
       "key": "age_2*apsy",
-      "beta": 0.0004665611306005428
+      "beta": 0.0004665611306005428,
+      "source": "R/QDR2018C.R line 193 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × learn",
       "key": "age_1*learn",
-      "beta": -0.9084665765269808
+      "beta": -0.9084665765269808,
+      "source": "R/QDR2018C.R line 194 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × learn",
       "key": "age_2*learn",
-      "beta": 0.0008518980139928006
+      "beta": 0.0008518980139928006,
+      "source": "R/QDR2018C.R line 195 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × stat",
       "key": "age_1*stat",
-      "beta": -1.8557960585560658
+      "beta": -1.8557960585560658,
+      "source": "R/QDR2018C.R line 196 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × stat",
       "key": "age_2*stat",
-      "beta": 0.0022627250963352537
+      "beta": 0.0022627250963352537,
+      "source": "R/QDR2018C.R line 197 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_1",
       "key": "age_1*bmi_1",
-      "beta": 0.6023218765235252
+      "beta": 0.6023218765235252,
+      "source": "R/QDR2018C.R line 198 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_1",
       "key": "age_2*bmi_1",
-      "beta": -0.0043386645663133425
+      "beta": -0.0043386645663133425,
+      "source": "R/QDR2018C.R line 199 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_2",
       "key": "age_1*bmi_2",
-      "beta": -0.03449503839680447
+      "beta": -0.03449503839680447,
+      "source": "R/QDR2018C.R line 200 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_2",
       "key": "age_2*bmi_2",
-      "beta": 0.0001162778561671209
+      "beta": 0.0001162778561671209,
+      "source": "R/QDR2018C.R line 201 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × hba1c_1",
       "key": "age_1*hba1c_1",
-      "beta": 25.441203322736715
+      "beta": 25.441203322736715,
+      "source": "R/QDR2018C.R line 202 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × hba1c_1",
       "key": "age_2*hba1c_1",
-      "beta": -0.05225413558859252
+      "beta": -0.05225413558859252,
+      "source": "R/QDR2018C.R line 203 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × hba1c_2",
       "key": "age_1*hba1c_2",
-      "beta": -6.807608042155611
+      "beta": -6.807608042155611,
+      "source": "R/QDR2018C.R line 204 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × hba1c_2",
       "key": "age_2*hba1c_2",
-      "beta": 0.014054825906114453
+      "beta": 0.014054825906114453,
+      "source": "R/QDR2018C.R line 205 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fhdm",
       "key": "age_1*fhdm",
-      "beta": -0.2727571351506187
+      "beta": -0.2727571351506187,
+      "source": "R/QDR2018C.R line 206 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fhdm",
       "key": "age_2*fhdm",
-      "beta": 0.0004354519795220775
+      "beta": 0.0004354519795220775,
+      "source": "R/QDR2018C.R line 207 (CRAN archive QDiabetes_1.0-2)"
      }
     ],
     "transforms": {
@@ -15411,7 +18161,8 @@ export const COEFFICIENTS = {
     },
     "constants": {
      "S0_10y": {
-      "value": 0.988788545131683
+      "value": 0.988788545131683,
+      "source": "R/QDR2018C.R line 279 (CRAN archive QDiabetes_1.0-2)"
      }
     },
     "baseline_survival": {
@@ -15420,207 +18171,272 @@ export const COEFFICIENTS = {
    },
    {
     "id": "male_C",
+    "applies_to": "Men | Model C",
     "coefficients": [
      {
+      "term": "Ethnicity Indian (reference = WhiteNA)",
       "key": "eth_Indian",
-      "beta": 0.675712070549878
+      "beta": 0.675712070549878,
+      "source": "R/QDR2018C.R line 211 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Pakistani (reference = WhiteNA)",
       "key": "eth_Pakistani",
-      "beta": 0.8314732504966346
+      "beta": 0.8314732504966346,
+      "source": "R/QDR2018C.R line 212 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Bangladeshi (reference = WhiteNA)",
       "key": "eth_Bangladeshi",
-      "beta": 1.0969133802228563
+      "beta": 1.0969133802228563,
+      "source": "R/QDR2018C.R line 213 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity OtherAsian (reference = WhiteNA)",
       "key": "eth_OtherAsian",
-      "beta": 0.7682244636456048
+      "beta": 0.7682244636456048,
+      "source": "R/QDR2018C.R line 214 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackCaribbean (reference = WhiteNA)",
       "key": "eth_BlackCaribbean",
-      "beta": 0.20897529259108502
+      "beta": 0.20897529259108502,
+      "source": "R/QDR2018C.R line 215 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackAfrican (reference = WhiteNA)",
       "key": "eth_BlackAfrican",
-      "beta": 0.3809159378197058
+      "beta": 0.3809159378197058,
+      "source": "R/QDR2018C.R line 216 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Chinese (reference = WhiteNA)",
       "key": "eth_Chinese",
-      "beta": 0.34235836796612695
+      "beta": 0.34235836796612695,
+      "source": "R/QDR2018C.R line 217 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Other (reference = WhiteNA)",
       "key": "eth_Other",
-      "beta": 0.22046477853433083
+      "beta": 0.22046477853433083,
+      "source": "R/QDR2018C.R line 218 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Ex (reference = Non)",
       "key": "smoke_Ex",
-      "beta": 0.11592891206878651
+      "beta": 0.11592891206878651,
+      "source": "R/QDR2018C.R line 221 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Light (reference = Non)",
       "key": "smoke_Light",
-      "beta": 0.1462418263763327
+      "beta": 0.1462418263763327,
+      "source": "R/QDR2018C.R line 222 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Moderate (reference = Non)",
       "key": "smoke_Moderate",
-      "beta": 0.10781424112493142
+      "beta": 0.10781424112493142,
+      "source": "R/QDR2018C.R line 223 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Heavy (reference = Non)",
       "key": "smoke_Heavy",
-      "beta": 0.19848629163668474
+      "beta": 0.19848629163668474,
+      "source": "R/QDR2018C.R line 224 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 = ln(age/10)",
       "key": "age_1",
       "beta": 4.019343562397803,
-      "mean": 1.496392488479614
+      "mean": 1.496392488479614,
+      "source": "R/QDR2018C.R lines 228 (CRAN archive QDiabetes_1.0-2)–230 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "age_2 = (age/10)^3",
       "key": "age_2",
       "beta": -0.004839644230627824,
-      "mean": 89.04817199707031
+      "mean": 89.04817199707031,
+      "source": "R/QDR2018C.R lines 228 (CRAN archive QDiabetes_1.0-2)–230 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_1 = (bmi/10)^2",
       "key": "bmi_1",
       "beta": 0.8182916890534933,
-      "mean": 6.817805767059326
+      "mean": 6.817805767059326,
+      "source": "R/QDR2018C.R lines 234 (CRAN archive QDiabetes_1.0-2)–236 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_2 = (bmi/10)^3",
       "key": "bmi_2",
       "beta": -0.12558808701359642,
-      "mean": 17.801923751831055
+      "mean": 17.801923751831055,
+      "source": "R/QDR2018C.R lines 234 (CRAN archive QDiabetes_1.0-2)–236 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "hba1c_1 = (hba1c/10)^0.5",
       "key": "hba1c_1",
       "beta": 8.051164223885793,
-      "mean": 1.900265336036682
+      "mean": 1.900265336036682,
+      "source": "R/QDR2018C.R lines 243 (CRAN archive QDiabetes_1.0-2)–245 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "hba1c_2 = hba1c/10",
       "key": "hba1c_2",
       "beta": -0.14652346893914495,
-      "mean": 3.611008167266846
+      "mean": 3.611008167266846,
+      "source": "R/QDR2018C.R lines 243 (CRAN archive QDiabetes_1.0-2)–245 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
+      "term": "Townsend deprivation score (per 1 unit; centring value subtracted)",
       "key": "tds",
       "beta": 0.025229965184900727,
-      "mean": 0.515986680984497
+      "mean": 0.515986680984497,
+      "source": "R/QDR2018C.R lines 239 (CRAN archive QDiabetes_1.0-2)–240"
      },
      {
+      "term": "Atypical antipsychotic (0/1)",
       "key": "apsy",
-      "beta": 0.455415252201733
+      "beta": 0.455415252201733,
+      "source": "R/QDR2018C.R line 248 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Corticosteroid (0/1)",
       "key": "ster",
-      "beta": 0.13816187686823922
+      "beta": 0.13816187686823922,
+      "source": "R/QDR2018C.R line 249 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "History of cardiovascular disease (0/1)",
       "key": "cvd",
-      "beta": 0.14546988896239518
+      "beta": 0.14546988896239518,
+      "source": "R/QDR2018C.R line 250 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Learning disability (0/1)",
       "key": "learn",
-      "beta": 0.2596046658040857
+      "beta": 0.2596046658040857,
+      "source": "R/QDR2018C.R line 251 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Schizophrenia/bipolar disorder (0/1)",
       "key": "psy",
-      "beta": 0.28523788490585894
+      "beta": 0.28523788490585894,
+      "source": "R/QDR2018C.R line 252 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Statin (0/1)",
       "key": "stat",
-      "beta": 0.42551951901185525
+      "beta": 0.42551951901185525,
+      "source": "R/QDR2018C.R line 253 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Treated hypertension (0/1)",
       "key": "htn",
-      "beta": 0.3316943000645931
+      "beta": 0.3316943000645931,
+      "source": "R/QDR2018C.R line 254 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Family history of diabetes (0/1)",
       "key": "fhdm",
-      "beta": 0.5661232594368062
+      "beta": 0.5661232594368062,
+      "source": "R/QDR2018C.R line 255 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × apsy",
       "key": "age_1*apsy",
-      "beta": -1.0013331909079835
+      "beta": -1.0013331909079835,
+      "source": "R/QDR2018C.R line 258 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × apsy",
       "key": "age_2*apsy",
-      "beta": 0.00022455973985742407
+      "beta": 0.00022455973985742407,
+      "source": "R/QDR2018C.R line 259 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × learn",
       "key": "age_1*learn",
-      "beta": -0.8916465737221593
+      "beta": -0.8916465737221593,
+      "source": "R/QDR2018C.R line 260 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × learn",
       "key": "age_2*learn",
-      "beta": 0.0006604436076569648
+      "beta": 0.0006604436076569648,
+      "source": "R/QDR2018C.R line 261 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × stat",
       "key": "age_1*stat",
-      "beta": -1.7074561167819817
+      "beta": -1.7074561167819817,
+      "source": "R/QDR2018C.R line 262 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × stat",
       "key": "age_2*stat",
-      "beta": 0.0013873509357389619
+      "beta": 0.0013873509357389619,
+      "source": "R/QDR2018C.R line 263 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_1",
       "key": "age_1*bmi_1",
-      "beta": 0.45074527472672443
+      "beta": 0.45074527472672443,
+      "source": "R/QDR2018C.R line 264 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_1",
       "key": "age_2*bmi_1",
-      "beta": -0.0012224736160287865
+      "beta": -0.0012224736160287865,
+      "source": "R/QDR2018C.R line 265 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_2",
       "key": "age_1*bmi_2",
-      "beta": -0.10851859809165601
+      "beta": -0.10851859809165601,
+      "source": "R/QDR2018C.R line 266 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_2",
       "key": "age_2*bmi_2",
-      "beta": 0.0002266731010346126
+      "beta": 0.0002266731010346126,
+      "source": "R/QDR2018C.R line 267 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × hba1c_1",
       "key": "age_1*hba1c_1",
-      "beta": 27.670593827146565
+      "beta": 27.670593827146565,
+      "source": "R/QDR2018C.R line 268 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × hba1c_1",
       "key": "age_2*hba1c_1",
-      "beta": -0.05920145812475433
+      "beta": -0.05920145812475433,
+      "source": "R/QDR2018C.R line 269 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × hba1c_2",
       "key": "age_1*hba1c_2",
-      "beta": -7.400613484678543
+      "beta": -7.400613484678543,
+      "source": "R/QDR2018C.R line 270 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × hba1c_2",
       "key": "age_2*hba1c_2",
-      "beta": 0.015592089485149988
+      "beta": 0.015592089485149988,
+      "source": "R/QDR2018C.R line 271 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fhdm",
       "key": "age_1*fhdm",
-      "beta": -0.6141009388709716
+      "beta": -0.6141009388709716,
+      "source": "R/QDR2018C.R line 272 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fhdm",
       "key": "age_2*fhdm",
-      "beta": 0.0005060258289477209
+      "beta": 0.0005060258289477209,
+      "source": "R/QDR2018C.R line 273 (CRAN archive QDiabetes_1.0-2)"
      }
     ],
     "transforms": {
@@ -15633,7 +18449,8 @@ export const COEFFICIENTS = {
     },
     "constants": {
      "S0_10y": {
-      "value": 0.981181740760803
+      "value": 0.981181740760803,
+      "source": "R/QDR2018C.R line 280 (CRAN archive QDiabetes_1.0-2)"
      }
     },
     "baseline_survival": {
@@ -15660,7 +18477,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.05279282
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; FPG in mmol/L."
    },
    {
     "id": "base-female-B-fpg6.5",
@@ -15678,7 +18497,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.23433751
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; FPG in mmol/L."
    },
    {
     "id": "base-male-B-fpg5.5",
@@ -15696,7 +18517,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.05735659
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; FPG in mmol/L."
    },
    {
     "id": "base-male-B-fpg6.5",
@@ -15714,7 +18537,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.22519265
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; FPG in mmol/L."
    },
    {
     "id": "highrisk-female-B",
@@ -15737,7 +18562,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.92987896
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Pakistani, moderate smoker, PCOS, family history."
    },
    {
     "id": "base-female-C-hba1c36",
@@ -15755,7 +18582,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.02101045
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; HbA1c in mmol/mol (36≈5.4%, 44≈6.2%)."
    },
    {
     "id": "base-female-C-hba1c44",
@@ -15773,7 +18602,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.10701016
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; HbA1c in mmol/mol (36≈5.4%, 44≈6.2%)."
    },
    {
     "id": "base-male-C-hba1c36",
@@ -15791,7 +18622,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.03242626
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; HbA1c in mmol/mol (36≈5.4%, 44≈6.2%)."
    },
    {
     "id": "base-male-C-hba1c44",
@@ -15809,7 +18642,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.13410878
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0; HbA1c in mmol/mol (36≈5.4%, 44≈6.2%)."
    },
    {
     "id": "highrisk-male-C",
@@ -15832,7 +18667,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.33443818
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Chinese, ex-smoker, treated hypertension, statin."
    },
    {
     "id": "paper-statin-B-male-age35",
@@ -15846,7 +18683,9 @@ export const COEFFICIENTS = {
      "hr_stat": 2.41
     },
     "tolerance": 0.006,
-    "computed": 2.4135
+    "computed": 2.4135,
+    "source": "BMJ 2017;359:j5019 main text (Results: model B, men on statins, increases of \"141% / 66% / 30% / 15%\")",
+    "note": "HR = exp(statin main effect + age_1, age_2 interactions); validates the interaction terms and centring values"
    },
    {
     "id": "paper-statin-B-male-age45",
@@ -15860,7 +18699,9 @@ export const COEFFICIENTS = {
      "hr_stat": 1.66
     },
     "tolerance": 0.006,
-    "computed": 1.6557
+    "computed": 1.6557,
+    "source": "BMJ 2017;359:j5019 main text (Results: model B, men on statins, increases of \"141% / 66% / 30% / 15%\")",
+    "note": "HR = exp(statin main effect + age_1, age_2 interactions); validates the interaction terms and centring values"
    },
    {
     "id": "paper-statin-B-male-age55",
@@ -15874,7 +18715,9 @@ export const COEFFICIENTS = {
      "hr_stat": 1.3
     },
     "tolerance": 0.006,
-    "computed": 1.3015
+    "computed": 1.3015,
+    "source": "BMJ 2017;359:j5019 main text (Results: model B, men on statins, increases of \"141% / 66% / 30% / 15%\")",
+    "note": "HR = exp(statin main effect + age_1, age_2 interactions); validates the interaction terms and centring values"
    },
    {
     "id": "paper-statin-B-male-age65",
@@ -15888,10 +18731,13 @@ export const COEFFICIENTS = {
      "hr_stat": 1.15
     },
     "tolerance": 0.006,
-    "computed": 1.1479
+    "computed": 1.1479,
+    "source": "BMJ 2017;359:j5019 main text (Results: model B, men on statins, increases of \"141% / 66% / 30% / 15%\")",
+    "note": "HR = exp(statin main effect + age_1, age_2 interactions); validates the interaction terms and centring values"
    }
   ],
   "paper_hr_check": {
+   "description": "Comparison of the HRs in paper Table 3 (women) / Table 4 (men) with exp(β) (without the age interaction variables; Townsend taken per 5 units)",
    "rows": [
     {
      "table": "Table 3",
@@ -16547,216 +19393,298 @@ export const COEFFICIENTS = {
  "qdiabetes-2018": {
   "schema": "c1-coef-1",
   "model_id": "qdiabetes-2018",
+  "citation": "Hippisley-Cox J, Coupland C. Development and validation of QDiabetes-2018 risk prediction algorithm to estimate future risk of type 2 diabetes: cohort study. BMJ 2017;359:j5019. doi:10.1136/bmj.j5019 (PMC5694979, CC BY 4.0)",
   "model_type": "cox",
+  "outcome": "Type 2 diabetes (diagnosis)",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Ages 25 to <85",
+   "sex": "One set each for men and women",
+   "notes": "Adults without diabetes in QResearch, England; Model A (no blood test)"
+  },
+  "formula": "risk10 = 1 − S0^exp(score); score = ethnicity + smoking + Σ(FP terms × β, centring value subtracted) + β_tds × (tds − centre) + Σ binary terms + Σ age interaction terms. S0 is in equations[].baseline_survival.",
   "variables": [
    {
     "name": "sex",
-    "unit": "Female/Male"
+    "unit": "Female/Male",
+    "coding": "One set of coefficients each for men and women"
    },
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "25 to <85"
    },
    {
     "name": "bmi",
-    "unit": "kg/m²"
+    "unit": "kg/m²",
+    "coding": "Clamped to [20, 40] in R; height 1.4–2.1 m and weight 40–180 kg can also be given"
    },
    {
-    "name": "ethn"
+    "name": "ethn",
+    "unit": "category",
+    "coding": "WhiteNA / Indian / Pakistani / Bangladeshi / OtherAsian / BlackCaribbean / BlackAfrican / Chinese / Other"
    },
    {
-    "name": "smoke"
+    "name": "smoke",
+    "unit": "category",
+    "coding": "Non / Ex / Light / Moderate / Heavy"
    },
    {
-    "name": "tds"
+    "name": "tds",
+    "unit": "Townsend score",
+    "coding": "-8 to 14; R default 0 (population mean about 0.39 for women / 0.52 for men); no equivalent in Taiwan"
    },
    {
     "name": "fhdm,htn,cvd,gdm,pcos,learn,psy,ster,stat,apsy",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "For men, gdm and pcos must be 0"
    }
   ],
   "equations": [
    {
     "id": "female_A",
+    "applies_to": "Women | Model A",
     "coefficients": [
      {
+      "term": "Ethnicity Indian (reference = WhiteNA)",
       "key": "eth_Indian",
-      "beta": 1.0695857881565456
+      "beta": 1.0695857881565456,
+      "source": "R/QDR2018A.R line 137 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Pakistani (reference = WhiteNA)",
       "key": "eth_Pakistani",
-      "beta": 1.3430172097414006
+      "beta": 1.3430172097414006,
+      "source": "R/QDR2018A.R line 138 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Bangladeshi (reference = WhiteNA)",
       "key": "eth_Bangladeshi",
-      "beta": 1.8029022579794518
+      "beta": 1.8029022579794518,
+      "source": "R/QDR2018A.R line 139 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity OtherAsian (reference = WhiteNA)",
       "key": "eth_OtherAsian",
-      "beta": 1.127465451770802
+      "beta": 1.127465451770802,
+      "source": "R/QDR2018A.R line 140 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackCaribbean (reference = WhiteNA)",
       "key": "eth_BlackCaribbean",
-      "beta": 0.421463149023991
+      "beta": 0.421463149023991,
+      "source": "R/QDR2018A.R line 141 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackAfrican (reference = WhiteNA)",
       "key": "eth_BlackAfrican",
-      "beta": 0.2850919645908353
+      "beta": 0.2850919645908353,
+      "source": "R/QDR2018A.R line 142 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Chinese (reference = WhiteNA)",
       "key": "eth_Chinese",
-      "beta": 0.88151087975892
+      "beta": 0.88151087975892,
+      "source": "R/QDR2018A.R line 143 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Other (reference = WhiteNA)",
       "key": "eth_Other",
-      "beta": 0.3660573343168487
+      "beta": 0.3660573343168487,
+      "source": "R/QDR2018A.R line 144 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Ex (reference = Non)",
       "key": "smoke_Ex",
-      "beta": 0.06560169017505905
+      "beta": 0.06560169017505905,
+      "source": "R/QDR2018A.R line 147 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Light (reference = Non)",
       "key": "smoke_Light",
-      "beta": 0.28450988673698374
+      "beta": 0.28450988673698374,
+      "source": "R/QDR2018A.R line 148 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Moderate (reference = Non)",
       "key": "smoke_Moderate",
-      "beta": 0.3567664381700702
+      "beta": 0.3567664381700702,
+      "source": "R/QDR2018A.R line 149 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Heavy (reference = Non)",
       "key": "smoke_Heavy",
-      "beta": 0.5359517110678775
+      "beta": 0.5359517110678775,
+      "source": "R/QDR2018A.R line 150 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 = (age/10)^0.5",
       "key": "age_1",
       "beta": 4.340085269913928,
-      "mean": 2.123332023620606
+      "mean": 2.123332023620606,
+      "source": "R/QDR2018A.R lines 154 (CRAN archive QDiabetes_1.0-2)–156 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "age_2 = (age/10)^3",
       "key": "age_2",
       "beta": -0.004877170269615888,
-      "mean": 91.64474487304688
+      "mean": 91.64474487304688,
+      "source": "R/QDR2018A.R lines 154 (CRAN archive QDiabetes_1.0-2)–156 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_1 = bmi/10",
       "key": "bmi_1",
       "beta": 2.9320361259524925,
-      "mean": 2.571253299713135
+      "mean": 2.571253299713135,
+      "source": "R/QDR2018A.R lines 160 (CRAN archive QDiabetes_1.0-2)–162 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_2 = (bmi/10)^3",
       "key": "bmi_2",
       "beta": -0.04740020587484349,
-      "mean": 16.999439239501953
+      "mean": 16.999439239501953,
+      "source": "R/QDR2018A.R lines 160 (CRAN archive QDiabetes_1.0-2)–162 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
+      "term": "Townsend deprivation score (per 1 unit; centring value subtracted)",
       "key": "tds",
       "beta": 0.03734056961804915,
-      "mean": 0.391116052865982
+      "mean": 0.391116052865982,
+      "source": "R/QDR2018A.R lines 165 (CRAN archive QDiabetes_1.0-2)–166"
      },
      {
+      "term": "Atypical antipsychotic (0/1)",
       "key": "apsy",
-      "beta": 0.5526764611098438
+      "beta": 0.5526764611098438,
+      "source": "R/QDR2018A.R line 169 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Corticosteroid (0/1)",
       "key": "ster",
-      "beta": 0.267922336806746
+      "beta": 0.267922336806746,
+      "source": "R/QDR2018A.R line 170 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "History of cardiovascular disease (0/1)",
       "key": "cvd",
-      "beta": 0.1779722905458669
+      "beta": 0.1779722905458669,
+      "source": "R/QDR2018A.R line 171 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Gestational diabetes (0/1)",
       "key": "gdm",
-      "beta": 1.5248871531467574
+      "beta": 1.5248871531467574,
+      "source": "R/QDR2018A.R line 172 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Learning disability (0/1)",
       "key": "learn",
-      "beta": 0.27835143587172717
+      "beta": 0.27835143587172717,
+      "source": "R/QDR2018A.R line 173 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Schizophrenia/bipolar disorder (0/1)",
       "key": "psy",
-      "beta": 0.2618085210917906
+      "beta": 0.2618085210917906,
+      "source": "R/QDR2018A.R line 174 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Polycystic ovary syndrome (0/1)",
       "key": "pcos",
-      "beta": 0.3406173988206666
+      "beta": 0.3406173988206666,
+      "source": "R/QDR2018A.R line 175 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Statin (0/1)",
       "key": "stat",
-      "beta": 0.6590728773280822
+      "beta": 0.6590728773280822,
+      "source": "R/QDR2018A.R line 176 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Treated hypertension (0/1)",
       "key": "htn",
-      "beta": 0.4394758285813712
+      "beta": 0.4394758285813712,
+      "source": "R/QDR2018A.R line 177 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Family history of diabetes (0/1)",
       "key": "fhdm",
-      "beta": 0.5313359456558734
+      "beta": 0.5313359456558734,
+      "source": "R/QDR2018A.R line 178 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × apsy",
       "key": "age_1*apsy",
-      "beta": -0.8031518398316395
+      "beta": -0.8031518398316395,
+      "source": "R/QDR2018A.R line 181 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × apsy",
       "key": "age_2*apsy",
-      "beta": 0.000468404118102105
+      "beta": 0.000468404118102105,
+      "source": "R/QDR2018A.R line 182 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × learn",
       "key": "age_1*learn",
-      "beta": -0.8641596002882057
+      "beta": -0.8641596002882057,
+      "source": "R/QDR2018A.R line 183 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × learn",
       "key": "age_2*learn",
-      "beta": 0.000672496880895336
+      "beta": 0.000672496880895336,
+      "source": "R/QDR2018A.R line 184 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × stat",
       "key": "age_1*stat",
-      "beta": -1.9757776696583935
+      "beta": -1.9757776696583935,
+      "source": "R/QDR2018A.R line 185 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × stat",
       "key": "age_2*stat",
-      "beta": 0.0023750534194347966
+      "beta": 0.0023750534194347966,
+      "source": "R/QDR2018A.R line 186 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_1",
       "key": "age_1*bmi_1",
-      "beta": 0.6553138757562945
+      "beta": 0.6553138757562945,
+      "source": "R/QDR2018A.R line 187 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_1",
       "key": "age_2*bmi_1",
-      "beta": -0.004471966244526305
+      "beta": -0.004471966244526305,
+      "source": "R/QDR2018A.R line 188 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_2",
       "key": "age_1*bmi_2",
-      "beta": -0.03620965720163018
+      "beta": -0.03620965720163018,
+      "source": "R/QDR2018A.R line 189 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_2",
       "key": "age_2*bmi_2",
-      "beta": 0.0001185479967753342
+      "beta": 0.0001185479967753342,
+      "source": "R/QDR2018A.R line 190 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fhdm",
       "key": "age_1*fhdm",
-      "beta": -0.2641171450558896
+      "beta": -0.2641171450558896,
+      "source": "R/QDR2018A.R line 191 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fhdm",
       "key": "age_2*fhdm",
-      "beta": 0.00041610258289047683
+      "beta": 0.00041610258289047683,
+      "source": "R/QDR2018A.R line 192 (CRAN archive QDiabetes_1.0-2)"
      }
     ],
     "transforms": {
@@ -16767,7 +19695,8 @@ export const COEFFICIENTS = {
     },
     "constants": {
      "S0_10y": {
-      "value": 0.98622727394104
+      "value": 0.98622727394104,
+      "source": "R/QDR2018A.R line 255 (CRAN archive QDiabetes_1.0-2)"
      }
     },
     "baseline_survival": {
@@ -16776,175 +19705,234 @@ export const COEFFICIENTS = {
    },
    {
     "id": "male_A",
+    "applies_to": "Men | Model A",
     "coefficients": [
      {
+      "term": "Ethnicity Indian (reference = WhiteNA)",
       "key": "eth_Indian",
-      "beta": 1.1000230829124793
+      "beta": 1.1000230829124793,
+      "source": "R/QDR2018A.R line 196 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Pakistani (reference = WhiteNA)",
       "key": "eth_Pakistani",
-      "beta": 1.290384012614721
+      "beta": 1.290384012614721,
+      "source": "R/QDR2018A.R line 197 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Bangladeshi (reference = WhiteNA)",
       "key": "eth_Bangladeshi",
-      "beta": 1.6740908848727458
+      "beta": 1.6740908848727458,
+      "source": "R/QDR2018A.R line 198 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity OtherAsian (reference = WhiteNA)",
       "key": "eth_OtherAsian",
-      "beta": 1.1400446789147816
+      "beta": 1.1400446789147816,
+      "source": "R/QDR2018A.R line 199 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackCaribbean (reference = WhiteNA)",
       "key": "eth_BlackCaribbean",
-      "beta": 0.46824681690655806
+      "beta": 0.46824681690655806,
+      "source": "R/QDR2018A.R line 200 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity BlackAfrican (reference = WhiteNA)",
       "key": "eth_BlackAfrican",
-      "beta": 0.6990564996301545
+      "beta": 0.6990564996301545,
+      "source": "R/QDR2018A.R line 201 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Chinese (reference = WhiteNA)",
       "key": "eth_Chinese",
-      "beta": 0.6894365712711157
+      "beta": 0.6894365712711157,
+      "source": "R/QDR2018A.R line 202 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Ethnicity Other (reference = WhiteNA)",
       "key": "eth_Other",
-      "beta": 0.4172222846773821
+      "beta": 0.4172222846773821,
+      "source": "R/QDR2018A.R line 203 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Ex (reference = Non)",
       "key": "smoke_Ex",
-      "beta": 0.16387409105485573
+      "beta": 0.16387409105485573,
+      "source": "R/QDR2018A.R line 206 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Light (reference = Non)",
       "key": "smoke_Light",
-      "beta": 0.3185144911395898
+      "beta": 0.3185144911395898,
+      "source": "R/QDR2018A.R line 207 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Moderate (reference = Non)",
       "key": "smoke_Moderate",
-      "beta": 0.3220726656778343
+      "beta": 0.3220726656778343,
+      "source": "R/QDR2018A.R line 208 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Smoking Heavy (reference = Non)",
       "key": "smoke_Heavy",
-      "beta": 0.4505243716340953
+      "beta": 0.4505243716340953,
+      "source": "R/QDR2018A.R line 209 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 = ln(age/10)",
       "key": "age_1",
       "beta": 4.464232438869135,
-      "mean": 1.496392488479614
+      "mean": 1.496392488479614,
+      "source": "R/QDR2018A.R lines 213 (CRAN archive QDiabetes_1.0-2)–215 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "age_2 = (age/10)^3",
       "key": "age_2",
       "beta": -0.004075010801925557,
-      "mean": 89.04817199707031
+      "mean": 89.04817199707031,
+      "source": "R/QDR2018A.R lines 213 (CRAN archive QDiabetes_1.0-2)–215 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_1 = (bmi/10)^2",
       "key": "bmi_1",
       "beta": 0.9512902786712067,
-      "mean": 6.817805767059326
+      "mean": 6.817805767059326,
+      "source": "R/QDR2018A.R lines 219 (CRAN archive QDiabetes_1.0-2)–221 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
       "term": "bmi_2 = (bmi/10)^3",
       "key": "bmi_2",
       "beta": -0.14352488277885475,
-      "mean": 17.801923751831055
+      "mean": 17.801923751831055,
+      "source": "R/QDR2018A.R lines 219 (CRAN archive QDiabetes_1.0-2)–221 (centring values + coefficients); beta is the signed coefficient of the R expression b1*x1 - b2*x2"
      },
      {
+      "term": "Townsend deprivation score (per 1 unit; centring value subtracted)",
       "key": "tds",
       "beta": 0.025918182067678725,
-      "mean": 0.515986680984497
+      "mean": 0.515986680984497,
+      "source": "R/QDR2018A.R lines 224 (CRAN archive QDiabetes_1.0-2)–225"
      },
      {
+      "term": "Atypical antipsychotic (0/1)",
       "key": "apsy",
-      "beta": 0.42101092346005436
+      "beta": 0.42101092346005436,
+      "source": "R/QDR2018A.R line 228 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Corticosteroid (0/1)",
       "key": "ster",
-      "beta": 0.22183580932925384
+      "beta": 0.22183580932925384,
+      "source": "R/QDR2018A.R line 229 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "History of cardiovascular disease (0/1)",
       "key": "cvd",
-      "beta": 0.2026960575629002
+      "beta": 0.2026960575629002,
+      "source": "R/QDR2018A.R line 230 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Learning disability (0/1)",
       "key": "learn",
-      "beta": 0.2331532140798696
+      "beta": 0.2331532140798696,
+      "source": "R/QDR2018A.R line 231 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Schizophrenia/bipolar disorder (0/1)",
       "key": "psy",
-      "beta": 0.22770449520517727
+      "beta": 0.22770449520517727,
+      "source": "R/QDR2018A.R line 232 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Statin (0/1)",
       "key": "stat",
-      "beta": 0.5849007543114134
+      "beta": 0.5849007543114134,
+      "source": "R/QDR2018A.R line 233 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Treated hypertension (0/1)",
       "key": "htn",
-      "beta": 0.3337939218350108
+      "beta": 0.3337939218350108,
+      "source": "R/QDR2018A.R line 234 (CRAN archive QDiabetes_1.0-2)"
      },
      {
+      "term": "Family history of diabetes (0/1)",
       "key": "fhdm",
-      "beta": 0.6479928489936954
+      "beta": 0.6479928489936954,
+      "source": "R/QDR2018A.R line 235 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × apsy",
       "key": "age_1*apsy",
-      "beta": -0.9463772226853415
+      "beta": -0.9463772226853415,
+      "source": "R/QDR2018A.R line 238 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × apsy",
       "key": "age_2*apsy",
-      "beta": -0.0000519927442172335
+      "beta": -0.0000519927442172335,
+      "source": "R/QDR2018A.R line 239 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × learn",
       "key": "age_1*learn",
-      "beta": -0.9384237552649983
+      "beta": -0.9384237552649983,
+      "source": "R/QDR2018A.R line 240 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × learn",
       "key": "age_2*learn",
-      "beta": 0.0007102643855968814
+      "beta": 0.0007102643855968814,
+      "source": "R/QDR2018A.R line 241 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × stat",
       "key": "age_1*stat",
-      "beta": -1.74790706530033
+      "beta": -1.74790706530033,
+      "source": "R/QDR2018A.R line 242 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × stat",
       "key": "age_2*stat",
-      "beta": 0.001350836459953167
+      "beta": 0.001350836459953167,
+      "source": "R/QDR2018A.R line 243 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_1",
       "key": "age_1*bmi_1",
-      "beta": 0.45147599241879766
+      "beta": 0.45147599241879766,
+      "source": "R/QDR2018A.R line 244 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_1",
       "key": "age_2*bmi_1",
-      "beta": -0.001179772239456031
+      "beta": -0.001179772239456031,
+      "source": "R/QDR2018A.R line 245 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × bmi_2",
       "key": "age_1*bmi_2",
-      "beta": -0.10795481262776381
+      "beta": -0.10795481262776381,
+      "source": "R/QDR2018A.R line 246 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × bmi_2",
       "key": "age_2*bmi_2",
-      "beta": 0.0002147150913931929
+      "beta": 0.0002147150913931929,
+      "source": "R/QDR2018A.R line 247 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_1 × fhdm",
       "key": "age_1*fhdm",
-      "beta": -0.601185304293012
+      "beta": -0.601185304293012,
+      "source": "R/QDR2018A.R line 248 (CRAN archive QDiabetes_1.0-2)"
      },
      {
       "term": "age_2 × fhdm",
       "key": "age_2*fhdm",
-      "beta": 0.0004914185594087803
+      "beta": 0.0004914185594087803,
+      "source": "R/QDR2018A.R line 249 (CRAN archive QDiabetes_1.0-2)"
      }
     ],
     "transforms": {
@@ -16955,7 +19943,8 @@ export const COEFFICIENTS = {
     },
     "constants": {
      "S0_10y": {
-      "value": 0.978732228279114
+      "value": 0.978732228279114,
+      "source": "R/QDR2018A.R line 256 (CRAN archive QDiabetes_1.0-2)"
      }
     },
     "baseline_survival": {
@@ -16981,7 +19970,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.02837041
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0 (R default). The old document had only the Python-port values 2.84% / 4.29%, reproduced in this file."
    },
    {
     "id": "base-male-A",
@@ -16998,7 +19989,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.04285628
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Age 50, BMI 28, White, non-smoker, no medical history, Townsend 0 (R default). The old document had only the Python-port values 2.84% / 4.29%, reproduced in this file."
    },
    {
     "id": "highrisk-female-A",
@@ -17022,7 +20015,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.99999981
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Multiple risk factors: Bangladeshi, heavy smoker, Townsend 5, family history, treated hypertension, gestational diabetes, statin."
    },
    {
     "id": "highrisk-male-A",
@@ -17045,7 +20040,9 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.34542457
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Indian, light smoker, Townsend -2, family history, history of cardiovascular disease, corticosteroid."
    },
    {
     "id": "young-female-A",
@@ -17062,10 +20059,13 @@ export const COEFFICIENTS = {
     "expected": {
      "risk_10y": 0.00049519
     },
-    "tolerance": 0.000001
+    "tolerance": 0.000001,
+    "source": "Self-computed: coefficients extracted from the R files were computed in Python and compared with the result of mechanically translating the body of the R function line by line and running it (difference < 1e-12); not output from the official program",
+    "note": "Near the lower age bound + BMI clamped at 20: an input BMI of 18 is clamped to 20."
    }
   ],
   "paper_hr_check": {
+   "description": "Comparison of the HRs in paper Table 3 (women) / Table 4 (men) with exp(β) (without the age interaction variables; Townsend taken per 5 units)",
    "rows": [
     {
      "table": "Table 3",
@@ -17398,15 +20398,21 @@ export const COEFFICIENTS = {
   "model_id": "revised-reach-b",
   "schema": "c2-coef-v1",
   "source": {
+   "citation": "Kim GA, et al. Ann Intern Med 2024;177:1308–1318, doi:10.7326/M24-0384 (Revised REACH-B)",
    "files": [
     "Kim2024AnnInternMed.pdf",
     "Kim2024AnnInternMed_supp1.pdf",
     "Kim2024AnnInternMed_supp2.pdf"
    ],
-   "web": "mreach-b.shinyapps.io/rereachb"
+   "web": "mreach-b.shinyapps.io/rereachb",
+   "license": "Licence not stated"
   },
   "model_type": "genF AFT (flexsurv genf) + pspline(sLogDNA, df=2)",
+  "outcome": "5-year HCC (hepatitis B, untreated)",
   "horizon_years": 5,
+  "population": {
+   "eligibility": "Table 1 mean age 45 (SD 12); the back-calculation was validated only for ages 30-60, ALT 15-60, platelets 150-250, DNA 10^3-10^6"
+  },
   "inputs": [
    {
     "name": "age",
@@ -17456,6 +20462,7 @@ export const COEFFICIENTS = {
     "sALT": -0.0768
    },
    "full_precision_rds": {
+    "source": "Raw output of the Shiny app rds (risk-models-web-sources.md §1), agrees item by item with Table D-1 after rounding",
     "mu": 1.391675,
     "sigma": 1.256612,
     "Q": 0.017657,
@@ -17500,6 +20507,7 @@ export const COEFFICIENTS = {
    },
    "derived_scale": {
     "derived": true,
+    "source": "Back-calculated from 11 sets of calculator outputs (risk-models-calculator-backsolve.md §2), not published by the authors; the authors publish only the Table 1 mean age of 45 (SD 12)",
     "sd_age": 11.51,
     "sd_alt": 15.37,
     "sd_platelet": 55.79,
@@ -17508,8 +20516,11 @@ export const COEFFICIENTS = {
     "K_effective_shift": -0.142
    }
   },
+  "formula": "x=(log10(DNA)-4.288)/1.540; mu=1.391675+K+(-0.25327)HBeAg+(-0.672825)Male+(-0.520211)Age/11.51+(-0.07675)ALT/15.37+0.588864 PLT/55.79+Σβ_j B_j(x) (B is columns 2-8 of the pspline basis); F(5)=I_{s1 e/(s2+s1 e)}(s1,s2), δ=√(Q²+2P), s1=2/(Q²+2P+Qδ), s2=2/(Q²+2P−Qδ), e=(5/exp(mu))^(δ/σ); risk=F(5)",
   "verification": {
-   "max_abs_residual_pp": 0.005
+   "method": "Standard-library Python (self-written incomplete Beta and Cox-de Boor) reproduces the 11 sets of calculator outputs",
+   "max_abs_residual_pp": 0.005,
+   "note": "The genF formula is a reconstruction of the flexsurv parametrization (two independent predictions, women and HBeAg-positive, also agree)"
   },
   "examples": [
    {
@@ -17677,26 +20688,40 @@ export const COEFFICIENTS = {
     "reproduced_pct": 1.559,
     "residual_pp": -0.001
    }
-  ]
+  ],
+  "paper_examples": "No example person in the paper; the calculator output governs"
  },
  "schonberg-index": {
   "schema": "c1-coef-1",
   "model_id": "schonberg-index",
+  "citation": "Schonberg MA, Davis RB, McCarthy EP, Marcantonio ER. Index to predict 5-year mortality of community-dwelling adults aged 65 and older using data from the National Health Interview Survey. J Gen Intern Med 2009;24(10):1115–1122 (PMC2762505). 9 years: Schonberg 2011 J Am Geriatr Soc 59(8):1444–1451 (PMC3158286).",
   "model_type": "points",
+  "outcome": "5-year all-cause mortality (extended to 9 years in the 2011 paper)",
   "horizon_years": [
    5,
    9
   ],
+  "population": {
+   "age_range": "Age ≥65, community-dwelling",
+   "sex": "Men and women combined, men +3 points",
+   "notes": "NHIS 1997–2000, development n=16,077, validation n=8,038, mortality follow-up to 2002-12-31; not applicable to institutional residents and people with dementia. US self-completed questionnaire."
+  },
+  "formula": "Total score = Σ points (2009 Table 2 and 2011 Appendix A Table A1 agree); risk = look up the 2-point-wide conversion table. No continuous formula and no baseline survival.",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "65–69 = 0, 70–74 = 1, 75–79 = 3, 80–84 = 5, ≥85 = 7"
    },
    {
     "name": "male",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Male = 1"
    },
    {
-    "name": "smoking"
+    "name": "smoking",
+    "unit": "category",
+    "coding": "Never (<100 cigarettes in lifetime) 0, former 1, current 3"
    },
    {
     "name": "bmi_lt25",
@@ -17705,65 +20730,90 @@ export const COEFFICIENTS = {
    },
    {
     "name": "copd",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Told by a doctor of emphysema / chronic bronchitis"
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Told by a doctor of diabetes (including borderline)"
    },
    {
     "name": "cancer",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Told by a doctor of cancer (excluding non-melanoma skin cancer)"
    },
    {
-    "name": "hospitalizations"
+    "name": "hospitalizations",
+    "unit": "times",
+    "coding": "Overnight hospital stays in the past 12 months: 0 times 0, 1 time 1, ≥2 times 3"
    },
    {
-    "name": "self_health"
+    "name": "self_health",
+    "unit": "category",
+    "coding": "Excellent / very good 0, good 1, fair / poor 2"
    },
    {
     "name": "iadl",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Needs help from others with everyday tasks (housework, errands, shopping, going out) because of physical or mental problems"
    },
    {
-    "name": "walk_quarter_mile"
+    "name": "walk_quarter_mile",
+    "unit": "category",
+    "coding": "Walking a quarter mile (about 3 blocks): no difficulty 0; some to very much difficulty 3; unable / do not do 3"
    }
   ],
   "equations": [],
   "points_tables": [
    {
     "id": "points",
+    "applies_to": "Men and women combined",
+    "source": "2009 JGIM Table 2, PDF p. 5 (journal p. 1119); 2011 Appendix A Table A1, PDF p. 7 (journal pp. 1450–1451)",
     "items": [
      {
+      "factor": "Age",
       "category": "65–69",
       "points": 0
      },
      {
+      "factor": "Age",
       "category": "70–74",
       "points": 1
      },
      {
+      "factor": "Age",
       "category": "75–79",
       "points": 3
      },
      {
+      "factor": "Age",
       "category": "80–84",
       "points": 5
      },
      {
+      "factor": "Age",
       "category": "≥85",
       "points": 7
      },
      {
+      "factor": "Sex",
+      "category": "Men",
       "points": 3
      },
      {
+      "factor": "Smoking",
+      "category": "Never",
       "points": 0
      },
      {
+      "factor": "Smoking",
+      "category": "Former",
       "points": 1
      },
      {
+      "factor": "Smoking",
+      "category": "Current",
       "points": 3
      },
      {
@@ -17772,39 +20822,63 @@ export const COEFFICIENTS = {
       "points": 2
      },
      {
+      "factor": "Emphysema / chronic bronchitis",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Diabetes",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Cancer",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Overnight hospital stays",
+      "category": "0 times",
       "points": 0
      },
      {
+      "factor": "Overnight hospital stays",
+      "category": "1 time",
       "points": 1
      },
      {
+      "factor": "Overnight hospital stays",
+      "category": "≥2 times",
       "points": 3
      },
      {
+      "factor": "Self-rated health",
+      "category": "Excellent / very good",
       "points": 0
      },
      {
+      "factor": "Self-rated health",
+      "category": "Good",
       "points": 1
      },
      {
+      "factor": "Self-rated health",
+      "category": "Fair / poor",
       "points": 2
      },
      {
+      "factor": "Needs help with IADLs",
+      "category": "Yes",
       "points": 2
      },
      {
+      "factor": "Walking 1/4 mile",
+      "category": "No difficulty",
       "points": 0
      },
      {
+      "factor": "Walking 1/4 mile",
+      "category": "Some difficulty to unable",
       "points": 3
      }
     ]
@@ -17813,7 +20887,9 @@ export const COEFFICIENTS = {
   "score_to_risk": [
    {
     "id": "y5_2009_dev",
+    "applies_to": "2009 development set, 5 years",
     "horizon_years": 5,
+    "source": "2009 JGIM Table 3, PDF p. 5 (journal p. 1119)",
     "rows": [
      {
       "score": "0–1",
@@ -17860,7 +20936,8 @@ export const COEFFICIENTS = {
      {
       "score": "14–15",
       "risk": 0.47,
-      "n": 944
+      "n": 944,
+      "ci95": "Printed as 32–42 (suspected error; the point estimate of 47 is not inside the interval)"
      },
      {
       "score": "16–17",
@@ -17878,7 +20955,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "y5_2009_val",
+    "applies_to": "2009 validation set, 5 years",
     "horizon_years": 5,
+    "source": "2009 JGIM Table 3, PDF p. 5 (journal p. 1119)",
     "rows": [
      {
       "score": "0–1",
@@ -17944,7 +21023,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "y5_2009_quintiles",
+    "applies_to": "2009 quintiles (no score cut-offs)",
     "horizon_years": 5,
+    "source": "2009 JGIM Table 3, PDF p. 5 (journal p. 1119)",
     "rows": [
      {
       "score": "Q1",
@@ -17975,7 +21056,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "y5_2011_dev_relinked",
+    "applies_to": "2011 re-linked, complete-case development set, 5 years (used to cross-check 14–15 points)",
     "horizon_years": 5,
+    "source": "2011 JAGS Table 2, PDF p. 5",
     "rows": [
      {
       "score": "0–1",
@@ -18041,7 +21124,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "y5_2011_origval",
+    "applies_to": "2011 original validation set, 5 years",
     "horizon_years": 5,
+    "source": "2011 JAGS Table 2, PDF p. 5",
     "rows": [
      {
       "score": "0–1",
@@ -18107,7 +21192,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "y5_2011_newval",
+    "applies_to": "2011 new validation set (NHIS 2001–2004), 5 years",
     "horizon_years": 5,
+    "source": "2011 JAGS Table 2, PDF p. 5",
     "rows": [
      {
       "score": "0–1",
@@ -18173,7 +21260,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "y9_2011_dev",
+    "applies_to": "2011 development set, 9 years",
     "horizon_years": 9,
+    "source": "2011 JAGS Table 3, PDF p. 5",
     "rows": [
      {
       "score": "0–1",
@@ -18239,7 +21328,9 @@ export const COEFFICIENTS = {
    },
    {
     "id": "y9_2011_origval",
+    "applies_to": "2011 original validation set, 9 years",
     "horizon_years": 9,
+    "source": "2011 JAGS Table 3, PDF p. 5",
     "rows": [
      {
       "score": "0–1",
@@ -18310,7 +21401,8 @@ export const COEFFICIENTS = {
     "origin": "paper",
     "inputs": {
      "age": "80–84",
-     "male": 0
+     "male": 0,
+     "other_risk": "No"
     },
     "intermediate": {
      "points": {
@@ -18323,7 +21415,9 @@ export const COEFFICIENTS = {
      "p_5y_dev": 0.08,
      "p_5y_val": 0.08
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Discussion, PDF p. 6 (journal p. 1120)",
+    "note": "Paper: \"An 80-year-old woman with no other risk factors = 5 points, 5-year mortality probability only 8%\". Looking up the 4–5 point group: development 8%, validation 8%, which agrees."
    },
    {
     "id": "paper-w80-17pts",
@@ -18331,9 +21425,12 @@ export const COEFFICIENTS = {
     "inputs": {
      "age": "80–84",
      "male": 0,
+     "smoking": "Former",
      "copd": 1,
      "diabetes": 1,
-     "iadl": 1
+     "iadl": 1,
+     "walk_quarter_mile": "Difficulty",
+     "self_health": "Fair / poor"
     },
     "intermediate": {
      "points": {
@@ -18352,7 +21449,9 @@ export const COEFFICIENTS = {
      "p_5y_dev": 0.58,
      "p_5y_val": 0.55
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "Discussion, PDF p. 6 (journal p. 1120)",
+    "note": "Paper: \"ever smoked, COPD, diabetes, needs help shopping, difficulty walking 1/4 mile, self-rated fair → 17 points, 5-year mortality probability over 50%\". 5+1+2+2+2+3+2=17, which agrees; the 16–17 group has development 58% and validation 55%, both >50%."
    },
    {
     "id": "recompute-max",
@@ -18363,7 +21462,9 @@ export const COEFFICIENTS = {
     "expected": {
      "max_score": 31
     },
-    "tolerance": 0
+    "tolerance": 0,
+    "source": "2009 JGIM Table 2, PDF p. 5 (journal p. 1119)",
+    "note": "Sum of the maximum of each category 7+3+3+2+2+2+2+3+2+2+3=31 (the paper does not state a maximum score, self-added)."
    }
   ]
  },
@@ -18372,16 +21473,26 @@ export const COEFFICIENTS = {
   "model_id": "score2-op",
   "citation": "SCORE2-OP working group and ESC Cardiovascular risk collaboration (de Vries TI et al.). SCORE2-OP risk prediction algorithms: estimating incident cardiovascular event risk in older persons in four geographical risk regions. Eur Heart J 2021;42(25):2455–2467. doi:10.1093/eurheartj/ehab312",
   "model_type": "cox",
+  "outcome": "Fatal + non-fatal CVD (Fine-Gray competing risk), 10 years",
   "horizon_years": [
    10
   ],
+  "population": {
+   "age_range": "Age ≥70, no prior CVD (CONOR was developed in 28,503 people aged ≥65)",
+   "sex": "Separate equations for men and women",
+   "notes": "The 5-year risk exists only as Supplementary Figure 8, with no equation"
+  },
+  "formula": "LP = Σβ·(x − x_centre); x_centre: age 73, SBP 150, TC 6, HDL 1.4; raw risk = 1 − S0^exp(LP − meanLP); calibrated risk = 1 − exp(−exp(scale1 + scale2·ln(−ln(1 − raw risk)))) (Supplementary Methods Table 2, supplement PDF p. 13); with heart failure: subtract ln(multiplier) inside the exponent",
   "variables": [
    {
-    "name": "age"
+    "name": "age",
+    "unit": "years",
+    "coding": "(age − 73), per year"
    },
    {
     "name": "sbp",
-    "unit": "mmHg"
+    "unit": "mmHg",
+    "coding": "(SBP − 150), per mmHg (the main-text table is per 10 mmHg)"
    },
    {
     "name": "tc",
@@ -18395,70 +21506,95 @@ export const COEFFICIENTS = {
    },
    {
     "name": "smoker",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "Current smoking"
    },
    {
     "name": "diabetes",
-    "unit": "0/1"
+    "unit": "0/1",
+    "coding": "History of diabetes"
    }
   ],
   "equations": [
    {
     "id": "male",
+    "applies_to": "Men",
     "coefficients": [
      {
+      "term": "Age (per year, centred at 73)",
       "key": "age",
-      "beta": 0.0634
+      "beta": 0.0634,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Diabetes",
       "key": "dm",
-      "beta": 0.4245
+      "beta": 0.4245,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Current smoking",
       "key": "smk",
-      "beta": 0.3524
+      "beta": 0.3524,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
       "term": "SBP",
       "key": "sbp",
-      "beta": 0.0094
+      "beta": 0.0094,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Total cholesterol (per mmol/L, centred at 6)",
       "key": "tc",
-      "beta": 0.085
+      "beta": 0.085,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
       "term": "HDL-C",
       "key": "hdl",
-      "beta": -0.3564
+      "beta": -0.3564,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Diabetes × age",
       "key": "dmage",
-      "beta": -0.0174
+      "beta": -0.0174,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Smoking × age",
       "key": "smkage",
-      "beta": -0.0247
+      "beta": -0.0247,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "SBP × age (per mmHg)",
       "key": "sbpage",
-      "beta": -0.0005
+      "beta": -0.0005,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "TC × age",
       "key": "tcage",
-      "beta": 0.0073
+      "beta": 0.0073,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "HDL × age",
       "key": "hdlage",
-      "beta": 0.0091
+      "beta": 0.0091,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      }
     ],
     "constants": {
      "S0_10y": {
-      "value": 0.7576
+      "value": 0.7576,
+      "source": "The example uses 0.7576; Methods Table 2 prints 0.758"
      },
      "mean_lp": {
-      "value": 0.0929
+      "value": 0.0929,
+      "source": "The example uses 0.0929; Methods Table 2 prints 0.093"
      },
      "centers": {
       "age": 73,
@@ -18473,60 +21609,83 @@ export const COEFFICIENTS = {
    },
    {
     "id": "female",
+    "applies_to": "Women",
     "coefficients": [
      {
+      "term": "Age (per year, centred at 73)",
       "key": "age",
-      "beta": 0.0789
+      "beta": 0.0789,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Diabetes",
       "key": "dm",
-      "beta": 0.601
+      "beta": 0.601,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Current smoking",
       "key": "smk",
-      "beta": 0.4921
+      "beta": 0.4921,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
       "term": "SBP",
       "key": "sbp",
-      "beta": 0.0102
+      "beta": 0.0102,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Total cholesterol (per mmol/L, centred at 6)",
       "key": "tc",
-      "beta": 0.0605
+      "beta": 0.0605,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
       "term": "HDL-C",
       "key": "hdl",
-      "beta": -0.304
+      "beta": -0.304,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Diabetes × age",
       "key": "dmage",
-      "beta": -0.0107
+      "beta": -0.0107,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "Smoking × age",
       "key": "smkage",
-      "beta": -0.0255
+      "beta": -0.0255,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "SBP × age (per mmHg)",
       "key": "sbpage",
-      "beta": -0.0004
+      "beta": -0.0004,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "TC × age",
       "key": "tcage",
-      "beta": -0.0009
+      "beta": -0.0009,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      },
      {
+      "term": "HDL × age",
       "key": "hdlage",
-      "beta": 0.0154
+      "beta": 0.0154,
+      "source": "Supplementary Methods Table 3 (coefficients used in the example, per 1 unit) and main-text Table 2 (EHJ 2021;42:2455, around PDF p. 2460, three decimals)"
      }
     ],
     "constants": {
      "S0_10y": {
-      "value": 0.8082
+      "value": 0.8082,
+      "source": "The example uses 0.8082; Methods Table 2 prints 0.808"
      },
      "mean_lp": {
-      "value": 0.229
+      "value": 0.229,
+      "source": "Methods Table 2 and the example both 0.229"
      },
      "centers": {
       "age": 73,
@@ -18543,6 +21702,7 @@ export const COEFFICIENTS = {
   "region_scales": [
    {
     "region": "low",
+    "region_zh": "Low",
     "male": {
      "scale1": -0.34,
      "scale2": 1.19
@@ -18555,6 +21715,7 @@ export const COEFFICIENTS = {
    },
    {
     "region": "mod",
+    "region_zh": "Medium",
     "male": {
      "scale1": 0.01,
      "scale2": 1.25
@@ -18567,6 +21728,7 @@ export const COEFFICIENTS = {
    },
    {
     "region": "high",
+    "region_zh": "High",
     "male": {
      "scale1": 0.08,
      "scale2": 1.15
@@ -18579,6 +21741,7 @@ export const COEFFICIENTS = {
    },
    {
     "region": "vhigh",
+    "region_zh": "Very high",
     "male": {
      "scale1": 0.05,
      "scale2": 0.7
@@ -18591,6 +21754,7 @@ export const COEFFICIENTS = {
    }
   ],
   "hf_multipliers": {
+   "description": "With heart failure (secondary endpoint): subtract ln(multiplier) inside the exponent",
    "ages": [
     65,
     70,
@@ -18639,7 +21803,8 @@ export const COEFFICIENTS = {
      "risk_10y_uncalibrated": 0.2442
     },
     "tolerance": 0.0005,
-    "source": "Supplementary Methods Table 3"
+    "source": "Supplementary Methods Table 3",
+    "note": "The paper prints the LP with a negative sign (−0.5029 / −0.3298) while the later calculation uses the positive value, a typo"
    },
    {
     "id": "paper-supp-t3-f-calibrated-stale-scales",
@@ -18665,7 +21830,8 @@ export const COEFFICIENTS = {
      "risk_10y_low_region": 0.1397
     },
     "tolerance": 0.0005,
-    "source": "Supplementary Methods Table 3"
+    "source": "Supplementary Methods Table 3",
+    "note": "The example is labelled \"low-risk region\" but uses a scaling different from Methods Table 1 (older values, see unresolved); the implementation must not use this set"
    },
    {
     "id": "self-t1-f-low",
@@ -18689,7 +21855,9 @@ export const COEFFICIENTS = {
       1.01
      ]
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed in this file using the low-risk region scaling of Methods Table 1",
+    "note": "Difference from the example: women +1.2 percentage points (15.2% vs 14.0%)"
    },
    {
     "id": "paper-supp-t3-m-uncalibrated",
@@ -18713,7 +21881,8 @@ export const COEFFICIENTS = {
      "risk_10y_uncalibrated": 0.2966
     },
     "tolerance": 0.0005,
-    "source": "Supplementary Methods Table 3"
+    "source": "Supplementary Methods Table 3",
+    "note": "The paper prints the LP with a negative sign (−0.5029 / −0.3298) while the later calculation uses the positive value, a typo"
    },
    {
     "id": "paper-supp-t3-m-calibrated-stale-scales",
@@ -18739,7 +21908,8 @@ export const COEFFICIENTS = {
      "risk_10y_low_region": 0.193
     },
     "tolerance": 0.0005,
-    "source": "Supplementary Methods Table 3"
+    "source": "Supplementary Methods Table 3",
+    "note": "The example is labelled \"low-risk region\" but uses a scaling different from Methods Table 1 (older values, see unresolved); the implementation must not use this set"
    },
    {
     "id": "self-t1-m-low",
@@ -18763,7 +21933,9 @@ export const COEFFICIENTS = {
       1.19
      ]
     },
-    "tolerance": 0.0005
+    "tolerance": 0.0005,
+    "source": "Self-computed in this file using the low-risk region scaling of Methods Table 1",
+    "note": "Difference from the example: men −0.7 percentage points (18.6% vs 19.3%)"
    },
    {
     "id": "paper-main-text-m-low-vs-veryhigh",
@@ -18786,7 +21958,9 @@ export const COEFFICIENTS = {
      "risk_10y_low": 0.1665,
      "risk_10y_very_high": 0.3759
     },
-    "tolerance": 0.012
+    "tolerance": 0.012,
+    "source": "Main-text Results (75-year-old smoker, SBP 150, non-HDL 4.5; Supplementary Figure S9)",
+    "note": "The paper does not state HDL; with non-HDL 4.5 and HDL 2.2 (TC 6.7), the Methods Table 1 scaling falls at men 16.6/37.6 and women 14.0/43.7 simultaneously; with HDL 1.4, men 20.4/41.7 does not match, so this example is weak evidence (HDL is back-calculated)"
    },
    {
     "id": "paper-main-text-f-low-vs-veryhigh",
@@ -18809,7 +21983,9 @@ export const COEFFICIENTS = {
      "risk_10y_low": 0.1405,
      "risk_10y_very_high": 0.4369
     },
-    "tolerance": 0.012
+    "tolerance": 0.012,
+    "source": "Main-text Results (75-year-old smoker, SBP 150, non-HDL 4.5; Supplementary Figure S9)",
+    "note": "The paper does not state HDL; with non-HDL 4.5 and HDL 2.2 (TC 6.7), the Methods Table 1 scaling falls at men 16.6/37.6 and women 14.0/43.7 simultaneously; with HDL 1.4, men 20.4/41.7 does not match, so this example is weak evidence (HDL is back-calculated)"
    }
   ]
  },
@@ -18817,13 +21993,21 @@ export const COEFFICIENTS = {
   "model_id": "tyrer-cuzick-ibis",
   "source": {
    "pdf_key": "Tyrer2004StatMed",
-   "citation": "Tyrer J, Duffy SW, Cuzick J. Stat Med 2004;23:1111-1130"
+   "citation": "Tyrer J, Duffy SW, Cuzick J. Stat Med 2004;23:1111-1130",
+   "page_note": "Page numbers are the page order within the PDF file (PDF p.n = journal page 1110+n)"
   },
   "model_type": "genetic_pedigree_bayes_plus_rr",
+  "outcome": "Cumulative breast cancer risk (any age interval; the example is 10 years); competing mortality is not subtracted (PDF p. 9)",
+  "horizon_years": "Any",
+  "population": {
+   "sex": "Women",
+   "reference_population": "England and Wales"
+  },
   "inputs": [
    {
     "name": "pedigree",
-    "unit": "family tree"
+    "unit": "family tree",
+    "coding": "Each relative's sex, age, breast/ovarian cancer and age at onset"
    },
    {
     "name": "age_at_menarche",
@@ -18856,10 +22040,12 @@ export const COEFFICIENTS = {
   ],
   "constants": {
    "brca1_carrier_freq": {
-    "value": 0.0011
+    "value": 0.0011,
+    "source": "PDF p. 5 (0.11%)"
    },
    "brca2_carrier_freq": {
-    "value": 0.0012
+    "value": 0.0012,
+    "source": "PDF p. 5 (0.12%)"
    },
    "low_penetrance_gene_freq": {
     "value": 0.1139,
@@ -19021,6 +22207,7 @@ export const COEFFICIENTS = {
     }
    }
   },
+  "formula": "Pr(cancer t1→t2) = 1 − (1 − Σ_i p_i·F_i(t1,t2))^γ (PDF p. 4); p_i is the probability of 6 phenotypes computed from the pedigree by Bayes / Ott peeling; F_i is computed from S0/S1/S2 and γ_g (PDF pp. 9–10, requires a numerical solution); γ = product of the individual factor RRs ÷ the population mean of each factor (PDF pp. 15–16); final = 1 − (1 − family history risk)^γ (PDF p. 16)",
   "examples": [
    {
     "id": "paper-1",
@@ -19031,7 +22218,8 @@ export const COEFFICIENTS = {
      "menopause": "pre",
      "parity": 1,
      "age_first_birth": 26,
-     "mother_breast_cancer_age": 52
+     "mother_breast_cancer_age": 52,
+     "other_relatives": "No information"
     },
     "expected": {
      "risk_10y_pct": 5
@@ -19048,6 +22236,7 @@ export const COEFFICIENTS = {
      "menarche": 12,
      "height_m": 1.6,
      "weight_kg": 55,
+     "family_history": "None; the mother and two grandmothers are assumed to be cancer-free at age 70",
      "atypical_ductal_hyperplasia": 1
     },
     "expected": {
@@ -19062,206 +22251,278 @@ export const COEFFICIENTS = {
      "age": 35,
      "sister_breast_cancer_age": 40,
      "mother_breast_cancer_age": 50,
-     "maternal_grandmother_breast_cancer_age": 55
+     "maternal_grandmother_breast_cancer_age": 55,
+     "paternal_grandmother": "Alive and cancer-free at age 75"
     },
     "expected": {
      "risk_10y_pct": 3.5
     }
    }
   ],
+  "paper_examples": "Yes: 3 text examples (10-year risk 5.0%, 9.8%, 3.5%); there are also Figure 6 curves for four women in Section 16 (no numeric values)",
   "schema": "c2-coef-v1"
  },
  "ukbdrs": {
   "schema": "c1-coef-1",
   "model_id": "ukbdrs",
   "citation": "Anatürk M, et al. Development and validation of a dementia risk score in the UK Biobank and Whitehall II cohorts. BMJ Ment Health 2023;26(1):e300719. doi:10.1136/bmjment-2023-300719",
+  "model_type": "Fine-Gray competing risk",
+  "outcome": "Dementia (competing risk = death); 14 years",
   "horizon_years": [
    14
   ],
+  "population": {
+   "age_range": "Ages 50–73",
+   "sex": "Men and women (male = 1)",
+   "notes": "UK Biobank training n=176,611 / test n=44,151; Whitehall II n=2,934 external validation. UKB test AUC 0.80 (0.78–0.82), WHII 0.77 (0.72–0.81); APOE version UKB 0.83, WHII 0.79 (main text)"
+  },
+  "formula": "risk14 = 1 − S0^exp(Σβ(x − x̄)); continuous variables are centred (age 59.97, education 13.54), binary variables 0/1 are not centred",
   "variables": [
    {
     "name": "age",
-    "unit": ""
+    "unit": "",
+    "coding": "Age (per year)"
    },
    {
     "name": "parent",
-    "unit": ""
+    "unit": "",
+    "coding": "Parental history of dementia"
    },
    {
     "name": "edu",
-    "unit": ""
+    "unit": "",
+    "coding": "Years of education (per year)"
    },
    {
     "name": "deprived",
-    "unit": ""
+    "unit": "",
+    "coding": "Townsend deprivation (most deprived group)"
    },
    {
     "name": "diabetes",
-    "unit": ""
+    "unit": "",
+    "coding": "Diabetes"
    },
    {
     "name": "depression",
-    "unit": ""
+    "unit": "",
+    "coding": "Depression (current / history)"
    },
    {
     "name": "stroke",
-    "unit": ""
+    "unit": "",
+    "coding": "Stroke/TIA"
    },
    {
     "name": "htn",
-    "unit": ""
+    "unit": "",
+    "coding": "Hypertension"
    },
    {
     "name": "chol",
-    "unit": ""
+    "unit": "",
+    "coding": "High cholesterol"
    },
    {
     "name": "male",
-    "unit": ""
+    "unit": "",
+    "coding": "Men"
    },
    {
     "name": "alone",
-    "unit": ""
+    "unit": "",
+    "coding": "Living alone"
    },
    {
     "name": "apoe4",
-    "unit": ""
+    "unit": "",
+    "coding": "APOE ε4 carrier"
    }
   ],
   "equations": [
    {
     "id": "ukbdrs",
+    "applies_to": "Without APOE",
     "coefficients": [
      {
+      "term": "Age (per year)",
       "key": "age",
       "beta": 0.178,
-      "beta_full_precision": 0.177692959251294
+      "beta_full_precision": 0.177692959251294,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Parental history of dementia",
       "key": "parent",
       "beta": 0.431,
-      "beta_full_precision": 0.430976053237681
+      "beta_full_precision": 0.430976053237681,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Years of education (per year)",
       "key": "edu",
       "beta": -0.041,
-      "beta_full_precision": -0.0409925728007542
+      "beta_full_precision": -0.0409925728007542,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Townsend deprivation (most deprived group)",
       "key": "deprived",
       "beta": 0.228,
-      "beta_full_precision": 0.227535362193283
+      "beta_full_precision": 0.227535362193283,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Diabetes",
       "key": "diabetes",
       "beta": 0.536,
-      "beta_full_precision": 0.536470125918681
+      "beta_full_precision": 0.536470125918681,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Depression (current / history)",
       "key": "depression",
       "beta": 0.556,
-      "beta_full_precision": 0.556016474679774
+      "beta_full_precision": 0.556016474679774,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Stroke/TIA",
       "key": "stroke",
       "beta": 0.655,
-      "beta_full_precision": 0.654852204288696
+      "beta_full_precision": 0.654852204288696,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Hypertension",
       "key": "htn",
       "beta": 0.159,
-      "beta_full_precision": 0.159181761673448
+      "beta_full_precision": 0.159181761673448,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "High cholesterol",
       "key": "chol",
       "beta": 0.104,
-      "beta_full_precision": 0.103934423846803
+      "beta_full_precision": 0.103934423846803,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Men",
       "key": "male",
       "beta": 0.169,
-      "beta_full_precision": 0.168726275413058
+      "beta_full_precision": 0.168726275413058,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Living alone",
       "key": "alone",
       "beta": 0.141,
-      "beta_full_precision": 0.140912692178426
+      "beta_full_precision": 0.140912692178426,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      }
     ],
     "constants": {
      "S0_14y": 0.9916195,
      "age_center": 59.97,
-     "education_center": 13.54
+     "education_center": 13.54,
+     "source": "S0 = Table 1 footnote; age centre = mean age 59.97 from the main text; education centre 13.54 = seen only in the authors' Excel (UKB-DRS_Calculator.xlsx, sheet Hidden formula D*(E-13.54))"
     }
    },
    {
     "id": "ukbdrs_apoe",
+    "applies_to": "With APOE ε4 (genotype required)",
     "coefficients": [
      {
+      "term": "Age (per year)",
       "key": "age",
       "beta": 0.185,
-      "beta_full_precision": 0.185448583498348
+      "beta_full_precision": 0.185448583498348,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Parental history of dementia",
       "key": "parent",
       "beta": 0.311,
-      "beta_full_precision": 0.311285747731805
+      "beta_full_precision": 0.311285747731805,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Years of education (per year)",
       "key": "edu",
       "beta": -0.038,
-      "beta_full_precision": -0.037579578137673
+      "beta_full_precision": -0.037579578137673,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Townsend deprivation (most deprived group)",
       "key": "deprived",
       "beta": 0.247,
-      "beta_full_precision": 0.246972315824607
+      "beta_full_precision": 0.246972315824607,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Diabetes",
       "key": "diabetes",
       "beta": 0.526,
-      "beta_full_precision": 0.526047157958713
+      "beta_full_precision": 0.526047157958713,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Depression (current / history)",
       "key": "depression",
       "beta": 0.567,
-      "beta_full_precision": 0.566892403366833
+      "beta_full_precision": 0.566892403366833,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Stroke/TIA",
       "key": "stroke",
       "beta": 0.643,
-      "beta_full_precision": 0.64267917239979
+      "beta_full_precision": 0.64267917239979,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Hypertension",
       "key": "htn",
       "beta": 0.19,
-      "beta_full_precision": 0.189525433227791
+      "beta_full_precision": 0.189525433227791,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "High cholesterol",
       "key": "chol",
       "beta": 0.027,
-      "beta_full_precision": 0.0271391344013689
+      "beta_full_precision": 0.0271391344013689,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Men",
       "key": "male",
       "beta": 0.164,
-      "beta_full_precision": 0.164374628844355
+      "beta_full_precision": 0.164374628844355,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "Living alone",
       "key": "alone",
       "beta": 0.137,
-      "beta_full_precision": 0.136570007308125
+      "beta_full_precision": 0.136570007308125,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      },
      {
+      "term": "APOE ε4 carrier",
       "key": "apoe4",
       "beta": 1.129,
-      "beta_full_precision": 1.12865113064495
+      "beta_full_precision": 1.12865113064495,
+      "source": "Table 1 (3 decimals); full precision = the authors' GitHub results/crr_ukbdrs*_coefficients.csv"
      }
     ],
     "constants": {
      "S0_14y": 0.9945524,
      "age_center": 59.97,
-     "education_center": 13.54
+     "education_center": 13.54,
+     "source": "S0 = Table 1 footnote; age centre = mean age 59.97 from the main text; education centre 13.54 = seen only in the authors' Excel (UKB-DRS_Calculator.xlsx, sheet Hidden formula D*(E-13.54))"
     }
    }
   ],
@@ -19290,7 +22551,9 @@ export const COEFFICIENTS = {
      "lp_noapoe": 1.23748,
      "lp_apoe": 1.27107
     },
-    "tolerance": 0.0001
+    "tolerance": 0.0001,
+    "source": "Authors' Excel UKB-DRS_Calculator.xlsx (sheet Main default inputs, Hidden!F40–F47); not in the main text of the paper, it belongs to the authors' calculator",
+    "note": "Reproduced to 1e-4 using the 3-decimal β of Table 1; with full-precision β it is 2.8611% / 1.9277%"
    }
   ]
  },
@@ -19302,13 +22565,25 @@ export const COEFFICIENTS = {
    "files": [
     "Wen2012JNCI.pdf",
     "Wen2012JNCI_supp1.zip: jnci_JNCI_12_0293_s03.docx (Supp Table 1), s02.docx"
-   ]
+   ],
+   "license": "Licence not stated (journal supplementary material, copyright belongs to the publisher)"
   },
   "model_type": "points",
+  "outcome": "HCC cumulative probability at 5 / 10 years",
   "horizon_years": [
    5,
    10
   ],
+  "population": {
+   "sex": "Men and women (male is a variable)",
+   "eligibility": "Taiwan MJ health checkup cohort of 428,584 people; A = subgroup without HCV testing, 298,051 people (Models 1-4), B = subgroup with HCV testing, 130,533 people (Model 1-5); lower age bound 20 (the table starts only at 20-39)",
+   "note": "Main-text abstract"
+  },
+  "models": {
+   "A": "Subgroup without HCV testing, Models 1-4",
+   "B": "Subgroup with HCV testing, Models 1-5",
+   "definitions": "M1 medical history; M2 aminotransferases only; M3 medical history + aminotransferases; M4 + AFP + HBV; M5 (B only) + HCV (Supp Table 1 note)"
+  },
   "points_table": {
    "columns": [
     "A_M1",
@@ -19321,6 +22596,7 @@ export const COEFFICIENTS = {
     "B_M4",
     "B_M5"
    ],
+   "source": "Supp Table 1 (s03.docx, parsed cell by cell, each row has 11 cells = 1 variable + 4 A + empty column + 5 B); None = the model does not include this variable",
    "levels": {
     "male": {
      "A_M1": 2,
@@ -19468,7 +22744,9 @@ export const COEFFICIENTS = {
     "hcv_pos": {
      "B_M5": 5
     }
-   }
+   },
+   "reference_levels": "Woman, age 20-39, 0 pack-years, non-drinker or occasional drinker, MET-h<3.75, no diabetes, AST<25, ALT<25, AFP<2.5, HBV negative, HCV negative = 0 points",
+   "definitions": "Smoking unit pack-years; regular drinking = at least 2 drinks per occasion on at least 3 days per week; ALT<25 / ≥25 is a single cut-off in Supp Table 1 (not by sex)"
   },
   "score_ranges": {
    "A_M1": [
@@ -19893,14 +23171,17 @@ export const COEFFICIENTS = {
     }
    }
   },
+  "chart_mapping_verification": "The score range of each chart was compared with the score range of each model computed from Supp Table 1 (A_M1 -1..12 = chart1; A_M2 0..23 = chart2; B_M1 -1..10 = chart3; B_M4 0..32 = chart6; B_M5 0..39 = chart7 are uniquely determined by the score range and verified; B_M2 and B_M3 both have the range 0..21, and the mapping to chart4/chart5 is supported only by the order of appearance in the docx, so it is \"presumed (supported by order)\"). A_M3 (-1..23) and A_M4 (-1..30) have only the images image2/image1.png, which label only some of the scores",
   "image_only_labels": {
    "A_M3_top_score_23": {
     "pct_5y": 10.2,
-    "pct_10y": 22.8
+    "pct_10y": 22.8,
+    "note": "image2.png read by eye; not independently checked"
    },
    "A_M4_top_score_30": {
     "pct_5y": 59,
-    "pct_10y": 83.2
+    "pct_10y": 83.2,
+    "note": "image1.png read by eye; labelled only every 2 points; not independently checked"
    }
   },
   "cloglog_check": {
@@ -19975,6 +23256,7 @@ export const COEFFICIENTS = {
     ]
    }
   },
+  "formula": "F(t)=S0(t)^exp(Σb_jX_j-Σb_jM_j) (Supp Fig 2 legend); the raw values of S0, b_j and M_j are not published, so the score is used for lookup",
   "examples": [
    {
     "id": "ex1-B_M4",
@@ -20060,1583 +23342,12 @@ export const COEFFICIENTS = {
     "expected_5y_pct": 0.0011,
     "expected_10y_pct": 0.0026
    }
-  ]
+  ],
+  "paper_examples": "The paper has no example person"
  }
 };
 
-export const UNTRANSLATED = [
- "aabcs.source.locator",
- "aabcs.source.license",
- "aabcs.model_type",
- "aabcs.outcome",
- "aabcs.horizon_years",
- "aabcs.population",
- "gail-1989.inputs.values",
- "gail-1989.inputs.values",
- "aabcs.inputs.locator",
- "gail-1989.inputs.values",
- "aabcs.inputs.locator",
- "aabcs.inputs.values",
- "aabcs.inputs.locator",
- "score2-op.variables.unit",
- "aabcs.inputs.note",
- "aabcs.inputs.values",
- "aabcs.constants.common_log_odds.locator",
- "aabcs.constants.covariance_x1e-2.note",
- "aabcs.constants.F_one_minus_AR.locator",
- "aabcs.table1_RR.check",
- "aabcs.rates.note",
- "aabcs.formula.relative_risk",
- "aabcs.formula.absolute_risk",
- "aabcs.examples.note",
- "aabcs.examples.note",
- "aabcs.examples.note",
- "aabcs.verification.coding_vs_table1",
- "aabcs.verification.absolute",
- "aabcs.verification.supp1_vs_bcra_rates",
- "ada.outcome",
- "ada.population.age_range",
- "caide.population.sex",
- "ada.population.notes",
- "ada.formula",
- "ada.variables.coding",
- "caide.variables.coding",
- "ada.variables.coding",
- "ada.variables.coding",
- "ada.variables.coding",
- "ada.variables.coding",
- "ada.equations.applies_to",
- "ada.equations.coefficients.term",
- "ada.equations.coefficients.source",
- "ada.equations.coefficients.term",
- "ada.equations.coefficients.term",
- "caide.points_tables.items.factor",
- "ada.equations.coefficients.term",
- "ada.equations.coefficients.term",
- "ada.equations.coefficients.term",
- "libra.points_tables.items.factor",
- "ada.points_tables.items.category",
- "ada.equations.coefficients.term",
- "ada.equations.constants.intercept.source",
- "ada.points_tables.applies_to",
- "ada.points_tables.source",
- "ada.points_tables.items.factor",
- "ada.points_tables.items.factor",
- "tyrer-cuzick-ibis.population.sex",
- "score2-op.equations.applies_to",
- "ada.points_tables.items.factor",
- "otsuka-2015.points_tables.items.category",
- "schonberg-index.points_tables.items.category",
- "ada.points_tables.items.factor",
- "ada.points_tables.items.factor",
- "ada.points_tables.items.category",
- "ada.points_tables.items.category",
- "ada.points_tables.items.factor",
- "ada.score_to_risk.applies_to",
- "ada.score_to_risk.source",
- "ada.score_to_risk.rows.dev",
- "ada.score_to_risk.rows.val",
- "ada.score_to_risk.rows.dev",
- "ada.score_to_risk.rows.val",
- "ada.score_to_risk.rows.dev",
- "ada.score_to_risk.rows.val",
- "ada.score_to_risk.rows.dev",
- "ada.score_to_risk.rows.val",
- "ada.examples.source",
- "ada.examples.note",
- "ada.examples.note",
- "plcom2012.source.page_note",
- "amap.outcome",
- "wen-2012.population.sex",
- "amap.population.eligibility",
- "amap.constants.albi_alb_coef.source",
- "amap.constants.score_divisor.source",
- "amap.coefficients.source",
- "amap.coefficients.source",
- "amap.formula",
- "amap.examples.note",
- "wen-2012.paper_examples",
- "amap.derived_risk.status",
- "amap.derived_risk.sensitivity",
- "amap.derived_risk.check",
- "amap.range_contradiction_resolved",
- "amap.text_notes",
- "anu-adri.citation",
- "anu-adri.outcome",
- "anu-adri.population.age_range",
- "anu-adri.population.sex",
- "anu-adri.population.notes",
- "anu-adri.formula",
- "anu-adri.variables.coding",
- "lcrat-lcdrat-nci-lcrisks.inputs.unit",
- "anu-adri.variables.coding",
- "schonberg-index.variables.unit",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.variables.unit",
- "anu-adri.variables.coding",
- "anu-adri.variables.coding",
- "anu-adri.points_tables.applies_to",
- "anu-adri.points_tables.source",
- "anu-adri.points_tables.items.factor",
- "anu-adri.points_tables.items.source",
- "anu-adri.points_tables.items.factor",
- "anu-adri.points_tables.items.factor",
- "anu-adri.points_tables.items.category",
- "anu-adri.points_tables.items.category",
- "ukbdrs.equations.coefficients.term",
- "schonberg-index.examples.inputs.other_risk",
- "schonberg-index.points_tables.items.category",
- "bdsi.points_tables.items.factor",
- "anu-adri.points_tables.items.factor",
- "anu-adri.points_tables.items.factor",
- "schonberg-index.points_tables.items.factor",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.examples.inputs.smoking",
- "schonberg-index.points_tables.items.category",
- "qcancer-10.inputs",
- "anu-adri.points_tables.items.category",
- "anu-adri.examples.inputs.alcohol",
- "anu-adri.points_tables.items.factor",
- "score2-op.region_scales.region_zh",
- "anu-adri.points_tables.items.category",
- "anu-adri.points_tables.items.category",
- "score2-op.region_scales.region_zh",
- "anu-adri.points_tables.items.factor",
- "score2-op.region_scales.region_zh",
- "anu-adri.points_tables.items.factor",
- "anu-adri.points_tables.items.factor",
- "anu-adri.points_tables.items.factor",
- "anu-adri.points_tables.items.category",
- "anu-adri.examples.inputs.factors",
- "anu-adri.examples.source",
- "anu-adri.examples.note",
- "anu-adri.examples.inputs.factors",
- "anu-adri.examples.source",
- "anu-adri.examples.note",
- "anu-adri.examples.source",
- "anu-adri.examples.note",
- "apcs.source.license",
- "apcs.outcome",
- "apcs.population.description",
- "apcs.population.age_range",
- "apcs.inputs.coding",
- "apcs.underlying_logistic_advanced_neoplasia.note",
- "apcs.underlying_logistic_advanced_neoplasia.smoking.note",
- "apcs.formula",
- "apcs.paper_examples.note",
- "apcs.verification.method",
- "apcs.verification.poc_match",
- "apcs.verification.tier_counts_vs_table7",
- "bcsc.source.page_note",
- "bcsc.outcome",
- "bcsc.population.age_range",
- "bcsc.inputs.coding",
- "bcsc.inputs.coding",
- "bcsc.inputs.coding",
- "bcsc.lookup_tables.incidence_poly.formula",
- "bcsc.lookup_tables.nonbc_death_exp.formula",
- "bcsc.formula",
- "bcsc.examples.note",
- "bcsc.examples.note",
- "bcsc.paper_examples",
- "bdsi.outcome",
- "bdsi.population.age_range",
- "page-b.population.sex",
- "bdsi.population.notes",
- "bdsi.formula",
- "schonberg-index.points_tables.items.factor",
- "bdsi.points_tables.items.category",
- "bdsi.points_tables.items.category",
- "bdsi.points_tables.items.factor",
- "bdsi.points_tables.items.factor",
- "bdsi.points_tables.items.factor",
- "bdsi.points_tables.applies_to",
- "bdsi.points_tables.source",
- "bdsi.points_tables.items.points",
- "bdsi.pooled_hr.source",
- "bdsi.examples.source",
- "bdsi.examples.note",
- "caide.outcome",
- "caide.population.age_range",
- "caide.population.notes",
- "caide.formula",
- "caide.variables.coding",
- "caide.variables.coding",
- "caide.variables.coding",
- "caide.variables.coding",
- "caide.equations.applies_to",
- "caide.points_tables.items.factor",
- "caide.points_tables.source",
- "caide.points_tables.items.factor",
- "caide.points_tables.items.factor",
- "caide.points_tables.items.factor",
- "caide.points_tables.items.factor",
- "caide.points_tables.items.factor",
- "caide.equations.coefficients.term",
- "caide.equations.applies_to",
- "caide.points_tables.items.factor",
- "caide.equations.applies_to",
- "caide.equations.constants.beta1_followup_20y.source",
- "caide.equations.applies_to",
- "caide.score_to_risk.applies_to",
- "caide.score_to_risk.source",
- "caide.score_to_risk.applies_to",
- "caide.examples.source",
- "caide.examples.note",
- "caide.examples.note",
- "caide.examples.note",
- "caide.examples.note",
- "caide.examples.note",
- "caide.examples.note",
- "chien-2008.outcome",
- "chien-2008.population.age_range",
- "findrisc.population.sex",
- "chien-2008.population.notes",
- "chien-2008.formula",
- "schonberg-index.points_tables.applies_to",
- "chien-2008.equations.coefficients.source",
- "otsuka-2015.points_tables.items.factor",
- "chien-2008.equations.coefficients.term",
- "chien-2008.equations.coefficients.term",
- "chien-2008.equations.coefficients.term",
- "chien-2008.equations.coefficients.term",
- "chien-2008.equations.baseline_survival_note",
- "chien-2008.points_tables.source",
- "otsuka-2015.points_tables.items.factor",
- "chien-2008.points_tables.items.factor",
- "chien-2008.points_tables.items.factor",
- "chien-2008.points_tables.items.factor",
- "chien-2008.points_tables.items.factor",
- "chien-2008.examples.source",
- "chien-2008.examples.source",
- "framingham-offspring-wilson-2007.examples.note",
- "chien-2008.examples.note",
- "chien-2010-ckd.outcome",
- "chien-2010-ckd.population.age_range",
- "chien-2010-ckd.population.sex",
- "chien-2010-ckd.population.notes",
- "chien-2010-ckd.formula",
- "chien-2010-ckd.variables.coding",
- "chien-2010-ckd.variables.coding",
- "mind-china-dementia-2025.equations.coefficients.term",
- "chien-2010-ckd.variables.coding",
- "chien-2010-ckd.variables.coding",
- "chien-2010-ckd.variables.coding",
- "chien-2010-ckd.score_to_risk.applies_to",
- "chien-2010-ckd.equations.coefficients.source",
- "chien-2010-ckd.equations.coefficients.mean_source",
- "otsuka-2015.points_tables.items.factor",
- "chien-2010-ckd.equations.coefficients.term",
- "chien-2010-ckd.equations.coefficients.term",
- "chien-2010-ckd.equations.baseline_survival_note",
- "chien-2010.variables.coding",
- "chien-2010-ckd.equations.coefficients.term",
- "chien-2010-ckd.points_tables.items.factor",
- "chien-2010-ckd.equations.coefficients.term",
- "chien-2010-ckd.equations.coefficients.term",
- "chien-2010-ckd.score_to_risk.source",
- "chien-2010-ckd.points_tables.items.factor",
- "chien-2010-ckd.score_to_risk.source",
- "chien-2010-ckd.points_tables.items.factor",
- "chien-2010-ckd.points_tables.items.factor",
- "chien-2010-ckd.points_tables.items.factor",
- "chien-2010-ckd.examples.source",
- "chien-2010-ckd.examples.source",
- "plcom2012.examples.note",
- "chien-2010.outcome",
- "chien-2010.population.age_range",
- "framingham.population.sex",
- "chien-2010.population.notes",
- "chien-2010.formula",
- "otsuka-2015.variables.coding",
- "chien-2010.variables.coding",
- "chien-2010.variables.coding",
- "chien-2010.points_tables.items.factor",
- "chien-2010.variables.coding",
- "chien-2010.equations.applies_to",
- "chien-2010.equations.coefficients.source",
- "framingham.equations.coefficients.term",
- "framingham.equations.coefficients.term",
- "chien-2010.equations.coefficients.term",
- "chien-2010.equations.coefficients.term",
- "chien-2010.equations.coefficients.term",
- "chien-2010.equations.baseline_survival_source",
- "chien-2010.equations.applies_to",
- "chien-2010.equations.coefficients.term",
- "chien-2010.equations.coefficients.term",
- "chien-2010.equations.coefficients.term",
- "chien-2010.score_to_risk.applies_to",
- "chien-2010.score_to_risk.source",
- "schonberg-index.points_tables.items.factor",
- "otsuka-2015.points_tables.items.factor",
- "chien-2010.points_tables.items.factor",
- "chien-2010.examples.source",
- "chien-2010.examples.source",
- "chien-2010.examples.note",
- "china-par.outcome",
- "china-par.population.age_range",
- "score2-op.population.sex",
- "china-par.population.notes",
- "china-par.formula",
- "china-par.variables.coding",
- "china-par.variables.coding",
- "score2-op.equations.coefficients.term",
- "china-par.variables.coding",
- "china-par.variables.coding",
- "china-par.variables.coding",
- "china-par.equations.constants.S10_printed_table1.source",
- "china-par.equations.coefficients.term",
- "china-par.equations.coefficients.term",
- "china-par.equations.coefficients.term",
- "china-par.equations.coefficients.term",
- "china-par.equations.coefficients.term",
- "china-par.equations.constants.S10_formula.source",
- "china-par.equations.constants.S10_effective.source",
- "china-par.equations.constants.S10_effective.source",
- "china-par.examples.inputs",
- "china-par.examples.source",
- "china-par.examples.note",
- "china-par.examples.inputs",
- "china-par.examples.source",
- "china-par.examples.note",
- "china-par.examples.source",
- "china-par.examples.note",
- "china-par.examples.note",
- "china-par.examples.source",
- "china-par.examples.note",
- "clivd.source.license",
- "clivd.outcome",
- "clivd.inputs.unit",
- "clivd.inputs.unit",
- "clivd.inputs.unit",
- "clivd.inputs.unit",
- "clivd.inputs.unit",
- "clivd.risk_groups.source",
- "clivd.risk_groups.definition",
- "clivd.risk_groups.note",
- "clivd.score_to_risk.status",
- "clivd.score_to_risk.method",
- "clivd.score_to_risk.caveat",
- "clivd.score_to_risk.nomogram_text_layer.lab_men",
- "clivd.examples.note",
- "clivd.paper_examples",
- "copd-ps.outcome",
- "nafld-fibrosis-score.population.sex",
- "copd-ps.inputs.unit",
- "copd-ps.points.items.q1_short_of_breath.question",
- "copd-ps.points.items.q2_cough_phlegm.question",
- "copd-ps.points.items.q3_activity_limited.question",
- "copd-ps.points.items.q4_smoked_100.question",
- "copd-ps.points.method",
- "copd-ps.formula",
- "copd-ps.paper_examples",
- "dementia-risk-score-walters.outcome",
- "dementia-risk-score-walters.population.age_range",
- "dementia-risk-score-walters.population.notes",
- "dementia-risk-score-walters.formula",
- "dementia-risk-score-walters.variables.coding",
- "hisayama-dementia-2021.variables.coding",
- "dementia-risk-score-walters.variables.coding",
- "dementia-risk-score-walters.variables.coding",
- "dementia-risk-score-walters.variables.coding",
- "dementia-risk-score-walters.variables.coding",
- "dementia-risk-score-walters.equations.applies_to",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.constants.calendar_year_centre.source",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.coefficients.term",
- "dementia-risk-score-walters.equations.baseline_survival_source",
- "dementia-risk-score-walters.equations.applies_to",
- "dementia-risk-score-walters.equations.coefficients.source",
- "dementia-risk-score-walters.equations.constants._note.source",
- "dementia-risk-score-walters.equations.baseline_survival_source",
- "dementia-risk-score-walters.examples.source",
- "dementia-risk-score-walters.examples.note",
- "dementia-risk-score-walters.examples.inputs.other_inputs",
- "dementia-risk-score-walters.examples.source",
- "dementia-risk-score-walters.examples.note",
- "dementia-risk-score-walters.reference_means_table1.source",
- "demport.status",
- "demport.status_reason",
- "demport.outcome",
- "demport.population.age_range",
- "demport.population.notes",
- "demport.formula",
- "demport.locators.what",
- "demport.locators.where",
- "demport.locators.where",
- "demport.locators.where",
- "demport.locators.what",
- "demport.locators.what",
- "demport.locators.where",
- "demport.locators.what",
- "demport.locators.where",
- "demport.license_summary",
- "demport.license_summary",
- "demport.license_summary",
- "demport.license_summary",
- "end-pac.outcome",
- "end-pac.population.eligibility",
- "end-pac.inputs.coding",
- "end-pac.inputs.coding",
- "end-pac.risk_groups.intermediate",
- "end-pac.formula",
- "end-pac.examples.note",
- "erspc-rotterdam.outcome",
- "erspc-rotterdam.inputs.coding",
- "erspc-rotterdam.inputs.coding",
- "erspc-rotterdam.inputs.coding",
- "erspc-rotterdam.inputs.coding",
- "erspc-rotterdam.constants.intercepts.source",
- "erspc-rotterdam.constants.c_low_at_ref.source",
- "erspc-rotterdam.constants.c_high_at_ref.source",
- "erspc-rotterdam.formula",
- "erspc-rotterdam.examples.note",
- "erspc-rotterdam.examples.source",
- "erspc-rotterdam.examples.note",
- "erspc-rotterdam.examples.note",
- "erspc-rotterdam.examples.note",
- "erspc-rotterdam.paper_examples",
- "findrisc.outcome",
- "findrisc.population.age_range",
- "findrisc.population.notes",
- "findrisc.formula",
- "findrisc.variables.coding",
- "findrisc.variables.coding",
- "findrisc.variables.coding",
- "findrisc.variables.coding",
- "findrisc.variables.coding",
- "findrisc.variables.coding",
- "findrisc.variables.coding",
- "findrisc.equations.applies_to",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.constants.intercept.source",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.coefficients.term",
- "findrisc.points_tables.items.factor",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.applies_to",
- "findrisc.equations.coefficients.term",
- "findrisc.equations.coefficients.term",
- "findrisc.points_tables.source",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "findrisc.points_tables.items.category",
- "findrisc.points_tables.items.category",
- "findrisc.points_tables.items.category",
- "findrisc.points_tables.items.factor",
- "findrisc.points_tables.items.factor",
- "findrisc.points_tables.items.category",
- "findrisc.points_tables.items.category",
- "findrisc.points_tables.items.factor",
- "findrisc.points_tables.items.category",
- "findrisc.points_tables.items.category",
- "findrisc.score_to_risk.applies_to",
- "findrisc.score_to_risk.source",
- "findrisc.score_to_risk.applies_to",
- "findrisc.score_to_risk.applies_to",
- "findrisc.score_to_risk.applies_to",
- "findrisc.examples.source",
- "findrisc.examples.note",
- "findrisc.examples.source",
- "findrisc.examples.source",
- "findrisc.examples.note",
- "framingham-general-cvd-d-agostino-2008.outcome",
- "framingham-general-cvd-d-agostino-2008.population.age_range",
- "framingham-general-cvd-d-agostino-2008.population.notes",
- "framingham-general-cvd-d-agostino-2008.formula",
- "framingham-general-cvd-d-agostino-2008.variables.coding",
- "pooled-cohort-equations-pce.variables.coding",
- "framingham-general-cvd-d-agostino-2008.equations.coefficients.source",
- "framingham-general-cvd-d-agostino-2008.equations.source",
- "framingham-general-cvd-d-agostino-2008.equations.coefficients.source",
- "framingham-general-cvd-d-agostino-2008.examples.note",
- "framingham-general-cvd-d-agostino-2008.examples.source",
- "framingham-general-cvd-d-agostino-2008.examples.note",
- "framingham-general-cvd-d-agostino-2008.examples.source",
- "framingham-general-cvd-d-agostino-2008.examples.note",
- "framingham-offspring-wilson-2007.outcome",
- "framingham-offspring-wilson-2007.population.age_range",
- "framingham-offspring-wilson-2007.population.notes",
- "framingham-offspring-wilson-2007.formula",
- "framingham-offspring-wilson-2007.variables.coding",
- "framingham-offspring-wilson-2007.variables.coding",
- "framingham-offspring-wilson-2007.variables.coding",
- "framingham-offspring-wilson-2007.variables.coding",
- "framingham-offspring-wilson-2007.variables.coding",
- "framingham-offspring-wilson-2007.equations.applies_to",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "framingham-offspring-wilson-2007.equations.coefficients.beta_note",
- "framingham-offspring-wilson-2007.equations.constants.intercept.source",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "framingham-offspring-wilson-2007.points_tables.items.factor",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "framingham-offspring-wilson-2007.points_tables.items.factor",
- "framingham-offspring-wilson-2007.points_tables.items.factor",
- "framingham-offspring-wilson-2007.equations.applies_to",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "framingham-offspring-wilson-2007.equations.applies_to",
- "framingham-offspring-wilson-2007.equations.applies_to",
- "framingham-offspring-wilson-2007.equations.constants.intercept.source",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "framingham-offspring-wilson-2007.equations.coefficients.term",
- "framingham-offspring-wilson-2007.examples.source",
- "framingham-offspring-wilson-2007.points_tables.items.factor",
- "framingham-offspring-wilson-2007.examples.source",
- "framingham-offspring-wilson-2007.examples.inputs",
- "framingham-offspring-wilson-2007.examples.source",
- "framingham-offspring-wilson-2007.examples.note",
- "framingham-offspring-wilson-2007.examples.note",
- "framingham-stroke-risk-profile-new-fsrp.outcome",
- "framingham-stroke-risk-profile-new-fsrp.population.age_range",
- "framingham-stroke-risk-profile-new-fsrp.population.notes",
- "framingham-stroke-risk-profile-new-fsrp.formula",
- "framingham-stroke-risk-profile-new-fsrp.variables.coding",
- "framingham-stroke-risk-profile-new-fsrp.variables.coding",
- "framingham-stroke-risk-profile-new-fsrp.variables.coding",
- "framingham-stroke-risk-profile-new-fsrp.variables.coding",
- "framingham-stroke-risk-profile-new-fsrp.variables.coding",
- "framingham-stroke-risk-profile-new-fsrp.variables.coding",
- "framingham-stroke-risk-profile-new-fsrp.variables.coding",
- "framingham-stroke-risk-profile-new-fsrp.equations.coefficients.source",
- "framingham-stroke-risk-profile-new-fsrp.equations.coefficients.term",
- "framingham-stroke-risk-profile-new-fsrp.equations.coefficients.term",
- "framingham-stroke-risk-profile-new-fsrp.equations.constants.M.source",
- "framingham-stroke-risk-profile-new-fsrp.equations.baseline_survival_source",
- "framingham-stroke-risk-profile-new-fsrp.examples.source",
- "framingham-stroke-risk-profile-new-fsrp.examples.note",
- "framingham-stroke-risk-profile-new-fsrp.examples.note",
- "framingham-stroke-risk-profile-new-fsrp.examples.note",
- "framingham-stroke-risk-profile-new-fsrp.examples.note",
- "framingham-stroke-risk-profile-new-fsrp.examples.source",
- "framingham-stroke-risk-profile-new-fsrp.examples.note",
- "framingham.outcome",
- "framingham.population.age_range",
- "framingham.population.notes",
- "framingham.variables.coding",
- "framingham.equations.coefficients.source",
- "framingham.equations.coefficients.term",
- "framingham.equations.coefficients.backsolve_note",
- "framingham.equations.constants.scale.source",
- "framingham.score_to_risk.source",
- "framingham.points_tables.items.factor",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.factor",
- "framingham.points_tables.items.category",
- "framingham.points_tables.items.category",
- "framingham.examples.source",
- "framingham.examples.note",
- "framingham.examples.source",
- "framingham.examples.note",
- "framingham.examples.note",
- "framingham.examples.note",
- "framingham.examples.source",
- "framingham.examples.note",
- "framingham.examples.source",
- "framingham.examples.note",
- "fukushima-is-2024.outcome",
- "fukushima-is-2024.population.age_range",
- "fukushima-is-2024.population.notes",
- "fukushima-is-2024.formula",
- "fukushima-is-2024.variables.coding",
- "kfre-2.equations.coefficients.term",
- "fukushima-is-2024.variables.coding",
- "fukushima-is-2024.variables.coding",
- "fukushima-is-2024.variables.coding",
- "fukushima-is-2024.variables.coding",
- "fukushima-is-2024.variables.coding",
- "fukushima-is-2024.variables.coding",
- "fukushima-is-2024.equations.applies_to",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.coefficients.term",
- "fukushima-is-2024.equations.constants.source",
- "hisayama-dementia-2021.points_tables.applies_to",
- "fukushima-is-2024.points_tables.rule",
- "fukushima-is-2024.points_tables.items.factor",
- "fukushima-is-2024.points_tables.items.factor",
- "fukushima-is-2024.points_tables.items.factor",
- "fukushima-is-2024.score_to_risk.source",
- "gail-1989.source.locator",
- "gail-1989.source.license",
- "gail-1989.model_type",
- "gail-1989.outcome",
- "gail-1989.horizon_years",
- "gail-1989.population",
- "gail-1989.inputs.values",
- "gail-1989.constants.equation1_log_OR.note",
- "gail-1989.constants.h1_star_note",
- "gail-1989.h2.original",
- "gail-1989.h2.substitute_NOT_ORIGINAL.label",
- "gail-1989.h2.substitute_NOT_ORIGINAL.locator",
- "gail-1989.h2.substitute_NOT_ORIGINAL.why_this_one",
- "gail-1989.formula.relative_risk",
- "gail-1989.formula.absolute_risk_eq6",
- "gail-1989.formula.ah_adjustment",
- "gail-1989.examples.note",
- "gail-1989.examples.note",
- "gail-1989.examples.note",
- "gail-1989.examples.note",
- "gail-1989.examples.note",
- "gail-1989.verification.table4",
- "gail-1989.verification.table4_ocr_note",
- "gail-1989.verification.table5",
- "harvard-cancer-risk-index.source.license",
- "harvard-cancer-risk-index.outcome",
- "harvard-cancer-risk-index.population.sex",
- "harvard-cancer-risk-index.population.age_range",
- "harvard-cancer-risk-index.inputs.coding",
- "harvard-cancer-risk-index.inputs.coding",
- "harvard-cancer-risk-index.inputs.coding",
- "harvard-cancer-risk-index.lookup_tables.rr_to_points.rows.rr",
- "harvard-cancer-risk-index.lookup_tables.rr_to_points.rows.rr",
- "harvard-cancer-risk-index.lookup_tables.rr_to_points.rows.rr",
- "harvard-cancer-risk-index.lookup_tables.rr_to_points.rows.rr",
- "harvard-cancer-risk-index.lookup_tables.rr_to_points.note",
- "harvard-cancer-risk-index.lookup_tables.validation_men_colon.rows",
- "harvard-cancer-risk-index.lookup_tables.validation_men_colon.rows",
- "harvard-cancer-risk-index.lookup_tables.validation_men_colon.rows",
- "harvard-cancer-risk-index.lookup_tables.validation_men_colon.rows",
- "harvard-cancer-risk-index.lookup_tables.validation_men_colon.rows",
- "harvard-cancer-risk-index.lookup_tables.validation_men_colon.rows",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.points.colon_women.rows.description",
- "harvard-cancer-risk-index.formula",
- "harvard-cancer-risk-index.examples.source",
- "harvard-cancer-risk-index.examples.inputs.note",
- "harvard-cancer-risk-index.examples.paper_values.note",
- "harvard-cancer-risk-index.examples.source",
- "harvard-cancer-risk-index.examples.inputs.note",
- "harvard-cancer-risk-index.examples.paper_values.note",
- "harvard-cancer-risk-index.paper_examples",
- "harvard-cancer-risk-index.resolutions.scenario_3_4.finding",
- "harvard-cancer-risk-index.resolutions.scenario_3_4.evidence_against_original",
- "harvard-cancer-risk-index.resolutions.scenario_3_4.recommended_rule",
- "harvard-cancer-risk-index.resolutions.scenario_3_4.confidence",
- "harvard-cancer-risk-index.resolutions.table6_profile_e.finding",
- "harvard-cancer-risk-index.resolutions.table6_profile_e.judgement",
- "harvard-cancer-risk-index.verification.method",
- "harvard-cancer-risk-index.verification.results.S3",
- "harvard-cancer-risk-index.verification.results.S4",
- "harvard-cancer-risk-index.verification.results.T6_b",
- "harvard-cancer-risk-index.verification.results.T6_c",
- "harvard-cancer-risk-index.verification.results.T6_d",
- "harvard-cancer-risk-index.verification.results.T6_e",
- "harvard-cancer-risk-index.verification.results.T6_f",
- "hisayama-cvd-2009.outcome",
- "hisayama-cvd-2009.population.age_range",
- "hisayama-cvd-2009.population.notes",
- "hisayama-cvd-2009.formula",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "hisayama-cvd-2009.equations.applies_to",
- "hisayama-dementia-2021.outcome",
- "mind-china-dementia-2025.population.age_range",
- "hisayama-dementia-2021.population.notes",
- "hisayama-dementia-2021.formula",
- "hisayama-dementia-2021.variables.coding",
- "hisayama-dementia-2021.variables.coding",
- "hisayama-dementia-2021.variables.coding",
- "hisayama-dementia-2021.variables.coding",
- "hisayama-dementia-2021.variables.coding",
- "hisayama-dementia-2021.variables.coding",
- "hisayama-dementia-2021.equations.applies_to",
- "hisayama-dementia-2021.equations.constants.source",
- "hisayama-dementia-2021.points_tables.rule",
- "hisayama-dementia-2021.points_tables.items.factor",
- "hisayama-dementia-2021.points_tables.items.category",
- "hisayama-dementia-2021.points_tables.items.category",
- "ukbdrs.equations.coefficients.term",
- "hisayama-dementia-2021.points_tables.items.factor",
- "hisayama-dementia-2021.score_to_risk.source",
- "hisayama-dementia-2021.examples.source",
- "hisayama-dementia-2021.examples.note",
- "hisayama-dementia-2021.examples.note",
- "hisayama-dementia-2021.examples.source",
- "hisayama-dementia-2021.examples.note",
- "kfre-2.outcome",
- "kfre-2.population.notes",
- "kfre-2.formula",
- "kfre-2.variables.coding",
- "kfre-2.variables.coding",
- "kfre-2.variables.unit",
- "kfre-2.variables.coding",
- "kfre-2.equations.applies_to",
- "kfre-2.equations.coefficients.term",
- "kfre-2.equations.coefficients.source",
- "kfre-2.equations.coefficients.term",
- "kfre-2.equations.applies_to",
- "kfre-2.equations.applies_to",
- "kfre-2.equations.applies_to",
- "kfre-2.equations.applies_to",
- "kfre-2.equations.coefficients.term",
- "kfre-2.equations.coefficients.term",
- "kfre-2.equations.coefficients.term",
- "kfre-2.equations.coefficients.term",
- "kfre-2.equations.applies_to",
- "kfre-2.examples.source",
- "kfre-2.examples.note",
- "kfre-2.examples.note",
- "kfre-2.examples.note",
- "kfre-2.examples.note",
- "kfre-2.examples.note",
- "kfre-2.examples.source",
- "kfre-2.examples.note",
- "kfre-2.examples.source",
- "kfre-2.examples.note",
- "kfre-2.examples.source",
- "kfre-2.examples.note",
- "klein-2013-panscan.outcome",
- "klein-2013-panscan.horizon_years",
- "klein-2013-panscan.population.sex",
- "klein-2013-panscan.population.race",
- "klein-2013-panscan.constants.average_lifetime_risk_men_pct.source",
- "klein-2013-panscan.constants.average_lifetime_risk_women_pct.source",
- "klein-2013-panscan.constants.baseline_incidence.source",
- "klein-2013-panscan.formula",
- "klein-2013-panscan.examples.note",
- "klein-2013-panscan.examples.note",
- "klein-2013-panscan.paper_examples",
- "korea-nhis-dementia-2019.outcome",
- "korea-nhis-dementia-2019.population.age_range",
- "korea-nhis-dementia-2019.population.sex",
- "korea-nhis-dementia-2019.population.notes",
- "korea-nhis-dementia-2019.formula",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.coefficients.term",
- "korea-nhis-dementia-2019.equations.applies_to",
- "lcrat-lcdrat-nci-lcrisks.source.citation",
- "lcrat-lcdrat-nci-lcrisks.source.locator",
- "lcrat-lcdrat-nci-lcrisks.source.license",
- "lcrat-lcdrat-nci-lcrisks.model_type",
- "lcrat-lcdrat-nci-lcrisks.outcome",
- "lcrat-lcdrat-nci-lcrisks.horizon_years",
- "lcrat-lcdrat-nci-lcrisks.population",
- "lcrat-lcdrat-nci-lcrisks.inputs.note",
- "lcrat-lcdrat-nci-lcrisks.inputs.values",
- "lcrat-lcdrat-nci-lcrisks.inputs.note",
- "lcrat-lcdrat-nci-lcrisks.inputs.note",
- "lcrat-lcdrat-nci-lcrisks.inputs.unit",
- "lcrat-lcdrat-nci-lcrisks.inputs.values",
- "lcrat-lcdrat-nci-lcrisks.inputs.values",
- "lcrat-lcdrat-nci-lcrisks.inputs.values",
- "lcrat-lcdrat-nci-lcrisks.inputs.values",
- "lcrat-lcdrat-nci-lcrisks.preprocessing",
- "lcrat-lcdrat-nci-lcrisks.preprocessing",
- "lcrat-lcdrat-nci-lcrisks.preprocessing",
- "lcrat-lcdrat-nci-lcrisks.preprocessing",
- "lcrat-lcdrat-nci-lcrisks.preprocessing",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.coefficients.meaning",
- "lcrat-lcdrat-nci-lcrisks.baseline.tables.LCDRAT",
- "lcrat-lcdrat-nci-lcrisks.baseline.tables.LCRAT",
- "lcrat-lcdrat-nci-lcrisks.baseline.note",
- "lcrat-lcdrat-nci-lcrisks.formula.relative_risk",
- "lcrat-lcdrat-nci-lcrisks.formula.absolute_risk_n_years",
- "lcrat-lcdrat-nci-lcrisks.formula.post",
- "lcrat-lcdrat-nci-lcrisks.formula.false_positive_ct",
- "lcrat-lcdrat-nci-lcrisks.examples.note",
- "lcrat-lcdrat-nci-lcrisks.examples.note",
- "lcrat-lcdrat-nci-lcrisks.verification.coefficients_vs_paper",
- "lcrat-lcdrat-nci-lcrisks.verification.transcription_check",
- "lcrat-lcdrat-nci-lcrisks.verification.false_positive",
- "lcrat-lcdrat-nci-lcrisks.verification.absolute_risk_vs_official",
- "lee-index.outcome",
- "lee-index.population.age_range",
- "lee-index.population.sex",
- "lee-index.population.notes",
- "lee-index.formula",
- "lee-index.variables.coding",
- "schonberg-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.variables.coding",
- "lee-index.points_tables.source",
- "schonberg-index.points_tables.items.factor",
- "lee-index.points_tables.items.factor",
- "lee-index.points_tables.items.factor",
- "lee-index.points_tables.items.factor",
- "lee-index.points_tables.items.factor",
- "lee-index.points_tables.items.factor",
- "lee-index.points_tables.items.factor",
- "lee-index.score_to_risk.applies_to",
- "lee-index.score_to_risk.source",
- "lee-index.score_to_risk.applies_to",
- "lee-index.score_to_risk.applies_to",
- "lee-index.examples.source",
- "lee-index.score_to_risk.applies_to",
- "lee-index.score_to_risk.applies_to",
- "lee-index.score_to_risk.applies_to",
- "lee-index.score_to_risk.applies_to",
- "lee-index.score_to_risk.source",
- "lee-index.examples.source",
- "lee-index.examples.note",
- "lee-index.examples.source",
- "lee-index.examples.note",
- "lee-index.examples.inputs.source",
- "lee-index.examples.note",
- "libra.citation",
- "libra.outcome",
- "libra.population.age_range",
- "libra.population.notes",
- "libra.formula",
- "libra.points_tables.items.factor",
- "libra.variables.coding",
- "libra.points_tables.items.factor",
- "libra.points_tables.items.factor",
- "libra.points_tables.items.factor",
- "ukbdrs.equations.coefficients.term",
- "libra.points_tables.items.factor",
- "libra.points_tables.items.factor",
- "libra.points_tables.items.factor",
- "libra.points_tables.applies_to",
- "libra.points_tables.source",
- "libra.examples.source",
- "libra.examples.note",
- "libra.examples.source",
- "libra.examples.note",
- "libra.examples.source",
- "libra.examples.note",
- "mind-china-dementia-2025.outcome",
- "mind-china-dementia-2025.population.notes",
- "mind-china-dementia-2025.formula",
- "mind-china-dementia-2025.variables.coding",
- "mind-china-dementia-2025.variables.coding",
- "mind-china-dementia-2025.variables.coding",
- "mind-china-dementia-2025.equations.applies_to",
- "mind-china-dementia-2025.equations.coefficients.source",
- "mind-china-dementia-2025.equations.coefficients.term",
- "mind-china-dementia-2025.equations.coefficients.term",
- "revised-reach-b.source.license",
- "mpage-b.outcome",
- "mpage-b.population.eligibility",
- "mpage-b.points.source",
- "mpage-b.points.range",
- "mpage-b.points.boundary_status",
- "mpage-b.risk_groups.source",
- "mpage-b.risk_groups.boundary_resolution",
- "mpage-b.score_table_0_21",
- "nafld-fibrosis-score.outcome",
- "nafld-fibrosis-score.population.eligibility",
- "nafld-fibrosis-score.inputs.coding",
- "nafld-fibrosis-score.coefficients.source",
- "nafld-fibrosis-score.examples.expected.category",
- "nafld-fibrosis-score.examples.note",
- "nci-bcrat-cran-bcra.source.citation",
- "nci-bcrat-cran-bcra.source.locator",
- "nci-bcrat-cran-bcra.source.license",
- "nci-bcrat-cran-bcra.model_type",
- "nci-bcrat-cran-bcra.outcome",
- "nci-bcrat-cran-bcra.horizon_years",
- "nci-bcrat-cran-bcra.population",
- "nci-bcrat-cran-bcra.inputs.values",
- "nci-bcrat-cran-bcra.inputs.values",
- "nci-bcrat-cran-bcra.inputs.values",
- "nci-bcrat-cran-bcra.inputs.values",
- "nci-bcrat-cran-bcra.inputs.values",
- "nci-bcrat-cran-bcra.preprocessing",
- "nci-bcrat-cran-bcra.preprocessing",
- "nci-bcrat-cran-bcra.preprocessing",
- "nci-bcrat-cran-bcra.preprocessing",
- "nci-bcrat-cran-bcra.preprocessing",
- "nci-bcrat-cran-bcra.preprocessing",
- "nci-bcrat-cran-bcra.coefficients.rates",
- "nci-bcrat-cran-bcra.formula.relative_risk",
- "nci-bcrat-cran-bcra.formula.absolute_risk",
- "nci-bcrat-cran-bcra.formula.avg_white",
- "nci-bcrat-cran-bcra.examples.note",
- "nci-bcrat-cran-bcra.examples.status",
- "nci-bcrat-cran-bcra.examples.note",
- "nci-bcrat-cran-bcra.examples.note",
- "nci-bcrat-cran-bcra.examples.note",
- "nci-bcrat-cran-bcra.examples.note",
- "nci-bcrat-cran-bcra.examples.note",
- "nci-bcrat-cran-bcra.verification.asian_races_6_to_11",
- "nci-bcrat-cran-bcra.verification.white_and_other_races_1_to_5",
- "nci-bcrat-cran-bcra.verification.not_a_valid_check",
- "nci-ccrat.source.page_note",
- "nci-ccrat.source.license",
- "nci-ccrat.outcome",
- "nci-ccrat.horizon_years",
- "nci-ccrat.population.race",
- "nci-ccrat.inputs.coding",
- "nci-ccrat.inputs.unit",
- "nci-ccrat.inputs.unit",
- "nci-ccrat.inputs.coding",
- "nci-ccrat.rr_tables.men.order",
- "nci-ccrat.rr_tables.women.order",
- "nci-ccrat.constants.AR_women.source",
- "nci-ccrat.constants.one_minus_AR_sas_macro_v1_2.source",
- "nci-ccrat.lookup_tables.competing_mortality_per_100k.source",
- "nci-ccrat.formula",
- "nci-ccrat.examples.self_reproduction.method",
- "nci-ccrat.examples.self_reproduction.method",
- "nci-ccrat.examples.self_reproduction.twenty_year_missing_reason",
- "nci-ccrat.examples.self_reproduction.method",
- "nci-ccrat.paper_examples",
- "nci-ccrat.women_official_sas_macro_v1_2.source.file",
- "nci-ccrat.women_official_sas_macro_v1_2.source.locators",
- "nci-ccrat.women_official_sas_macro_v1_2.source.license",
- "nci-ccrat.women_official_sas_macro_v1_2.source.note",
- "nci-ccrat.women_official_sas_macro_v1_2.model_form",
- "nci-ccrat.women_official_sas_macro_v1_2.coding.Sigmoid_Polyps",
- "nci-ccrat.women_official_sas_macro_v1_2.coding.Estrogen",
- "nci-ccrat.women_official_sas_macro_v1_2.coding.Fam_Hist_CRC",
- "nci-ccrat.women_official_sas_macro_v1_2.coding.NSaids",
- "nci-ccrat.women_official_sas_macro_v1_2.coding.Vigorus_Xrcis",
- "nci-ccrat.women_official_sas_macro_v1_2.coding.BMI_ge30",
- "nci-ccrat.women_official_sas_macro_v1_2.coding.Veg_lt5",
- "nci-ccrat.women_official_sas_macro_v1_2.reference_levels.rectal",
- "nci-ccrat.women_official_sas_macro_v1_2.reference_levels.proximal",
- "nci-ccrat.women_official_sas_macro_v1_2.reference_levels.distal",
- "nci-ccrat.women_official_sas_macro_v1_2.note_distal_AR",
- "nci-ccrat.women_official_sas_macro_v1_2.verification.method",
- "nci-ccrat.women_official_sas_macro_v1_2.verification.result",
- "nci-ccrat.women_paper_examples_with_official_betas.method",
- "nci-ccrat.women_paper_examples_with_official_betas.residual_summary",
- "nci-ccrat.women_paper_examples_with_official_betas.caveat",
- "otsuka-2015.outcome",
- "otsuka-2015.population.age_range",
- "otsuka-2015.population.sex",
- "otsuka-2015.population.notes",
- "otsuka-2015.formula",
- "otsuka-2015.variables.coding",
- "otsuka-2015.variables.coding",
- "otsuka-2015.points_tables.items.factor",
- "otsuka-2015.equations.applies_to",
- "otsuka-2015.equations.coefficients.source",
- "otsuka-2015.equations.coefficients.mean_source",
- "otsuka-2015.equations.coefficients.term",
- "otsuka-2015.equations.coefficients.term",
- "otsuka-2015.equations.coefficients.term",
- "otsuka-2015.examples.source",
- "otsuka-2015.equations.baseline_survival_source",
- "otsuka-2015.score_to_risk.applies_to",
- "otsuka-2015.score_to_risk.source",
- "otsuka-2015.points_tables.items.factor",
- "otsuka-2015.points_tables.items.factor",
- "otsuka-2015.score_to_risk.rows.score",
- "otsuka-2015.score_to_risk.rows.score",
- "otsuka-2015.score_to_risk.rows.score",
- "otsuka-2015.score_to_risk.rows.score",
- "otsuka-2015.score_to_risk.rows.score",
- "otsuka-2015.score_to_risk.rows.score",
- "otsuka-2015.score_to_risk.rows.score",
- "otsuka-2015.examples.note",
- "otsuka-2015.examples.note",
- "page-b.outcome",
- "page-b.population.eligibility",
- "page-b.population.age_range",
- "page-b.risk_groups.medium",
- "page-b.risk_groups.high",
- "page-b.lookup_tables.fig2_score_to_5y_risk_pct.source",
- "page-b.formula",
- "pcpt-rc-2-0.source.page_note",
- "pcpt-rc-2-0.outcome",
- "pcpt-rc-2-0.population.eligibility",
- "pcpt-rc-2-0.inputs.coding",
- "pcpt-rc-2-0.inputs.coding",
- "pcpt-rc-2-0.inputs.coding",
- "pcpt-rc-2-0.inputs.coding",
- "pcpt-rc-2-0.inputs.coding",
- "pcpt-rc-2-0.lookup_tables.pct_free_psa_update.note",
- "pcpt-rc-2-0.lookup_tables.pca3_update.note",
- "pcpt-rc-2-0.lookup_tables.detailed_family_history_LR.sdr_multiplier.condition",
- "pcpt-rc-2-0.lookup_tables.snp_LR.note",
- "pcpt-rc-2-0.formula",
- "pcpt-rc-2-0.examples.note",
- "pcpt-rc-2-0.paper_examples",
- "plcom2012.outcome",
- "plcom2012.population.sex",
- "plcom2012.population.eligibility",
- "plcom2012.population.age_range",
- "plcom2012.inputs.coding",
- "plcom2012.inputs.coding",
- "plcom2012.inputs.coding",
- "plcom2012.inputs.coding",
- "plcom2012.inputs.unit",
- "plcom2012.inputs.coding",
- "plcom2012.inputs.coding",
- "plcom2012.inputs.coding",
- "plcom2012.constants.intensity_center.source",
- "plcom2012.examples.note",
- "plcom2012.paper_examples",
- "pooled-cohort-equations-pce.citation",
- "pooled-cohort-equations-pce.outcome",
- "pooled-cohort-equations-pce.population.age_range",
- "pooled-cohort-equations-pce.population.notes",
- "pooled-cohort-equations-pce.formula",
- "pooled-cohort-equations-pce.variables.coding",
- "pooled-cohort-equations-pce.variables.coding",
- "pooled-cohort-equations-pce.equations.applies_to",
- "pooled-cohort-equations-pce.equations.coefficients.source",
- "pooled-cohort-equations-pce.equations.source",
- "pooled-cohort-equations-pce.equations.applies_to",
- "pooled-cohort-equations-pce.equations.coefficients.source",
- "pooled-cohort-equations-pce.equations.applies_to",
- "pooled-cohort-equations-pce.equations.coefficients.source",
- "pooled-cohort-equations-pce.equations.applies_to",
- "pooled-cohort-equations-pce.equations.coefficients.source",
- "pooled-cohort-equations-pce.examples.source",
- "pooled-cohort-equations-pce.examples.note",
- "pooled-cohort-equations-pce.examples.source",
- "pooled-cohort-equations-pce.examples.note",
- "qcancer-10.source.license",
- "qcancer-10.outcome",
- "qcancer-10.population.age_range",
- "qcancer-10.population.country",
- "qcancer-10.inputs",
- "qcancer-10.inputs",
- "qcancer-10.inputs",
- "qcancer-10.inputs",
- "qcancer-10.inputs",
- "qcancer-10.attempts.result",
- "qcancer-10.attempts.result",
- "qcancer-10.attempts.result",
- "qcancer-10.attempts.result",
- "qcancer-10.attempts.result",
- "qcancer-10.attempts.target",
- "qcancer-10.attempts.result",
- "qcancer-10.attempts.target",
- "qcancer-10.attempts.result",
- "qcancer-10.next_steps",
- "qcancer-10.next_steps",
- "qdiabetes-2018.citation",
- "qdiabetes-2018.outcome",
- "qdiabetes-2018.population.age_range",
- "qdiabetes-2018.population.sex",
- "qdiabetes-2018-2.population.notes",
- "qdiabetes-2018.formula",
- "qdiabetes-2018.variables.coding",
- "qdiabetes-2018.variables.coding",
- "qdiabetes-2018.variables.coding",
- "qdiabetes-2018.variables.coding",
- "qdiabetes-2018.variables.coding",
- "qdiabetes-2018.variables.unit",
- "qdiabetes-2018.variables.coding",
- "qdiabetes-2018.variables.coding",
- "qdiabetes-2018-2.variables.coding",
- "qdiabetes-2018-2.variables.coding",
- "qdiabetes-2018-2.equations.applies_to",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.term",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.constants.S0_10y.source",
- "qdiabetes-2018-2.equations.applies_to",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.constants.S0_10y.source",
- "qdiabetes-2018-2.equations.applies_to",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.constants.S0_10y.source",
- "qdiabetes-2018-2.equations.applies_to",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.coefficients.source",
- "qdiabetes-2018-2.equations.constants.S0_10y.source",
- "qdiabetes-2018.examples.source",
- "qdiabetes-2018-2.examples.note",
- "qdiabetes-2018-2.examples.note",
- "qdiabetes-2018-2.examples.note",
- "qdiabetes-2018-2.examples.note",
- "qdiabetes-2018-2.examples.source",
- "qdiabetes-2018-2.examples.note",
- "qdiabetes-2018.paper_hr_check.description",
- "qdiabetes-2018.population.notes",
- "qdiabetes-2018.equations.applies_to",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.constants.S0_10y.source",
- "qdiabetes-2018.equations.applies_to",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.coefficients.source",
- "qdiabetes-2018.equations.constants.S0_10y.source",
- "qdiabetes-2018.examples.note",
- "qdiabetes-2018.examples.note",
- "qdiabetes-2018.examples.note",
- "qdiabetes-2018.examples.note",
- "revised-reach-b.source.citation",
- "revised-reach-b.outcome",
- "revised-reach-b.population.eligibility",
- "revised-reach-b.constants.full_precision_rds.source",
- "revised-reach-b.constants.derived_scale.source",
- "revised-reach-b.formula",
- "revised-reach-b.verification.method",
- "revised-reach-b.verification.note",
- "revised-reach-b.paper_examples",
- "schonberg-index.citation",
- "schonberg-index.outcome",
- "schonberg-index.population.age_range",
- "schonberg-index.population.sex",
- "schonberg-index.population.notes",
- "schonberg-index.formula",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.unit",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.coding",
- "schonberg-index.variables.coding",
- "schonberg-index.points_tables.source",
- "schonberg-index.points_tables.items.factor",
- "schonberg-index.points_tables.items.factor",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.points_tables.items.factor",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.examples.inputs.self_health",
- "schonberg-index.points_tables.items.factor",
- "schonberg-index.points_tables.items.factor",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.points_tables.items.category",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.score_to_risk.source",
- "schonberg-index.score_to_risk.rows.ci95",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.score_to_risk.source",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.score_to_risk.source",
- "schonberg-index.score_to_risk.applies_to",
- "schonberg-index.examples.source",
- "schonberg-index.examples.note",
- "schonberg-index.examples.inputs.walk_quarter_mile",
- "schonberg-index.examples.note",
- "schonberg-index.examples.source",
- "schonberg-index.examples.note",
- "score2-op.outcome",
- "score2-op.population.age_range",
- "score2-op.population.notes",
- "score2-op.formula",
- "score2-op.variables.coding",
- "score2-op.variables.coding",
- "score2-op.variables.coding",
- "score2-op.equations.coefficients.term",
- "score2-op.equations.coefficients.source",
- "score2-op.equations.coefficients.term",
- "score2-op.equations.coefficients.term",
- "score2-op.equations.coefficients.term",
- "score2-op.equations.coefficients.term",
- "score2-op.equations.coefficients.term",
- "score2-op.equations.coefficients.term",
- "score2-op.equations.constants.S0_10y.source",
- "score2-op.equations.constants.mean_lp.source",
- "score2-op.equations.constants.S0_10y.source",
- "score2-op.equations.constants.mean_lp.source",
- "score2-op.region_scales.region_zh",
- "score2-op.hf_multipliers.description",
- "score2-op.examples.note",
- "score2-op.examples.note",
- "score2-op.examples.source",
- "score2-op.examples.note",
- "score2-op.examples.note",
- "score2-op.examples.source",
- "score2-op.examples.note",
- "tyrer-cuzick-ibis.source.page_note",
- "tyrer-cuzick-ibis.outcome",
- "tyrer-cuzick-ibis.horizon_years",
- "tyrer-cuzick-ibis.population.reference_population",
- "tyrer-cuzick-ibis.inputs.coding",
- "tyrer-cuzick-ibis.constants.brca1_carrier_freq.source",
- "tyrer-cuzick-ibis.constants.brca2_carrier_freq.source",
- "tyrer-cuzick-ibis.formula",
- "tyrer-cuzick-ibis.examples.inputs.other_relatives",
- "tyrer-cuzick-ibis.examples.inputs.family_history",
- "tyrer-cuzick-ibis.examples.inputs.paternal_grandmother",
- "tyrer-cuzick-ibis.paper_examples",
- "ukbdrs.model_type",
- "ukbdrs.outcome",
- "ukbdrs.population.age_range",
- "ukbdrs.population.sex",
- "ukbdrs.population.notes",
- "ukbdrs.formula",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.coefficients.term",
- "ukbdrs.equations.applies_to",
- "ukbdrs.equations.coefficients.source",
- "ukbdrs.equations.constants.source",
- "ukbdrs.equations.applies_to",
- "ukbdrs.examples.source",
- "ukbdrs.examples.note",
- "wen-2012.source.license",
- "wen-2012.outcome",
- "wen-2012.population.eligibility",
- "wen-2012.population.note",
- "wen-2012.models.A",
- "wen-2012.models.B",
- "wen-2012.models.definitions",
- "wen-2012.points_table.source",
- "wen-2012.points_table.reference_levels",
- "wen-2012.points_table.definitions",
- "wen-2012.chart_mapping_verification",
- "wen-2012.image_only_labels.A_M3_top_score_23.note",
- "wen-2012.image_only_labels.A_M4_top_score_30.note",
- "wen-2012.formula"
-];
+export const UNTRANSLATED = [];
 
 export function getCoefficients(modelId) {
   return COEFFICIENTS[modelId] || null;
