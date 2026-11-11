@@ -4,6 +4,7 @@
 import { store } from './store.js';
 import { runAll } from './engine/run.js';
 import { callApi } from './api.js';
+import { currentUser, signOut } from './auth.js';
 
 const ROUTES = [
   { path: '/', label: 'Home', load: () => import('./views/home.js') },
@@ -27,18 +28,29 @@ const query = () => Object.fromEntries(new URLSearchParams(location.hash.split('
 const ctx = { store, runAll, callApi, go, query };
 
 function drawChrome(path) {
-  nav.replaceChildren(...ROUTES.filter((r) => r.label).map((r) => {
+  const user = currentUser();
+  // Signed out: no navigation, only the sign-in page.
+  nav.replaceChildren(...ROUTES.filter((r) => r.label && user).map((r) => {
     const link = document.createElement('a');
     link.href = `#${r.path}`;
     link.textContent = r.label;
     if (r.path === path) link.className = 'active';
     return link;
   }));
-  session.textContent = store.user() === 'guest' ? 'Not signed in' : `Signed in as ${store.user()}`;
+  session.replaceChildren();
+  if (!user) return;
+  const out = document.createElement('button');
+  out.className = 'link';
+  out.textContent = 'Sign out';
+  out.addEventListener('click', () => { signOut(); go('#/login'); });
+  session.append(`${user} · `, out);
 }
 
 async function render() {
   const path = currentPath();
+  // Demo sign-in gate: every page needs a signed-in test account.
+  if (!currentUser() && path !== '/login') return go('#/login');
+  if (currentUser() && path === '/login') return go('#/');
   const route = ROUTES.find((r) => r.path === path) || ROUTES[0];
   drawChrome(route.path);
   root.replaceChildren();

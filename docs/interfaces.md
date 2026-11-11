@@ -75,6 +75,21 @@ const stop = ctx.store.subscribe((record) => { /* runs after every change */ });
 
 `consentResearch` defaults to `false`.
 
+## Sign-in
+
+Demo only: test accounts, no password, no server. Every page except `#/login` needs a signed-in account; the router sends everyone else to the sign-in page.
+
+```js
+import { TEST_ACCOUNTS, currentUser, signIn, signOut } from './auth.js';
+
+TEST_ACCOUNTS;          // [{ user: 'testuser1', persona }, ...] — testuserN opens the Nth sample person (first three)
+currentUser();          // 'testuser1' | null
+signIn('testuser1');    // { ok: true } | { ok: false, error }
+signOut();
+```
+
+The first sign-in copies the account's sample person into its record. Later sign-ins keep whatever that account saved, so two accounts show two different people.
+
 ## Person
 
 A person is `{ profile, labs }`. Every field is optional; formulas report what they are missing.
