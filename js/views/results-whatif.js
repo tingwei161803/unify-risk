@@ -19,6 +19,8 @@ const CAVEAT = 'These figures come from running the same published formulas agai
 /* ---------------- formatting ---------------- */
 
 function isNum(v) { return typeof v === 'number' && Number.isFinite(v); }
+/** an open band in the engine's wording ('more than 35%', '3% or less'): its value is only the edge of the band */
+function isOpenBand(display) { return /^more than\b|\bor less$/i.test(String(display || '')); }
 /** probability -> "6.6%" (copied from results.js, which does not export it) */
 function pct(p) {
   if (!isNum(p)) return '—';
@@ -124,7 +126,8 @@ function card(lever) {
           h('i.seg-l', { style: { left: at(Math.min(before.value, after.value)), width: at(Math.abs(after.value - before.value)) } }),
           h('i.p.b', { style: { left: at(before.value) } }),
           h('i.p.a', { style: { left: at(after.value) } })),
-        h('div.delta', apart(before.value, after.value)));
+        // no "about N fewer" beside an open band: the gap to "more than 35%" is not a figure
+        isOpenBand(before.display) || isOpenBand(after.display) ? null : h('div.delta', apart(before.value, after.value)));
     }));
 }
 

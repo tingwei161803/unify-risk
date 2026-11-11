@@ -49,6 +49,20 @@ function per100(p) {
   const v = p * 100;
   return v > 0 && v < 0.5 ? '<1' : String(Math.round(v));
 }
+// A points table can end in an open band. The engine then gives the edge of the band as `value`
+// and says so in `display` ('more than 35%', '3% or less'); the card must not turn that into "about 35".
+function openBand(r) {
+  const d = String((r && r.display) || '');
+  return /^more than\b/i.test(d) ? 'more' : /\bor less$/i.test(d) ? 'less' : '';
+}
+/** An estimate as people out of 100: in figures ('9', '>35', '≤3') and in words ('about 9', 'more than 35'). */
+function outOf100(r) {
+  const n = per100(r.value), band = openBand(r);
+  if (band === 'more') return { figure: '>' + n, words: 'more than ' + n };
+  if (band === 'less') return { figure: '≤' + n, words: n + ' or fewer' };
+  return { figure: n, words: n === '<1' ? 'fewer than 1' : 'about ' + n };
+}
+function capital(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 /** a plain number with at most `digits` decimals and no trailing zeros */
 function num(x, digits) {
   if (!isNum(x)) return has(x) ? String(x) : '—';
@@ -68,9 +82,9 @@ function diseaseLabel(r) {
 function horizon(r) { return r.horizonYears ? ' within ' + r.horizonYears + ' years' : ''; }
 function sentence(r) {
   const d = DISEASES[r.disease];
-  const n = per100(r.value), few = n === '<1';
-  if (!d || !d.event) return (few ? 'Fewer than 1' : 'About ' + n) + ' in 100 people with the same answers' + horizon(r) + '.';
-  return 'Of 100 people with the same answers, ' + (few ? 'fewer than 1' : 'about ' + n) + ' would ' + d.event + horizon(r) + '.';
+  const words = outOf100(r).words;
+  if (!d || !d.event) return capital(words) + ' in 100 people with the same answers' + horizon(r) + '.';
+  return 'Of 100 people with the same answers, ' + words + ' would ' + d.event + horizon(r) + '.';
 }
 // Our value at the precision the paper prints (0.0099, not 0.01); full precision when a check fails.
 function likePrinted(c) {
@@ -189,13 +203,13 @@ function svg(tag, attrs, kids) {
   return el;
 }
 /** 10 x 10 people-out-of-100 array, filled from the bottom-left so it reads like a level. */
-function iconArray(p) {
+function iconArray(p, words) {
   const n = Math.max(0, Math.min(100, Math.round(p * 100))), gap = 11.2, dots = [];
   for (let i = 0; i < 100; i++) {
     const row = Math.floor(i / 10), col = i % 10, on = (9 - row) * 10 + col < n;
     dots.push(svg('circle', { cx: col * gap + gap / 2, cy: row * gap + gap / 2, r: 3.6, fill: on ? 'var(--mark-1)' : 'var(--track)' }));
   }
-  return svg('svg', { class: 'icon-array', viewBox: '0 0 112 112', role: 'img', 'aria-label': per100(p) + ' of 100 people' }, dots);
+  return svg('svg', { class: 'icon-array', viewBox: '0 0 112 112', role: 'img', 'aria-label': (words || per100(p)) + ' of 100 people' }, dots);
 }
 
 /* ---------------- drawer: the arithmetic, the source, where it was checked ---------------- */
@@ -355,8 +369,8 @@ function computedCard(r, person, open) {
   const checks = checksFor(r.id);
   // the number itself is a button: every number opens its equation and source
   const number = r.value !== null
-    ? h('button.hero-n', { type: 'button', onclick: (e) => open(r, e.currentTarget), 'aria-label': per100(r.value) + ' in 100. Show the math and source for ' + r.name },
-      per100(r.value), h('small', '/ 100'))
+    ? h('button.hero-n', { type: 'button', onclick: (e) => open(r, e.currentTarget), 'aria-label': capital(outOf100(r).words) + ' in 100. Show the math and source for ' + r.name },
+      outOf100(r).figure, h('small', '/ 100'))
     : h('button.hero-n', { type: 'button', onclick: (e) => open(r, e.currentTarget), 'aria-label': 'Show the math and source for ' + r.name }, r.display || '—');
   const extras = [
     r.score ? h('span.pill.plain.mute', 'Score: ' + num(r.score.points, 1) + (isNum(r.score.max) ? ' of ' + r.score.max : '') + ' points') : null,
@@ -368,7 +382,7 @@ function computedCard(r, person, open) {
       h('div.stack', { style: { gap: '8px' } },
         cardTitle(r), number,
         r.value !== null ? h('p.cap', sentence(r), h('span.num.dim', ' (' + (r.display || pct(r.value)) + ')')) : null),
-      r.value !== null ? iconArray(r.value) : null),
+      r.value !== null ? iconArray(r.value, outOf100(r).words) : null),
     extras.length ? h('div.also', extras) : null,
     h('div.ev', evidenceChip(r, person), h('span.grow'), mathButton(r, open))), r, open);
 }
@@ -403,9 +417,11 @@ function comparisons(computed, open, person) {
   return [...groups.values()].filter((list) => list.length >= 2).map((list) => {
     const values = list.map((r) => r.value), lo = Math.min(...values), hi = Math.max(...values);
     const scale = Math.max(hi * 1.15, 0.01);
-    const headline = per100(lo) === per100(hi)
-      ? diseaseLabel(list[0]) + horizon(list[0]) + ': about ' + per100(hi) + ' in 100 by every formula'
-      : diseaseLabel(list[0]) + horizon(list[0]) + ': ' + per100(lo) + ' to ' + per100(hi) + ' in 100, depending on the formula';
+    const headline = list.some(openBand)   // an open band has no upper or lower figure to put in a range
+      ? diseaseLabel(list[0]) + horizon(list[0]) + ': ' + list.map((r) => outOf100(r).figure).join(' and ') + ' in 100, depending on the formula'
+      : per100(lo) === per100(hi)
+        ? diseaseLabel(list[0]) + horizon(list[0]) + ': about ' + per100(hi) + ' in 100 by every formula'
+        : diseaseLabel(list[0]) + horizon(list[0]) + ': ' + per100(lo) + ' to ' + per100(hi) + ' in 100, depending on the formula';
     return h('div.panel.cmp',
       h('div.row.between', h('span.micro', 'Same answers, ' + list.length + ' published formulas'),
         list.some((r) => r.placeholder) ? h('span.pill.warn', 'Placeholder numbers') : null),
@@ -416,8 +432,8 @@ function comparisons(computed, open, person) {
         h('div.cmp-mid',
           h('div.cmp-track', { 'aria-hidden': 'true' }, h('i', { style: { width: (r.value / scale * 100).toFixed(1) + '%' } })),
           evidenceChip(r, person)),
-        h('button.linkbtn.v', { type: 'button', onclick: (e) => open(r, e.currentTarget), 'aria-label': per100(r.value) + ' in 100. Show the math and source for ' + r.name },
-          per100(r.value), h('small', '/ 100'))))),
+        h('button.linkbtn.v', { type: 'button', onclick: (e) => open(r, e.currentTarget), 'aria-label': capital(outOf100(r).words) + ' in 100. Show the math and source for ' + r.name },
+          outOf100(r).figure, h('small', '/ 100'))))),
       h('p.small', 'Each formula was fitted to a different group of people, so the same answers give different estimates. '
         + 'That gap is why it matters where a formula has been checked.'));
   });
