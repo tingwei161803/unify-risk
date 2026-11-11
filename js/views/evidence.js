@@ -96,7 +96,8 @@ function cellDetails(entry, pop) {
       h('h3', entry.name + ' · ' + pop.label),
       st ? h('span.pill.plain.' + (TONE_CLASS[st.tone] || 'mute'), h('span.code', cell.status), st.label) : null),
     PLAIN[cell.status] ? h('p.small', { style: { 'margin-top': '8px' } }, PLAIN[cell.status]) : null,
-    DIRECTION[cell.direction] ? h('p.small', { style: { 'margin-top': '4px' } }, DIRECTION[cell.direction]) : null,
+    // Not for V: "its percentages matched" followed by "it predicted fewer cases" reads as a contradiction.
+    cell.status !== 'V' && DIRECTION[cell.direction] ? h('p.small', { style: { 'margin-top': '4px' } }, DIRECTION[cell.direction]) : null,
     facts.length ? h('div.tbl-wrap', { style: { 'margin-top': '10px' } }, h('table.tbl', h('tbody',
       facts.map(([k, v]) => h('tr', h('td', k), h('td.n', v)))))) : null,
     cell.status === 'G' ? h('p.small', { style: { 'margin-top': '8px' } },

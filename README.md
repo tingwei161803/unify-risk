@@ -2,7 +2,7 @@
 
 **Your health numbers, explained by formulas you can check.**
 
-Answer a short questionnaire, add your lab values, and see risk estimates computed with published, peer-reviewed formulas. Every number opens up to show the equation, the source paper, and which populations the formula has been validated in.
+Answer a short questionnaire, add your lab values, and see risk estimates computed with published, peer-reviewed formulas. Every risk estimate opens up to show the equation, the source paper, and which populations the formula has been validated in.
 
 Built at the c0mpiled-18 YC Startup School Hackathon, Taipei, 2026-11-11.
 
