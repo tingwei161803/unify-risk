@@ -36,6 +36,8 @@ export const caide = {
   disease: 'dementia',
   outcome: 'Dementia within 20 years',
   horizonYears: 20,
+  kind: 'risk',
+  derivedIn: 'EU',
   ageRange: [39, 64],
   population: 'Finnish CAIDE cohort: 1,409 people aged 39–64 at baseline, followed for about 20 years.',
   source: {

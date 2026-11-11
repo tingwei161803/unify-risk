@@ -25,6 +25,8 @@ export const chinShanStroke = {
   disease: 'stroke',
   outcome: 'Stroke within 10 years',
   horizonYears: 10,
+  kind: 'risk',
+  derivedIn: 'TW',
   ageRange: [35, null],
   population: 'Chin-Shan Community Cohort, Taiwan: 3,513 stroke-free adults aged 35 and over.',
   source: {
