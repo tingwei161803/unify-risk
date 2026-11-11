@@ -417,7 +417,6 @@ function comparisons(computed, open, person) {
   });
   return [...groups.values()].filter((list) => list.length >= 2).map((list) => {
     const values = list.map((r) => r.value), lo = Math.min(...values), hi = Math.max(...values);
-    const scale = Math.max(hi * 1.15, 0.01);
     const headline = list.some(openBand)   // an open band has no upper or lower figure to put in a range
       ? diseaseLabel(list[0]) + horizon(list[0]) + ': ' + list.map((r) => outOf100(r).figure).join(' and ') + ' in 100, depending on the formula'
       : per100(lo) === per100(hi)
@@ -431,11 +430,12 @@ function comparisons(computed, open, person) {
         h('div.nm', r.name, r.builtOn ? h('small', 'Built on: ' + r.builtOn) : null),
         // the bar, and under it whether the formula has been checked where this person lives
         h('div.cmp-mid',
-          h('div.cmp-track', { 'aria-hidden': 'true' }, h('i', { style: { width: (r.value / scale * 100).toFixed(1) + '%' } })),
+          h('div.cmp-track', { 'aria-hidden': 'true' }, // the track is 100 people, so 4 in 100 fills 4% of it (never scaled up to the larger formula)
+            h('i', { style: { width: (Math.min(Math.max(r.value, 0), 1) * 100).toFixed(1) + '%' } })),
           evidenceChip(r, person)),
         h('button.linkbtn.v', { type: 'button', onclick: (e) => open(r, e.currentTarget), 'aria-label': capital(outOf100(r).words) + ' in 100. Show the math and source for ' + r.name },
           outOf100(r).figure, h('small', '/ 100'))))),
-      h('p.small', 'Each formula was fitted to a different group of people, so the same answers give different estimates. '
+      h('p.small', 'A full bar would be 100 in 100. Each formula was fitted to a different group of people, so the same answers give different estimates. '
         + 'That gap is why it matters where a formula has been checked.'));
   });
 }
