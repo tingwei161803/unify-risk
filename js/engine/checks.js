@@ -6,6 +6,8 @@ import { fsrp, fsrpLinear } from './formulas/fsrp.js';
 import { chinShanStroke } from './formulas/chin-shan-stroke.js';
 import { findrisc, findriscPaperBand } from './formulas/findrisc.js';
 import { caide } from './formulas/caide.js';
+import { wilsonDiabetes } from './formulas/wilson-diabetes.js';
+import { adaDiabetes } from './formulas/ada-diabetes.js';
 import { round } from './util.js';
 
 const person = (profile, labs = {}) => ({ profile, labs });
@@ -127,6 +129,72 @@ function caideChecks() {
   });
 }
 
+function wilsonChecks() {
+  // Wilson 2007, Table 6: points for each item and the printed 8-year risk for each total.
+  const cases = [
+    [{ sex: 'female', heightCm: 160, weightKg: 69.1, sbp: 132, dbp: 80, bpTreated: false, familyDiabetes: 'none' },
+      { fastingGlucoseMgDl: 105, hdlMgDl: 55, tgMgDl: 120 }, 14, 0.06, '6%',
+      'Woman, fasting glucose 105 (10) + BMI 27.0 (2) + SBP 132 (2), HDL 55, triglycerides 120 = 14 points → 6%'],
+    [{ sex: 'male', heightCm: 170, weightKg: 92.5, sbp: 140, dbp: 90, bpTreated: false, familyDiabetes: 'first' },
+      { fastingGlucoseMgDl: 110, hdlMgDl: 35, tgMgDl: 200 }, 28, 0.35, 'more than 35%',
+      'Every item at its highest category: 10 + 5 + 5 + 3 + 3 + 2 = 28 points → "25 or more" row → more than 35%'],
+    [{ sex: 'male', heightCm: 175, weightKg: 70, sbp: 118, dbp: 76, bpTreated: false, familyDiabetes: 'none' },
+      { fastingGlucoseMgDl: 92, hdlMgDl: 52, tgMgDl: 110 }, 0, 0.03, '3% or less',
+      'No item present: 0 points → "10 or fewer" row → 3% or less']
+  ];
+  return cases.map(([profile, labs, points, risk, display, text]) => {
+    const r = wilsonDiabetes.compute(person(profile, labs));
+    return {
+      formulaId: 'framingham-offspring-diabetes-wilson-2007',
+      example: text,
+      expected: risk,
+      actual: r.value,
+      pass: r.score.points === points && r.value === risk && r.display === display,
+      source: 'Wilson 2007, Table 6 (points and printed 8-year risk)'
+    };
+  });
+}
+
+function adaChecks() {
+  // Bang 2009, Figure: item points and the range -1 to 9; the cut-off of 5 or more is printed
+  // in the Figure and in Appendix Table 2.
+  const top = adaDiabetes.compute(person({
+    age: 65, sex: 'male', familyDiabetes: 'first', bpTreated: true, heightCm: 165, weightKg: 110, active30minDaily: false, diabetes: false
+  }));
+  const low = adaDiabetes.compute(person({
+    age: 35, sex: 'female', familyDiabetes: 'none', bpTreated: false, heightCm: 160, weightKg: 56, active30minDaily: true, diabetes: false
+  }));
+  const five = adaDiabetes.compute(person({
+    age: 52, sex: 'male', familyDiabetes: 'first', bpTreated: false, heightCm: 170, weightKg: 81, active30minDaily: false, diabetes: false
+  }));
+  return [
+    {
+      formulaId: 'ada-risk-test-bang-2009',
+      example: 'Every item at its highest category: 60 or over (3) + male (1) + family (1) + blood-pressure medicine (1) + BMI 40 or more (3) + not active (0) = 9, the printed maximum',
+      expected: 9,
+      actual: top.score.points,
+      pass: top.score.points === 9 && top.band.aboveCutoff === true,
+      source: 'Bang 2009, Figure (points)'
+    },
+    {
+      formulaId: 'ada-risk-test-bang-2009',
+      example: 'Woman under 40, no family history, no blood-pressure medicine, BMI under 25, physically active = −1, the printed minimum',
+      expected: -1,
+      actual: low.score.points,
+      pass: low.score.points === -1 && low.band.aboveCutoff === false,
+      source: 'Bang 2009, Figure (points)'
+    },
+    {
+      formulaId: 'ada-risk-test-bang-2009',
+      example: 'Man 52 (2) + male (1) + parent with diabetes (1) + BMI 28.0 (1) + not active (0) = 5 → at the printed cut-off of 5 or more',
+      expected: 5,
+      actual: five.score.points,
+      pass: five.score.points === 5 && five.band.aboveCutoff === true && five.band.label.startsWith('5 or more'),
+      source: 'Bang 2009, Figure and Appendix Table 2 (cut-off 5 or more)'
+    }
+  ];
+}
+
 export function runChecks() {
-  return [...fsrpChecks(), ...chinShanChecks(), ...findriscChecks(), ...caideChecks()];
+  return [...fsrpChecks(), ...chinShanChecks(), ...findriscChecks(), ...caideChecks(), ...wilsonChecks(), ...adaChecks()];
 }
