@@ -12,14 +12,29 @@
 import { EVIDENCE } from '../data/evidence.js';
 import { PERSONAS } from '../data/personas.js';
 
+// "All formulas" mode. The engine shows its first formulas by default and the rest on request
+// (js/engine/index.js). The choice is kept for this tab. Changing it reloads the page, because the
+// list of questions is built when this file loads.
+const MODE_KEY = 'unify-risk:all-formulas';
+export const ALL_FORMULAS_MODE = (() => { try { return sessionStorage.getItem(MODE_KEY) === '1'; } catch (e) { return false; } })();
+export function setAllFormulasMode(on) {
+  try { if (on) sessionStorage.setItem(MODE_KEY, '1'); else sessionStorage.removeItem(MODE_KEY); } catch (e) { /* private mode */ }
+  location.reload();
+}
+/** The formulas the pages show: the engine's first ones, or every one in "all formulas" mode. */
+export function formulasOnScreen(engineModule) {
+  if (!engineModule) return [];
+  const list = ALL_FORMULAS_MODE && Array.isArray(engineModule.ALL_FORMULAS) ? engineModule.ALL_FORMULAS : engineModule.FORMULAS;
+  return Array.isArray(list) ? list : [];
+}
+
 // Optional: which formulas read each answer. js/engine/run.js lists it once the engine is wired in.
 const engineQuestions = await import('../engine/run.js').then((m) => (Array.isArray(m.QUESTIONS) ? m.QUESTIONS : [])).catch(() => []);
 // Optional: the engine's formula list and its own input check. Together they tell which other
 // answers the formulas read, and whether each one is a number or a yes/no.
 const engineIndex = await import('../engine/index.js').catch(() => null);
 const engineUtil = await import('../engine/util.js').catch(() => null);
-const formulaList = engineIndex && Array.isArray(engineIndex.FORMULAS)
-  ? engineIndex.FORMULAS.filter((f) => f && f.kind !== 'score' && Array.isArray(f.inputs)) : [];
+const formulaList = formulasOnScreen(engineIndex).filter((f) => f && f.kind !== 'score' && Array.isArray(f.inputs));
 
 const STEP_KEY = 'unify-risk:inputs-step';
 const DISCLAIMER = 'Not a diagnosis. Not medical advice.';
@@ -204,6 +219,7 @@ export function personFrom(state) {
 // out of runAll, so an answer is not said to be "used by" a formula the person will never see.
 let cardIds = null;
 function hasCard(id) {
+  if (!cardIds && ALL_FORMULAS_MODE && formulaList.length) cardIds = new Set(formulaList.map((f) => f.id));
   if (!cardIds) {
     try { cardIds = new Set(host.ctx.runAll({ profile: {}, labs: {} }).map((r) => r && (r.modelId || r.id))); } catch (e) { cardIds = new Set(); }
   }

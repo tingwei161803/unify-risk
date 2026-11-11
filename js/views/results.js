@@ -8,7 +8,7 @@
 //
 // #/results?open=fsrp opens the "show the math" drawer for that formula.
 
-import { h, mount, fieldLabel, answerText, readAnswer, personFrom, regionOf, openQuestionFor, hasQuestionFor, disclaimer, focusHeading } from './inputs.js';
+import { h, mount, fieldLabel, answerText, readAnswer, personFrom, regionOf, openQuestionFor, hasQuestionFor, ALL_FORMULAS_MODE, setAllFormulasMode, disclaimer, focusHeading } from './inputs.js';
 import { EVIDENCE, POPULATIONS, STATUS as EVIDENCE_STATUS } from '../data/evidence.js';
 import { PERSONAS } from '../data/personas.js';
 import { whatIfSection } from './results-whatif.js';
@@ -18,6 +18,8 @@ import { publishedSection } from './results-published.js';
 // Optional extras from the formula engine: the list of inputs per formula and the checks that
 // re-compute each paper's printed examples. The page works without them.
 const engine = await import('../engine/index.js').catch(() => null);
+// Every formula the engine holds: its first ones and the ones it gives on request.
+const everyFormula = engine ? (Array.isArray(engine.ALL_FORMULAS) ? engine.ALL_FORMULAS : Array.isArray(engine.FORMULAS) ? engine.FORMULAS : []) : [];
 
 const DISEASES = {
   stroke: { label: 'Stroke', event: 'have a stroke' },
@@ -89,7 +91,7 @@ function horizon(r) { return r.horizonYears ? ' within ' + r.horizonYears + ' ye
 function outcomeOf(r) {
   if (typeof r.outcome === 'string' && /\s/.test(r.outcome)) return r.outcome;
   const id = r.modelId || r.id;
-  const f = engine && Array.isArray(engine.FORMULAS) ? engine.FORMULAS.find((x) => x && x.id === id) : null;
+  const f = everyFormula.find((x) => x && x.id === id) || null;
   return f && typeof f.outcome === 'string' && /\s/.test(f.outcome) ? f.outcome : '';
 }
 // Two formulas are compared only when they count the same thing. 'First stroke within 10 years' and
@@ -170,7 +172,7 @@ function normalise(raw) {
   });
 }
 function inputsOf(r) {
-  const meta = engine && Array.isArray(engine.FORMULAS) ? engine.FORMULAS.find((f) => f.id === r.id) : null;
+  const meta = everyFormula.find((f) => f.id === r.id) || null;
   return meta && Array.isArray(meta.inputs) ? meta.inputs.map((p) => String(p).replace(/^profile\./, '')) : [];
 }
 let checksCache = null;
@@ -473,6 +475,21 @@ function comparisons(computed, open, person) {
 
 /* ---------------- view ---------------- */
 
+// "First 6" or "All 37": the engine computes its first formulas by default and the rest on request.
+function formulaSwitch() {
+  const withCard = (list) => (Array.isArray(list) ? list.filter((f) => f && f.kind !== 'score').length : 0);
+  const first = engine ? withCard(engine.FORMULAS) : 0, all = engine ? withCard(engine.ALL_FORMULAS) : 0;
+  if (all <= first) return null;
+  return h('div.row', { style: { 'margin-top': '12px', gap: '10px' } },
+    h('span.small', 'Formulas'),
+    h('div.seg', { role: 'group', 'aria-label': 'Which formulas to compute' },
+      h('button' + (ALL_FORMULAS_MODE ? '' : '.on'), { type: 'button', 'aria-pressed': String(!ALL_FORMULAS_MODE),
+        onclick: () => { if (ALL_FORMULAS_MODE) setAllFormulasMode(false); } }, 'First ' + first),
+      h('button' + (ALL_FORMULAS_MODE ? '.on' : ''), { type: 'button', 'aria-pressed': String(ALL_FORMULAS_MODE),
+        onclick: () => { if (!ALL_FORMULAS_MODE) setAllFormulasMode(true); } }, 'All ' + all)),
+    ALL_FORMULAS_MODE ? h('span.small.dim', 'The questionnaire now asks for the other formulas\' answers too.') : null);
+}
+
 export function render(root, ctx) {
   const state = ctx.store.get() || {};
   const profile = state.profile || {};
@@ -492,7 +509,9 @@ export function render(root, ctx) {
   }
 
   let results = [], failure = null;
-  try { results = normalise(ctx.runAll(personFrom(state))); }
+  // "All formulas" mode asks the engine itself for every formula; run.js gives only the first ones.
+  const everything = ALL_FORMULAS_MODE && engine && typeof engine.runAll === 'function' && Array.isArray(engine.ALL_FORMULAS);
+  try { results = normalise(everything ? engine.runAll(personFrom(state), { includeMore: true }) : ctx.runAll(personFrom(state))); }
   catch (e) { failure = 'The formulas could not be computed: ' + (e && e.message ? e.message : String(e)); }
   const computed = results.filter((r) => r.status === 'computed');
   const missing = results.filter((r) => r.status === 'missing');
@@ -506,7 +525,8 @@ export function render(root, ctx) {
           h('h1', computed.length + (computed.length === 1 ? ' estimate' : ' estimates') + ' from '
             + (results.length > computed.length ? results.length + ' ' : '') + 'published ' + (results.length === 1 ? 'formula' : 'formulas')),
           sample ? h('span.sample-badge', sample) : null),
-        h('p.sub', 'Open any number to see the arithmetic, the source paper, and where the formula has been checked.')),
+        h('p.sub', 'Open any number to see the arithmetic, the source paper, and where the formula has been checked.'),
+        formulaSwitch()),
       failure ? h('div.callout.warn', failure) : null,
       h('div.stack', { style: { gap: '16px' } }, comparisons(computed, open, person))),
     computed.length ? h('section', h('div.grid2', computed.map((r) => computedCard(r, person, open)))) : null,
