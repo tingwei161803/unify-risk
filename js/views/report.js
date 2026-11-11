@@ -280,7 +280,7 @@ export function render(root, ctx) {
         el('div', { class: 'rr-meta-grid' },
           el('label', { class: 'rr-f' }, el('span', {}, 'Report date'), dateInput),
           el('div', { class: 'rr-f' }, el('span', {}, 'File'),
-            el('span', { class: 'muted' }, [state.result.source, state.result.lab].filter(Boolean).join(' · ') || '—')),
+            el('span', { class: 'muted' }, [state.result.sourceLabel || state.result.source, state.result.lab].filter(Boolean).join(' · ') || '—')),
           dateCheck)),
       el('div', { class: 'rr-progress' }, progressText, el('div', { class: 'rr-bar', 'aria-hidden': 'true' }, bar)),
       ...(state.rows.length ? [cols, list] : [el('p', { class: 'card muted' }, 'No values yet. Use “Add a value” to type them in.')]),
@@ -468,8 +468,13 @@ async function demoReport(ctx, filename, reason) {
       newest(REPORTS.filter((r) => r.personId === stem.split('-')[0])) || newest(REPORTS.filter((r) => r.personId === record.personaId)) ||
       newest(REPORTS);
     if (report) {
+      // Display only: the sample person's name instead of the raw id. What is saved (source) stays as it was.
+      const name = await import('../data/personas.js')
+        .then(({ PERSONAS }) => PERSONAS.find((p) => p.id === report.personId)?.name).catch(() => '');
+      const when = String(report.id).startsWith(report.personId + '-') ? String(report.id).slice(report.personId.length + 1) : report.date;
       return { demo: true, reason, date: report.date || '', source: filename || `${report.id} (sample)`, lab: report.lab || '',
-        sampleOf: report.personId, items: report.items.map((it) => cleanItem({ ...it, confidence: 'sample' })) };
+        sourceLabel: !filename && name ? `${name}'s sample report${when ? `, ${when}` : ''}` : '',
+        sampleOf: name || report.personId, items: report.items.map((it) => cleanItem({ ...it, confidence: 'sample' })) };
     }
   } catch { /* js/data/reports.js is not on main yet */ }
   const { PERSONAS } = await import('../data/personas.js');

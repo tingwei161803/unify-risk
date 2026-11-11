@@ -471,7 +471,8 @@ export function render(root, ctx) {
     h('section',
       h('div.sec-head',
         h('div.row.between',
-          h('h1', computed.length + (computed.length === 1 ? ' estimate' : ' estimates') + ' from published formulas'),
+          h('h1', computed.length + (computed.length === 1 ? ' estimate' : ' estimates') + ' from '
+            + (results.length > computed.length ? results.length + ' ' : '') + 'published ' + (results.length === 1 ? 'formula' : 'formulas')),
           sample ? h('span.sample-badge', sample) : null),
         h('p.sub', 'Open any number to see the arithmetic, the source paper, and where the formula has been checked.')),
       failure ? h('div.callout.warn', failure) : null,
