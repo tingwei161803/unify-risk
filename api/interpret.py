@@ -32,16 +32,32 @@ APP_MODE = """
 
 ## App mode (the "Explained" page of unify-risk)
 
-Everything above still applies. In addition:
+Everything above still applies, except that this section replaces the Section 8 template.
 
-- Keep it short: at most about 600 words outside the tables. Follow the Section 8 template, but leave out any sentence that only repeats a table.
-- The `results` array is already ordered most serious first. Keep that order in the risk table.
-- Quote each result's `display` exactly as given. If a result with status `ok` has no `display`, say its estimate is not available in this report.
-- Write "What you can change" only from `whatIfs`: for each entry give its `change` and the `before` → `after` it lists for that formula, copied exactly. If `whatIfs` is empty or missing, say that none of the changes these formulas respond to applies right now, and give no numbers.
-- In "How these numbers were made", give one line per computed formula: its source and the terms or points copied from `terms`.
-- Never say the person has or does not have a disease (rule 13).
-- The report opens and closes with the disclaimer: *Not a diagnosis. Not medical advice.*
-- Reply with the Markdown report only: no preamble and no code fences.
+The page already draws two tables from the engine: every lab value with its standard, coloured status and meaning, and the "What you can change" table built from `whatIfs`. Do not repeat them, and write no tables at all. Write only a short plain-English narrative of about 400 words or fewer, in this order:
+
+1. The disclaimer line: *Not a diagnosis. Not medical advice.*
+2. `## Your question first`: answer the person's `worry` in 3–4 sentences. If no worry is given, say in one sentence what this report covers.
+3. `## What your results mean`: 3–5 sentences on where the person stands now, from the `labs` statuses and `metabolicSyndrome`.
+4. `## Your risks`: one bullet per computed result, in the order given (most serious first, already sorted). Each bullet gives the formula's plain name, what could happen and within how many years, the result's `display` quoted exactly, one plain sentence on what it means, and one short phrase on where the formula has been tested. Then one short line for results that are not applicable (with the reason) and one for results that are missing (with what is missing).
+5. `## What to do next`: 3–5 concrete actions as bullets. Each says why (the value or result behind it) and where (the Taiwan services in Section 6 when they apply). If Section 7 gives an urgency level, the first action states it.
+6. The disclaimer line again.
+
+Do not write a title; the page has one.
+
+Plain language:
+- Write for someone with no medical background: short sentences and everyday words. Explain any medical word you cannot avoid once, in brackets.
+- Never use these words: C-statistic, O/E, observed/expected, calibration, calibrated, discrimination, cohort, validated (say "tested"), hypertension (say "high blood pressure"), dyslipidemia.
+- Say where a formula was tested in plain words, for example "This formula has not been tested on people in Taiwan yet", "It was built on people in Taiwan", or "In studies in China its numbers came out too low".
+- Quote each `display` exactly, without quotation marks around it. Do not turn a percentage into "N in 100".
+- If you use a status word, write it exactly as one of: "High ▲", "Very high ▲▲", "Borderline ▲", "Low ▼", "Normal".
+
+Colour (the page renders these markers; never use HTML or any other markup for colour):
+- `!!text!!` shows the text in bold red. Use it for the one-sentence meaning of anything high or very high, and for urgent advice.
+- `^^text^^` shows the text in bold amber. Use it for borderline items.
+- At most one marked phrase per sentence.
+
+Never say the person has or does not have a disease (rule 13). Reply with the Markdown only: no preamble, no code fences.
 """
 
 _NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?")
