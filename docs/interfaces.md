@@ -233,11 +233,14 @@ import { assess } from '../engine/run.js';
 const { results, labs: labRows, metabolicSyndrome: mets } = assess({ profile, labs, region });
 const context = { profile, labs, results, labRows, mets, region };   // region: 'TW' | 'US'
 
-followUpTests(context);     // at most 3: [{ id, name, reasons: [string], adds, where }]
-matchingServices(context);  // [{ id, name, what, rule, how, source: { name, url }, matched: [string] }]
+followUpTests(context);     // all of them, in order: [{ id, name, reasons: [string], adds, where }]
+matchingServices(context);  // [{ id, name, what, rule, how, source: { name, url },
+                            //    status: 'meets' | 'may-apply', meets: [string], confirm: [string] }]
 ```
 
 - A test is suggested when a lab reading is outside its standard (repeat it) or when a formula lists an input as missing.
-- A service is listed only when the person's own values meet its published rule; `matched` holds those values.
+- `followUpTests` returns every test and never cuts the list (an optional second argument `limit` cuts it for a caller that asks). The order is the rule printed on the page (`FOLLOW_UP_ORDER`): readings outside their standard first, furthest band first by the lab row's `status` (`very-high`, then `high` or `low`, then `borderline`); then missing formula inputs; then the metabolic syndrome count; ties keep the order blood pressure, lipids, glucose, kidney, waist, questionnaire. The page opens the first three and puts the rest under an "N more follow-up tests" line.
+- A service match has two parts. `meets` holds the person's own values that meet a part of the published rule (this field was called `matched`). `confirm` holds the parts of the rule that were not checked, because the app does not collect them or the answer is missing. `status` is `'meets'` only when `confirm` is empty, otherwise `'may-apply'`; `meets` services come first. A reader must not present a `may-apply` service as met: show `confirm` with it.
+- A service is not listed when a collected value rules it out or nothing relevant is known. A missing answer is never read as "no".
 - The record now carries an optional `region` (`'TW'` | `'US'`), set by the switch on the page. When absent, the region of the account's sample person is used.
-- To add a service, append to `SERVICES.TW` or `SERVICES.US` with its `rule` in words, a `match(ctx)` function and an official `source`. Never add a medicine, dose or supplement.
+- To add a service, append to `SERVICES.TW` or `SERVICES.US` with its `rule` in words, a `match(view)` function returning `{ meets, confirm }` or `null`, and an official `source`. Never add a medicine, dose or supplement.
