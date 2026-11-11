@@ -402,7 +402,8 @@ function startBlank() {
   confirmClear = false;
   clearTimeout(advanceTimer);
   Object.keys(drafts).forEach((k) => { delete drafts[k]; });
-  host.ctx.store.reset();
+  // Clear the answers only. Saved lab reports and the chosen region stay with the record.
+  host.ctx.store.set({ personaId: null, profile: {}, labs: {} });
   step = 0;
   draw();
 }
