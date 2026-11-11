@@ -193,4 +193,5 @@ const { report, demo } = await ctx.callApi('recognize', { filename, dataUrl });
 - `callApi` throws on any failure (network, non-200, an exception in `handle`). The caller catches it and falls back to demo data, with a small "demo data" note on screen. The flow never blocks.
 - Set `"demo": True` in the response whenever the values did not come from the real service.
 - `GET /api/health` returns `{"ok": true}`.
-- Only `/`, `/index.html`, `/css/`, `/js/` and `/assets/` are served as files.
+- Only `index.html` and files under `css/`, `js/` and `assets/` are served; anything else is a 404.
+- `POST /api/*` must send `Content-Type: application/json` and come from this server's own pages (`callApi` already does both). Other origins get 403.
