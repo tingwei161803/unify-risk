@@ -475,10 +475,17 @@ function comparisons(computed, open, person) {
 
 /* ---------------- view ---------------- */
 
-// "First 6" or "All 37": the engine computes its first formulas by default and the rest on request.
+// "7 estimates", or "7 estimates and 3 scores" when some formulas give points and no percentage.
+function headCount(computed) {
+  const estimates = computed.filter((r) => r.value !== null).length, scores = computed.length - estimates;
+  return estimates + (estimates === 1 ? ' estimate' : ' estimates') + (scores ? ' and ' + scores + (scores === 1 ? ' score' : ' scores') : '');
+}
+
+// "First 6" or "All 44": the engine computes its first formulas by default and the rest on request.
 function formulaSwitch() {
   const withCard = (list) => (Array.isArray(list) ? list.filter((f) => f && f.kind !== 'score').length : 0);
-  const first = engine ? withCard(engine.FORMULAS) : 0, all = engine ? withCard(engine.ALL_FORMULAS) : 0;
+  // "All" also shows the formulas that give a points score and no percentage
+  const first = engine ? withCard(engine.FORMULAS) : 0, all = engine && Array.isArray(engine.ALL_FORMULAS) ? engine.ALL_FORMULAS.length : 0;
   if (all <= first) return null;
   return h('div.row', { style: { 'margin-top': '12px', gap: '10px' } },
     h('span.small', 'Formulas'),
@@ -511,7 +518,7 @@ export function render(root, ctx) {
   let results = [], failure = null;
   // "All formulas" mode asks the engine itself for every formula; run.js gives only the first ones.
   const everything = ALL_FORMULAS_MODE && engine && typeof engine.runAll === 'function' && Array.isArray(engine.ALL_FORMULAS);
-  try { results = normalise(everything ? engine.runAll(personFrom(state), { includeMore: true }) : ctx.runAll(personFrom(state))); }
+  try { results = normalise(everything ? engine.runAll(personFrom(state), { includeMore: true, includeScores: true }) : ctx.runAll(personFrom(state))); }
   catch (e) { failure = 'The formulas could not be computed: ' + (e && e.message ? e.message : String(e)); }
   const computed = results.filter((r) => r.status === 'computed');
   const missing = results.filter((r) => r.status === 'missing');
@@ -522,7 +529,7 @@ export function render(root, ctx) {
     h('section',
       h('div.sec-head',
         h('div.row.between',
-          h('h1', computed.length + (computed.length === 1 ? ' estimate' : ' estimates') + ' from '
+          h('h1', headCount(computed) + ' from '
             + (results.length > computed.length ? results.length + ' ' : '') + 'published ' + (results.length === 1 ? 'formula' : 'formulas')),
           sample ? h('span.sample-badge', sample) : null),
         h('p.sub', 'Open any number to see the arithmetic, the source paper, and where the formula has been checked.'),

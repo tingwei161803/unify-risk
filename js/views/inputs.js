@@ -34,7 +34,8 @@ const engineQuestions = await import('../engine/run.js').then((m) => (Array.isAr
 // answers the formulas read, and whether each one is a number or a yes/no.
 const engineIndex = await import('../engine/index.js').catch(() => null);
 const engineUtil = await import('../engine/util.js').catch(() => null);
-const formulaList = formulasOnScreen(engineIndex).filter((f) => f && f.kind !== 'score' && Array.isArray(f.inputs));
+// score-only formulas get a card in "all formulas" mode, so their answers are asked there too
+const formulaList = formulasOnScreen(engineIndex).filter((f) => f && (ALL_FORMULAS_MODE || f.kind !== 'score') && Array.isArray(f.inputs));
 
 const STEP_KEY = 'unify-risk:inputs-step';
 const DISCLAIMER = 'Not a diagnosis. Not medical advice.';

@@ -63,7 +63,7 @@ function everyFormula() {
 function appFormulaIds() {
   // score-only formulas give no estimate and get no result card (the engine keeps them out of runAll)
   const every = everyFormula();
-  const ids = every.length ? every.filter((f) => f.kind !== 'score').map((f) => f.id) : FIRST_FORMULAS;
+  const ids = every.length ? every.map((f) => f.id) : FIRST_FORMULAS;   // the ones that give a points score count too
   return ids.filter((id) => EVIDENCE[id]);
 }
 
@@ -234,7 +234,8 @@ function draw(root, ctx) {
   const all = Object.values(EVIDENCE);
   const appIds = appFormulaIds();
   // formulas with a result card; some are for diseases the validation map does not cover
-  const withCard = everyFormula().filter((f) => f.kind !== 'score').length || appIds.length;
+  const withCard = everyFormula().length || appIds.length;
+  const scoreOnly = everyFormula().filter((f) => f.kind === 'score').length;
   const entries = showAll ? all : appIds.map((id) => EVIDENCE[id]);
   const visible = shownEntries(entries), pops = shownPopulations();
   const everything = counts(all);
@@ -261,7 +262,7 @@ function draw(root, ctx) {
           h('button' + (showAll ? '' : '.on'), { type: 'button', 'data-key': 'seg-app', 'aria-pressed': String(!showAll), onclick: () => { showAll = false; picked = null; redraw(); } }, 'In this app'),
           h('button' + (showAll ? '.on' : ''), { type: 'button', 'data-key': 'seg-all', 'aria-pressed': String(showAll), onclick: () => { showAll = true; picked = null; redraw(); } }, 'All ' + all.length))),
       withCard > appIds.length ? h('p.small', { style: { 'margin-bottom': '10px' } },
-        'The app computes ' + withCard + ' formulas in all. ' + (withCard - appIds.length)
+        'The app computes ' + withCard + ' formulas in all' + (scoreOnly ? ', ' + scoreOnly + ' of them as a points score only' : '') + '. ' + (withCard - appIds.length)
         + ' of them are not in this map yet: it covers stroke, dementia and type 2 diabetes formulas.') : null,
       groupSummaries(appIds.map((id) => EVIDENCE[id]), person.ids),
       switches(visible.length, redraw),
