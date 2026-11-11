@@ -4,7 +4,7 @@
 // All numbers below are copied from js/data/coefficients.js (COEFFICIENTS.plcom2012), which records
 // Table 2 and its footnote. The paper prints no worked example; checks are self-computed.
 // Unconfirmed: the paper's Table 2 gives no age range. 55-74 is the PLCO enrolment range, not taken from
-// the research files.
+// our literature notes.
 
 import { computed, bmi, formatPercent, round } from '../util.js';
 import { gateCancer, isNum, isBool, isEthnicity } from './_cancer-util.js';

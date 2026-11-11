@@ -1,12 +1,12 @@
 // QDiabetes-2018 (model B, fasting glucose): 10-year risk of type 2 diabetes, QDiabetes-2018 B.
 // Same equation, population, assumptions and sources as qdiabetes-2018.js (model A); this model adds fasting plasma glucose (2 to under 7 mmol/L).
-// Coefficients, centring values and S0: CRAN archive QDiabetes_1.0-2 (R/QDR2018B.R), recorded in the research
+// Coefficients, centring values and S0: CRAN archive QDiabetes_1.0-2 (R/QDR2018B.R), recorded in our notes
 // file coefficients/qdiabetes-2018-2.json. Hippisley-Cox J, Coupland C. BMJ 2017;359:j5019.
 
 import { makeQdiabetes } from './qdiabetes-2018.js';
 
 // Model B: [beta] or [beta, centring value] per term; S0 = 10-year baseline survival.
-// Source: BMJ 2017;359:j5019 via the CRAN archive QDiabetes_1.0-2 (R/QDR2018B.R); research file coefficients/qdiabetes-2018-2.json.
+// Source: BMJ 2017;359:j5019 via the CRAN archive QDiabetes_1.0-2 (R/QDR2018B.R); literature notes coefficients/qdiabetes-2018-2.json.
 const COEF = {
   female: {
     S0: 0.990905702114105,

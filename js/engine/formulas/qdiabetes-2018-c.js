@@ -1,12 +1,12 @@
 // QDiabetes-2018 (model C, HbA1c): 10-year risk of type 2 diabetes, QDiabetes-2018 C.
 // Same equation, population, assumptions and sources as qdiabetes-2018.js (model A); this model adds HbA1c (15 to under 48 mmol/mol).
-// Coefficients, centring values and S0: CRAN archive QDiabetes_1.0-2 (R/QDR2018C.R), recorded in the research
+// Coefficients, centring values and S0: CRAN archive QDiabetes_1.0-2 (R/QDR2018C.R), recorded in our notes
 // file coefficients/qdiabetes-2018-2.json. Hippisley-Cox J, Coupland C. BMJ 2017;359:j5019.
 
 import { makeQdiabetes } from './qdiabetes-2018.js';
 
 // Model C: [beta] or [beta, centring value] per term; S0 = 10-year baseline survival.
-// Source: BMJ 2017;359:j5019 via the CRAN archive QDiabetes_1.0-2 (R/QDR2018C.R); research file coefficients/qdiabetes-2018-2.json.
+// Source: BMJ 2017;359:j5019 via the CRAN archive QDiabetes_1.0-2 (R/QDR2018C.R); literature notes coefficients/qdiabetes-2018-2.json.
 const COEF = {
   female: {
     S0: 0.988788545131683,

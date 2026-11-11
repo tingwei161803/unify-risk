@@ -6,13 +6,13 @@
 //
 // The coefficients are the "Table S12A Base 10yr" rows of the paper's supplement (the
 // 10-year base model; sex-specific; one column per outcome), copied from
-// docs/research/disease-risk/coefficients/prevent-s12-coefficients.csv. A blank cell in
+// prevent-s12-coefficients.csv. A blank cell in
 // that table means the outcome has no such term, so it is left out here.
 //
 // NOT IN THE CSV: how each term is centred and scaled. The CSV only names the unit
 // ("per 10 years", "per 0.3 mmol/L", ...). The centring below (age 55, non-HDL 3.5 mmol/L,
 // HDL 1.3 mmol/L, SBP 110 and 130, BMI 25 and 30, eGFR 60 and 90) is taken from the
-// team's earlier proof of concept (poc/unify-risk/js/engine/models/cardio.js), and it
+// our literature notes, and it
 // is confirmed by the worked examples reproduced in _group-cvd.js (Supplemental Table
 // S25 and the main-text example). The cholesterol unit conversion 0.02586 is the standard
 // mg/dL to mmol/L factor.
@@ -167,7 +167,7 @@ function make(opts) {
       const risk = Math.exp(logOdds) / (1 + Math.exp(logOdds));
       const notes = [
         `${p.sex === 'male' ? 'Men' : 'Women'}, base model (no UACR, HbA1c or deprivation index). This person's log-odds = ${logOdds.toFixed(4)}.`,
-        'Term centring is not printed in the supplement table copy used here; it is taken from the team\'s proof of concept and reproduced against the paper\'s worked examples.',
+        'Term centring is not printed in the supplement table copy used here; it is taken from the team\'s literature notes and reproduced against the paper\'s worked examples.',
         'eGFR is read as entered; it is not computed from creatinine here.'
       ];
       if (key === 'hf') notes.push('Heart failure needs BMI (height and weight).');

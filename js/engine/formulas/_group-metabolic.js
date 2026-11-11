@@ -3,7 +3,7 @@
 // checks.js and util.js.
 //
 // Not included: CKD-PC incident CKD (Nelson 2019). Its equation is in eTable 8 of the supplement, which is
-// neither in js/data/coefficients.js nor in the research coefficients folder, so there is nothing to copy.
+// neither in js/data/coefficients.js nor in our literature notes, so there is nothing to copy.
 
 import { chinShanDiabetes, chienDiabetesPoints, chienDiabetesRisk } from './chin-shan-diabetes-chien-2008.js';
 import { qdiabetes2018, qdRisk, qdStatinHR, QDIABETES_A_COEF } from './qdiabetes-2018.js';
@@ -67,7 +67,7 @@ function chinShanChecks() {
 }
 
 function qdiabetesChecks() {
-  const src = 'QDiabetes-2018 research file: self-computed from the CRAN QDiabetes_1.0-2 coefficients (no official output was available); tolerance 1e-6';
+  const src = 'QDiabetes-2018 literature notes: self-computed from the CRAN QDiabetes_1.0-2 coefficients (no official output was available); tolerance 1e-6';
   const out = [];
   const add = (id, coef, female, x, expected, text) => {
     const v = qdRisk(coef, female, x).risk;
@@ -160,7 +160,7 @@ function chienCkdChecks() {
 }
 
 function kfreChecks() {
-  const src = 'Official kidneyfailurerisk.com calculator code run in node (research file coefficients/kfre-2.json); tolerance 0.0002';
+  const src = 'Official kidneyfailurerisk.com calculator code run in node (literature notes coefficients/kfre-2.json); tolerance 0.0002';
   const out = [];
   const cases = [
     [{ age: 50, male: 1, egfr: 30, acrMgG: 50 }, 'Man 50, eGFR 30, ACR 50 mg/g', 0.1449, 0.0489, 0.1218, 0.033],

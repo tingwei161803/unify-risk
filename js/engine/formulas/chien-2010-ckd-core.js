@@ -1,6 +1,6 @@
 // Chien 2010 NTUH new-onset CKD points models (clinical and biochemical versions).
 // Chien KL, et al. A prediction model for the risk of incident chronic kidney disease. Am J Med 2010;123:836-846.
-// (The research file records no DOI.) Built on 5,168 adults of the National Taiwan University Hospital
+// (Our literature notes records no DOI.) Built on 5,168 adults of the National Taiwan University Hospital
 // health-check cohort (mean age 51.2, median follow-up 2.2 years, 190 new cases); the Chin-Shan community cohort
 // was the external check (clinical model AUC 0.667). The paper states no age range and does not print S0(4), so
 // only the printed Table 3 / Table 4 risks are used. Outcome: eGFR (MDRD) under 60 mL/min/1.73 m2 within 4 years.

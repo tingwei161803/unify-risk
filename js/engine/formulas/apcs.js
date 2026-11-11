@@ -59,7 +59,7 @@ export const apcs = {
         `${tier.label} tier (${tier.lo}–${tier.hi} points): ${tier.cases} of ${tier.n} people in the validation group had advanced neoplasia (95% CI ${tier.ci}).`,
         'The share describes people who had a colonoscopy, not the chance of cancer in the coming years.',
         'The score separates groups only roughly (c-statistic 0.64 in the validation group).',
-        'The paper states no age limit; the study age range is not recorded in the research files.'
+        'The paper states no age limit; the study age range is not recorded in our literature notes.'
       ]
     });
   }

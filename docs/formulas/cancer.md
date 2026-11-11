@@ -1,6 +1,6 @@
 # Cancer formulas (group D, issue #69)
 
-Files: `js/engine/formulas/<id>.js`, grouped in `js/engine/formulas/_group-cancer.js` (`formulas`, `checks()`, `fieldLabels`). Shared helpers: `_cancer-util.js`. Numbers come from `js/data/coefficients.js`; each file names the table, page or research file it was copied from. Licence notes in `docs/research/disease-risk/coefficients/README.md` apply: BCRAT is written from the published formulas and tables, no package code is pasted.
+Files: `js/engine/formulas/<id>.js`, grouped in `js/engine/formulas/_group-cancer.js` (`formulas`, `checks()`, `fieldLabels`). Shared helpers: `_cancer-util.js`. Numbers come from `js/data/coefficients.js`; each file names the table, page or literature notes it was copied from. Licence notes are kept with the team's literature notes apply: BCRAT is written from the published formulas and tables, no package code is pasted.
 
 New person fields (all `profile.*` unless noted): `ethnicity` ('white' | 'black' | 'hispanic' | 'asian' | 'other'), `packYears`, `cigsPerDay`, `yearsSmoked`, `yearsSinceQuit`, `educationLevel` (1–6), `cancerHistory`, `copd`, `familyLungCancer`, `familyColorectalCancer`, `familyBreastCancerCount` (0 | 1 | 2), `ageAtMenarche`, `ageAtFirstLiveBirth` (number or `'none'`), `breastBiopsyCount`, `atypicalHyperplasia`, `diabetesOnsetAge`, `weightChangeKg12m`, `labs.glucoseChangeMgDl12m`, `labs.psaNgMl`, `dreAbnormal`, `priorNegativeBiopsy`, `familyProstateCancer`.
 
@@ -11,7 +11,7 @@ New person fields (all `profile.*` unless noted): `ethnicity` ('white' | 'black'
 - **Equation**: logit = −4.532506 + 0.0778868(age−62) + ethnicity term − 0.0812744(education−4) − 0.0274194(BMI−27) + 0.3553063·COPD + 0.4589971·cancer history + 0.587185·family lung cancer + 0.2597431·current smoker − 1.822606·((cigarettes/10)^−1 − 0.4021541613) + 0.0317321(years smoked−27) − 0.0308572(years since quit−10); risk = 1/(1+e^−logit). Ethnicity terms: White 0, Black 0.3944778, Hispanic −0.7434744, Asian −0.466585.
 - **Age range**: 55–74 (PLCO enrolment range; the paper's Table 2 states none, so this is unconfirmed).
 - **Source**: Tammemägi 2013, N Engl J Med 368:728–736, Table 2.
-- **Checks**: two self-computed examples from the research file (0.008917 and 0.081883); the paper prints no numeric example.
+- **Checks**: two self-computed examples from the team's literature notes (0.008917 and 0.081883); the paper prints no numeric example.
 
 ## APCS (`apcs`)
 
@@ -29,7 +29,7 @@ New person fields (all `profile.*` unless noted): `ethnicity` ('white' | 'black'
 - **Inputs**: `diabetesOnsetAge`, `weightChangeKg12m`, `labs.fastingGlucoseMgDl` (at diagnosis), `labs.glucoseChangeMgDl12m` (glucose a year earlier = glucose now − change).
 - **Equation**: glucose-change points (category at diagnosis − category a year earlier, 1–4) + weight points (≤ −6 kg: +6 … ≥ +6 kg: −6) + age points (≤59: −1, 60–69: 0, ≥70: +1). 3 or more = high group (3.6% had cancer in validation), 1–2 intermediate (0.54%), 0 or less low (none).
 - **Source**: Sharma 2018, Gastroenterology 155:730–739, Table 1. The glucose-change rule is an inference (see notes in the file).
-- **Checks**: three self-computed examples from the research file (8, 0, 3 points).
+- **Checks**: three self-computed examples from the team's literature notes (8, 0, 3 points).
 
 ## PCPT Risk Calculator 2.0 (`pcpt-rc-2-0`)
 
@@ -45,8 +45,8 @@ New person fields (all `profile.*` unless noted): `ethnicity` ('white' | 'black'
 - **Outcome**: invasive breast cancer within 5 years (10-year risk in the notes). Women, 35–85. White, Black, Other. Hispanic (needs birthplace) and Asian (use AABCS): not applicable.
 - **Inputs**: age, ethnicity, `ageAtMenarche`, `ageAtFirstLiveBirth` (number or `'none'`), `familyBreastCancerCount`, `breastBiopsyCount`, `atypicalHyperplasia` (unknown counts as 1.00).
 - **Equation**: relative risk = exp(NB·β1 + AM·β2 + AF·β3 + NR·β4 + AF·NR·β6 [+ NB·β5 from age 50]) × hyperplasia factor (1.82, 0.93, 1.00); absolute risk by Gail 1989 equation 6 in one-year steps with incidence and competing-death rates (`bcra-rates.csv`, copied as constants).
-- **Source**: Gail 1989; CRAN BCRA 2.1.2 coefficients and rates as recorded in the research repo. The package uses the older White 1983–87 rates; the current NCI tool's table is unconfirmed.
-- **Checks**: self-computed White examples W-1 to W-3 from the research file (14 checks). No official White/Black output has been compared.
+- **Source**: Gail 1989; CRAN BCRA 2.1.2 coefficients and rates as recorded in the team's literature notes. The package uses the older White 1983–87 rates; the current NCI tool's table is unconfirmed.
+- **Checks**: self-computed White examples W-1 to W-3 from the team's literature notes (14 checks). No official White/Black output has been compared.
 
 ## AABCS (`aabcs`)
 

@@ -1,12 +1,12 @@
 // Offline generator for js/data/evidence.js. Not loaded by the app.
 //
-// Reads the team's calibration matrix (gap-matrix-v2.csv in the research repo,
-// docs/research/disease-risk/calibration-gaps/) and writes one ES module with the
+// Reads the team's calibration matrix (gap-matrix-v2.csv, compiled from published
+// validation studies) and writes one ES module with the
 // validation status of every stroke, dementia and type 2 diabetes formula in 18
 // population rows. Every number comes from the CSV; nothing is typed in by hand.
 //
 //   node tools/build-evidence.mjs <gap-matrix-v2.csv> [model-lab-requirement.csv] > js/data/evidence.js
-// Both files live in the research repo under docs/research/disease-risk/calibration-gaps/
+// Both files are tables the team compiled from published papers
 // (the second one in tools/). Without the second file every model gets lab: '?'.
 
 import { readFileSync } from 'node:fs';

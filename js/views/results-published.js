@@ -2,14 +2,14 @@
 //
 // js/data/coefficients.js holds each formula's equation, coefficients, constants, baseline
 // survival, points table and points-to-risk table as the paper prints them (generated from the
-// research files). This file only lays those out; it computes nothing and changes no number.
+// literature notes). This file only lays those out; it computes nothing and changes no number.
 // The data file is large (about 400 KB), so it is loaded when a drawer first opens.
 //
 //   publishedSection(r, sex)   // a <div> that fills itself in, and stays empty when there is nothing to show
 
 import { h } from './inputs.js';
 
-// The same formulas under the ids the coefficient file uses (the research catalogue's ids).
+// The same formulas under the ids the coefficient file uses (the ids our literature notes use).
 // A formula whose id is the same in both places needs no entry.
 const COEFFICIENT_ID = {
   fsrp: 'framingham-stroke-risk-profile-new-fsrp',

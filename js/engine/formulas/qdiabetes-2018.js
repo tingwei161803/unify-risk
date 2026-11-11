@@ -2,7 +2,7 @@
 // Hippisley-Cox J, Coupland C. Development and validation of QDiabetes-2018 risk prediction algorithm to
 // estimate future risk of type 2 diabetes: cohort study. BMJ 2017;359:j5019. England, QResearch, ages 25-84,
 // no diabetes at baseline. Coefficients, centring values and S0 come from the CRAN archive QDiabetes_1.0-2
-// (R/QDR2018A.R), recorded in the research file coefficients/qdiabetes-2018.json (the paper prints hazard
+// (R/QDR2018A.R), recorded in our literature notes coefficients/qdiabetes-2018.json (the paper prints hazard
 // ratios only).
 //
 //   risk(10y) = 1 - S0 ^ exp(score)
@@ -22,7 +22,7 @@
 import { computed, gate, read, formatPercent, round, notApplicable, missingResult } from '../util.js';
 
 // Model A: [beta] or [beta, centring value] per term; S0 = 10-year baseline survival.
-// Source: BMJ 2017;359:j5019 via the CRAN archive QDiabetes_1.0-2 (R/QDR2018A.R lines 137-256); research file coefficients/qdiabetes-2018.json.
+// Source: BMJ 2017;359:j5019 via the CRAN archive QDiabetes_1.0-2 (R/QDR2018A.R lines 137-256); literature notes coefficients/qdiabetes-2018.json.
 const COEF = {
   female: {
     S0: 0.98622727394104,

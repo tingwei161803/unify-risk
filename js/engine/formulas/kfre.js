@@ -1,7 +1,7 @@
 // Kidney Failure Risk Equation, 4 variables (KFRE 2016): risk of kidney failure (dialysis or transplant).
 // Tangri N, Grams ME, Levey AS, et al. Multinational assessment of accuracy of equations for predicting risk of
 // kidney failure: a meta-analysis. JAMA 2016;315:164-174. Coefficients, centring values and baseline survival:
-// eAppendix 2 (Supplement pp.9-10), as recorded in the research file coefficients/kfre-2.json; the 4-variable
+// eAppendix 2 (Supplement pp.9-10), as recorded in our literature notes coefficients/kfre-2.json; the 4-variable
 // original version was also run against the official kidneyfailurerisk.com calculator code.
 //   risk(t) = 1 - S(t) ^ exp(sum(beta x (value - centre)))
 //   values: age/10, male = 1, eGFR/5, ln(urine albumin-to-creatinine ratio in mg/g)

@@ -2,7 +2,7 @@
 // Wen CP, et al. Hepatocellular carcinoma risk prediction model for the general population: the
 // predictive power of transaminases. J Natl Cancer Inst 2012;104:1599-1611.
 // Points: Supplementary Table 1. Score to 5- and 10-year risk: Supplementary Figure 2 (chart data
-// read from the embedded chart in the supplement file by the research team). The authors' baseline
+// read from the embedded chart in the supplement file by the team). The authors' baseline
 // survival and coefficients are not published, so the score is looked up in those charts.
 //
 // Shown as the main result: Model 1 (health history only), the version for the group without an
