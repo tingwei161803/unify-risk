@@ -221,6 +221,8 @@ function draw(root, ctx) {
 
   const all = Object.values(EVIDENCE);
   const appIds = appFormulaIds();
+  // formulas with a result card; some are for diseases the validation map does not cover
+  const withCard = engine && Array.isArray(engine.FORMULAS) ? engine.FORMULAS.filter((f) => f.kind !== 'score').length : appIds.length;
   const entries = showAll ? all : appIds.map((id) => EVIDENCE[id]);
   const visible = shownEntries(entries), pops = shownPopulations();
   const everything = counts(all);
@@ -246,6 +248,9 @@ function draw(root, ctx) {
         h('div.seg', { role: 'group', 'aria-label': 'Which formulas to show' },
           h('button' + (showAll ? '' : '.on'), { type: 'button', 'data-key': 'seg-app', 'aria-pressed': String(!showAll), onclick: () => { showAll = false; picked = null; redraw(); } }, 'In this app'),
           h('button' + (showAll ? '.on' : ''), { type: 'button', 'data-key': 'seg-all', 'aria-pressed': String(showAll), onclick: () => { showAll = true; picked = null; redraw(); } }, 'All ' + all.length))),
+      withCard > appIds.length ? h('p.small', { style: { 'margin-bottom': '10px' } },
+        'The app computes ' + withCard + ' formulas in all. ' + (withCard - appIds.length)
+        + ' of them are not in this map yet: it covers stroke, dementia and type 2 diabetes formulas.') : null,
       groupSummaries(appIds.map((id) => EVIDENCE[id]), person.ids),
       switches(visible.length, redraw),
       visible.length ? matrix(visible, pops, person.ids, redraw)
