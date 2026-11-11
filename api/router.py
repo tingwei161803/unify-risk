@@ -41,13 +41,13 @@ PROVIDERS = [
      "model": "anthropic/claude-opus-5.5", "accepts": {"image"}},
     {"name": "gemini", "key": "OPENGSA_GEMINI_API_KEY", "style": "openai",
      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-     "model": "gemini-2.5-flash", "accepts": {"image"}},
+     "model": "gemini-3.5-flash-lite", "accepts": {"image"}},
     {"name": "groq", "key": "GROQ_API_KEY", "style": "openai",
      "url": "https://api.groq.com/openai/v1/chat/completions",
      "model": "meta-llama/llama-4-scout-17b-16e-instruct", "accepts": {"image"}},
     {"name": "nvidia", "key": "NVIDIA_API_KEY", "style": "openai",
      "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-     "model": "meta/llama-3.2-90b-vision-instruct", "accepts": {"image"}},
+     "model": "nvidia/nemotron-3.5-super-vl-120b-a12b", "accepts": {"image"}},
 ]
 
 
