@@ -4,6 +4,9 @@ Every person, clinic and value in these files is fictional. Nobody here is real 
 
 | File | Person | Report date | What it tests |
 | --- | --- | --- | --- |
+| `chen-2023-11.pdf` | Mr. Chen (`chen`) | 2023-11-08 | Earlier year: the numbers worsen from 2023 to 2026 |
+| `chen-2024-11.pdf` | Mr. Chen (`chen`) | 2024-11-06 | Earlier year |
+| `chen-2025-11.pdf` | Mr. Chen (`chen`) | 2025-11-05 | Earlier year |
 | `chen-2026-11.pdf` | Mr. Chen (`chen`) | 2026-11-06 | Clean one-column PDF |
 | `chen-2026-11.png` | Mr. Chen (`chen`) | 2026-11-06 | The same page as a straight image |
 | `wang-2026-11.pdf` | Ms. Wang (`wang`) | 2026-11-04 | Two-column layout; no blood count and no UACR on this report |
@@ -16,12 +19,11 @@ Each report shows the clinic, name, sex and age, report date, and one table per 
 
 ## Where the numbers come from
 
-- Each file prints that person's latest report from `js/data/personas.js`: the profile measurements, the labs, the reference ranges exactly as printed (`report.printedRanges`), the report date and the report type.
-- Flags are worked out from the printed range: `H` above it, `L` below it.
-- When `js/data/reports.js` exists, the generator renders every report in it that has a `file` path, from that report's own items.
+- Each file prints one report from `js/data/reports.js` that has a `file` path: its clinic (`lab`), report type, date, and every item's label, value, unit, printed range and flag.
+- If `js/data/reports.js` is missing, the generator falls back to each person's latest report in `js/data/personas.js` and works the flags out from the printed range.
 - Results are printed with a fixed number of decimals per test (creatinine 1.0 prints as `1.00`, height 168 as `168.0`), so compare recognition output numerically.
 
-The answer key for checking recognition output is the same data: `js/data/personas.js`, and `js/data/reports.js` once it lands.
+The answer key for checking recognition output is `js/data/reports.js`.
 
 ## Rebuild
 
@@ -29,4 +31,4 @@ The answer key for checking recognition output is the same data: `js/data/person
 node tools/build-sample-reports.mjs
 ```
 
-The generator is an offline tool, not part of the app. It needs `js/data/personas.js` (#10) and headless Chrome; set `CHROME=/path/to/chrome` if Chrome is not in the default macOS location.
+The generator is an offline tool, not part of the app. It needs `js/data/personas.js` and `js/data/reports.js` (#10) and headless Chrome; set `CHROME=/path/to/chrome` if Chrome is not in the default macOS location.
