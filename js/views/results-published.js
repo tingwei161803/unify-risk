@@ -19,6 +19,12 @@ const COEFFICIENT_ID = {
   'ada-risk-test-bang-2009': 'ada'
 };
 
+// Formulas whose published tables are not shown. The app computes FINDRISC from the 8-question form
+// (0–26 points); the coefficient file holds the 2003 paper's 7-question table (0–20 points). Side by
+// side with "The arithmetic" the two would look like a mismatch, so the section stays out until the
+// file carries the form version.
+const NOT_SHOWN = new Set(['findrisc']);
+
 let loading = null;
 function load() {
   if (!loading) loading = import('../data/coefficients.js').catch(() => null);
@@ -106,6 +112,7 @@ function riskBlock(t) {
  */
 export function publishedSection(r, sex) {
   const slot = h('div', { style: { display: 'none' } });
+  if (NOT_SHOWN.has(r.id)) return slot;
   load().then((m) => {
     try {
       const model = m && typeof m.getCoefficients === 'function' ? m.getCoefficients(COEFFICIENT_ID[r.id] || r.id) : null;
