@@ -15,10 +15,11 @@ Our entry for the c0mpiled-18 YC Startup School Hackathon (Taipei, 2026-11-11), 
 - **Open an issue before you build anything.** Give it a short title, what will be visible when it is done, and the files you expect to touch, then assign it to yourself. The issue list is how everyone sees who is building what, so check it before you start (`gh issue list`) to avoid doing the same thing twice.
 - **Edit only the files you own.** One branch does one thing; merge as soon as it works.
 - Follow the data formats in [`docs/interfaces.md`](docs/interfaces.md). Do not change a shared format on your own; ask first.
-- Ask before touching shared files: `index.html`, `server.py`, `js/app.js`, `js/store.js`, `js/api.js`, `css/app.css`, `README.md`, `AGENTS.md`.
+- Ask before touching shared files: `index.html`, `server.py`, `js/app.js`, `js/store.js`, `js/api.js`, `css/app.css`, `README.md`, `AGENTS.md`, and any dependency or build file (`package.json` and its lock file, `pyproject.toml`, `uv.lock`, build config).
 - Wire modules together with hard-coded fake data first, then replace it with the real thing. Nobody should wait on anybody else.
 - Stuck for 20 minutes? Say so in the group chat.
 - API keys go in `.env` only, never in the repo, a PR or an issue. When you add an environment variable, update `.env.example` (name and purpose only).
+- **Never print the real values in `.env`.** Do not `cat`, `grep`, `echo` or otherwise display the file or its values, and do not write them to logs, error messages, API responses, terminal output, commits, PRs or issues. To check a key, test only whether it is set (for example `GET /api/health` lists provider names), never what it is.
 - Use only published papers and formulas. No private or research datasets. Every sample person is fictional.
 
 ## 3. Product wording
@@ -69,8 +70,12 @@ flowchart LR
 
 ## 7. Stack and how to run
 
-- **Static web app**: HTML, CSS and plain JavaScript (ES modules). No framework, no build step, no packages. A person's data stays in the browser's `localStorage`.
-- **One small server**, `server.py`, standard library only. It serves the static files and forwards `POST /api/<name>` to `api/<name>.py`. API keys are read from `.env` on the server and never appear in client code.
+- **What the app is today**: a static front end (HTML, CSS and JavaScript as ES modules) plus one small Python server, `server.py`. The server serves the static files and forwards `POST /api/<name>` to `api/<name>.py`. A person's data stays in the browser's `localStorage`. API keys are read from `.env` on the server and never appear in client code.
+- **No restriction on the stack.** You may use any framework, library, package or build tool. Use whatever gets the feature working.
+- If you add a dependency or a build step:
+  - Say so in the PR under "Impact on others".
+  - Commit the manifest and its lock file (`package.json` plus lock file, or `pyproject.toml` plus `uv.lock`).
+  - Update the run instructions in `README.md` and in this section in the same PR, so `main` still starts for everyone with documented commands.
 - File owners and the data formats between modules are in [`docs/interfaces.md`](docs/interfaces.md).
 - Run:
 
@@ -79,4 +84,4 @@ flowchart LR
   ```
 
   Then open <http://127.0.0.1:8000/>.
-- Python always goes through `uv`. Do not use `pip` or call `python` directly.
+- Python always goes through `uv`. Add Python packages with `uv add`. Do not use `pip` or call `python` directly.
