@@ -121,7 +121,7 @@ function details(panel, row, popId) {
     if (Array.isArray(cell.oeCi) && cell.oeCi.length === 2) line += ` (95% range ${cell.oeCi[0]}–${cell.oeCi[1]})`;
     line += '. 1 means the formula got it right; below 1 it over-estimated, above 1 it under-estimated.';
     facts.append(el('li', null, line));
-    if (cell.oeFrom) facts.append(el('li', 'muted', `That figure comes from the ${cell.oeFrom}.`));
+    if (cell.oeFrom) facts.append(el('li', 'muted', `Where that figure comes from: ${cell.oeFrom}.`));
   }
   if (cell && DIRECTION[cell.direction]) facts.append(el('li', null, DIRECTION[cell.direction]));
   if (cell && Number.isFinite(cell.c)) {
