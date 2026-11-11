@@ -21,6 +21,11 @@
 // Cut-offs come from published guidelines (SOURCES). For AST, ALT, creatinine and platelets the
 // lab's own printed range wins; without one, a common adult range is used and labelled as such.
 // One reading is a snapshot, not a condition. Not a diagnosis. Not medical advice.
+//
+// Explanations are for ordinary readers: what the value means in everyday words, then one short next
+// step, with the guideline named in brackets at the end, e.g. "(ADA)". At most two sentences. They
+// never say a person has or does not have a disease, never reassure about large rises, and every
+// number in them is the value itself or a line from the standard.
 
 export const SOURCES = {
   hpaBmi: 'Taiwan Health Promotion Administration (HPA), adult BMI categories',
@@ -211,12 +216,15 @@ function bmiRow(person) {
   const std = LAB_STANDARDS.bmi[tw ? 'TW' : 'other'];
   const b = pickBand(std.bands, v);
   const healthy = tw ? '18.5 to under 24' : '18.5 to under 25';
-  const where = tw ? "Taiwan's" : "the WHO's";
+  const org = tw ? 'Taiwan HPA' : 'WHO';
+  const bmiText = `BMI ${fmt(v)}; healthy is ${healthy}`;
   const explanation = b.status === 'normal'
-    ? `BMI ${fmt(v)} is in ${where} healthy range (${healthy}).`
+    ? `Your weight is in the healthy range for your height (${bmiText}). Regular activity helps keep it there (${org}).`
     : b.status === 'low'
-      ? `BMI ${fmt(v)} is below 18.5, ${where} underweight line.`
-      : `BMI ${fmt(v)} is in ${where} "${b.category.toLowerCase()}" band; the healthy range is ${healthy}.`;
+      ? `Your weight is below the healthy range for your height (${bmiText}). Ask your doctor whether you should gain a little (${org}).`
+      : b.status === 'borderline'
+        ? `Your weight is a little above the healthy range for your height (${bmiText}). Daily walks and smaller portions help (${org}).`
+        : `Your weight is well above the healthy range for your height (${bmiText}). Ask your doctor or a dietitian for a plan you can keep (${org}).`;
   return row('bmi', LAB_STANDARDS.bmi, v, 'kg/m²', {
     standard: describeBands(std.bands) + ' (from height and weight)', status: b.status, category: b.category, explanation, source: std.source
   });
@@ -232,9 +240,10 @@ function waistRow(person) {
   const over = rule.atLeast !== undefined ? v >= rule.atLeast : v > rule.above;
   const line = rule.atLeast !== undefined ? `${rule.atLeast} cm or more` : `above ${rule.above} cm`;
   const who = p.sex === 'male' ? 'men' : 'women';
+  const org = tw ? 'Taiwan HPA' : 'ATP III';
   const explanation = over
-    ? `A waist of ${fmt(v)} cm is at or past the line for ${who} (${line}), which marks extra fat around the middle.`
-    : `A waist of ${fmt(v)} cm is under the line for ${who} (${line}).`;
+    ? `You carry extra fat around your middle (waist ${fmt(v)} cm; the line for ${who} is ${line}). Daily activity and fewer sugary drinks help bring it down (${org}).`
+    : `Your waist is under the line for ${who} (${fmt(v)} cm; the line is ${rule.atLeast ?? rule.above} cm). Regular activity helps keep it there (${org}).`;
   return row('waistCm', LAB_STANDARDS.waist, v, 'cm', {
     standard: std.text, status: over ? 'high' : 'normal', category: over ? (tw ? 'Central obesity' : 'Abdominal obesity') : 'Within range',
     explanation, source: std.source
@@ -254,10 +263,17 @@ function bpRow(person) {
   const s = num(p.sbp), d = num(p.dbp);
   if (s === null || d === null) return null;
   const c = bpCategory(s, d);
-  const onMeds = p.bpTreated === true ? ' This reading is on blood-pressure medicine.' : '';
+  const yours = p.bpTreated === true ? 'Your blood pressure, taken while on medicine,' : 'Your blood pressure';
+  const reading = `${s}/${d}; normal is under 120/80`;
   const explanation = c.status === 'normal'
-    ? `${s}/${d} mmHg is under 120/80, the normal line.${onMeds}`
-    : `${s}/${d} mmHg is in the 2017 ACC/AHA ${c.category.toLowerCase()}; one office reading is a snapshot, and repeat or home readings show whether it stays in this range.${onMeds}`;
+    ? `${yours} is in the normal range (${reading}). Check it again at your next check-up (ACC/AHA).`
+    : c.status === 'borderline'
+      ? `${yours} is a little above normal (${reading}). Home readings over a week show whether it stays there (ACC/AHA).`
+      : c.status === 'very-high'
+        ? `${yours} is very high in this reading (${s}/${d}; very high is above 180/120). Contact a doctor today (ACC/AHA).`
+        : c.category.startsWith('Stage 2')
+          ? `${yours} is high in this reading (${reading}). Recheck it at home this week and show the readings to your doctor (ACC/AHA).`
+          : `${yours} is above normal in this reading (${reading}). Repeat or home readings show whether it stays there; less salt and more activity help (ACC/AHA).`;
   return row('bp', LAB_STANDARDS.bp, `${s}/${d}`, 'mmHg', {
     standard: LAB_STANDARDS.bp.text, status: c.status, category: c.category, explanation, source: SOURCES.accAha
   });
@@ -276,66 +292,84 @@ function bandedRow(person, key, stdKey, sentence) {
 
 const glucoseRow = (person) => {
   const r = bandedRow(person, 'fastingGlucoseMgDl', 'fastingGlucose', (v, b) =>
-    b.status === 'normal' ? `Fasting glucose ${fmt(v)} mg/dL is under 100, the ADA's normal line.`
-      : b.status === 'borderline' ? `Fasting glucose ${fmt(v)} mg/dL is in the ADA's prediabetes range (100–125), below its diabetes range (126 or more).`
-        : `Fasting glucose ${fmt(v)} mg/dL is in the ADA's diabetes range (126 or more); the ADA criteria call for a second test to confirm a result in this range.`);
+    b.status === 'normal'
+      ? `Your fasting blood sugar is normal (${fmt(v)}; normal is under 100). Recheck it at your next check-up (ADA).`
+      : b.status === 'borderline'
+        ? `Your fasting blood sugar is above normal, below the diabetes range (${fmt(v)}; normal is under 100, the diabetes range starts at 126). Less sugar and more activity can bring it down; ask your doctor when to recheck (ADA).`
+        : `Your fasting blood sugar is in the diabetes range in this test (${fmt(v)}; the range starts at 126). A second test is needed to confirm it, so ask your doctor about a recheck soon (ADA).`);
   if (!r) return r;
   // Zero, negative or far beyond any lab's scale: not a plausible fasting reading, so no category.
   if (r.value <= 0 || r.value > 1000) {
     return Object.assign(r, { status: 'low', statusLabel: 'Check this value', category: 'Not a plausible reading',
-      explanation: `A fasting glucose of ${fmt(r.value)} mg/dL is not a plausible reading; please check this value against the report.` });
+      explanation: `This fasting blood sugar value (${fmt(r.value)}) cannot be right. Please check it against the report.` });
   }
   // Under 70 mg/dL is the ADA's line for low blood glucose.
   if (r.value < 70) {
-    Object.assign(r, { status: 'low', statusLabel: STATUS_LABEL.low, category: 'Under 70 (low-glucose range)',
-      explanation: `Fasting glucose ${fmt(r.value)} mg/dL is under 70, the line the ADA uses for low blood glucose.`, source: SOURCES.adaLow });
+    return Object.assign(r, { status: 'low', statusLabel: STATUS_LABEL.low, category: 'Under 70 (low-glucose range)',
+      explanation: `Your fasting blood sugar is low in this test (${fmt(r.value)}; under 70 is low). Tell your doctor about this result (ADA).`, source: SOURCES.adaLow });
   }
   // a printed lower limit can still flag a low value
   const pr = parseRange(person.report?.printedRanges?.fastingGlucoseMgDl);
   if (pr && pr.lo !== null && r.value < pr.lo) {
     Object.assign(r, { status: 'low', statusLabel: STATUS_LABEL.low, category: 'Below the printed range',
-      explanation: `Fasting glucose ${fmt(r.value)} mg/dL is below the lab's printed range (${pr.text}).`, source: SOURCES.printed });
+      explanation: `Your fasting blood sugar is below the lab's range (${fmt(r.value)}; the lab prints ${pr.text}). Ask your doctor whether to recheck it (the lab's range).`, source: SOURCES.printed });
   }
   return r;
 };
 
 const hba1cRow = (person) => bandedRow(person, 'hba1cPct', 'hba1c', (v, b) =>
-  b.status === 'normal' ? `HbA1c ${fmt1(v)}% is under 5.7%, the ADA's normal line; it reflects average blood sugar over about three months.`
-    : b.status === 'borderline' ? `HbA1c ${fmt1(v)}% is in the ADA's prediabetes range (5.7–6.4%), below its diabetes range (6.5% or more).`
-      : `HbA1c ${fmt1(v)}% is in the ADA's diabetes range (6.5% or more); the ADA criteria call for a second test to confirm a result in this range.`);
+  b.status === 'normal'
+    ? `Your average blood sugar over the past few months is normal (HbA1c ${fmt1(v)}%; normal is under 5.7%). Recheck it at your next check-up (ADA).`
+    : b.status === 'borderline'
+      ? `Your average blood sugar over the past few months is above normal, below the diabetes range (HbA1c ${fmt1(v)}%; normal is under 5.7%, the diabetes range starts at 6.5%). Less sugar and more activity can bring it down; ask your doctor when to recheck (ADA).`
+      : `Your average blood sugar over the past few months is in the diabetes range in this test (HbA1c ${fmt1(v)}%; the range starts at 6.5%). A second test is needed to confirm it, so ask your doctor about a recheck soon (ADA).`);
+
+const FOOD = 'moving more and eating less fried and fatty meat help';
 
 const totalCholRow = (person) => bandedRow(person, 'totalCholMgDl', 'totalChol', (v, b) =>
-  b.status === 'normal' ? `Total cholesterol ${fmt(v)} mg/dL is under 200, the desirable line.`
-    : b.status === 'borderline' ? `Total cholesterol ${fmt(v)} mg/dL is borderline high (200–239).`
-      : `Total cholesterol ${fmt(v)} mg/dL is high (240 or more).`);
+  b.status === 'normal'
+    ? `Your total cholesterol is in the healthy range (${fmt(v)}; healthy is under 200). Recheck it at your next check-up (ATP III).`
+    : b.status === 'borderline'
+      ? `Your total cholesterol is a little above the healthy line (${fmt(v)}; healthy is under 200). Moving more and eating less fried and fatty meat help (ATP III).`
+      : `Your total cholesterol is high (${fmt(v)}; healthy is under 200, high starts at 240). Moving more and eating less fried and fatty meat help; ask your doctor about a recheck (ATP III).`);
 
-const ldlRow = (person) => bandedRow(person, 'ldlMgDl', 'ldl', (v, b) =>
-  b.status === 'normal' ? `LDL ("bad") cholesterol ${fmt(v)} mg/dL is ${b.category === 'Optimal' ? 'optimal (under 100)' : 'near optimal (100–129)'}.`
-    : `LDL ("bad") cholesterol ${fmt(v)} mg/dL is ${b.category.toLowerCase()} (${b.category === 'Borderline high' ? '130–159' : b.category === 'High' ? '160–189' : '190 or more'}); it is the main cholesterol number linked to heart disease and stroke.`);
+const ldlRow = (person) => bandedRow(person, 'ldlMgDl', 'ldl', (v, b) => {
+  const ldl = "Your 'bad' cholesterol (LDL)";
+  if (b.category === 'Optimal') return `${ldl} is at the best level (${fmt(v)}; best is under 100). Keep up what you are doing (ATP III).`;
+  if (b.category === 'Near or above optimal') return `${ldl} is under the healthy line (${fmt(v)}; healthy is under 130, best is under 100). Recheck it at your next check-up (ATP III).`;
+  if (b.status === 'borderline') return `${ldl} is above the healthy line (${fmt(v)}; healthy is under 130). ${FOOD[0].toUpperCase() + FOOD.slice(1)}; ask your doctor about a recheck (ATP III).`;
+  if (b.status === 'high') return `${ldl} is high (${fmt(v)}; healthy is under 130, high starts at 160). Ask your doctor about a recheck; ${FOOD} (ATP III).`;
+  return `${ldl} is very high (${fmt(v)}; very high starts at 190). Show this result to your doctor soon (ATP III).`;
+});
 
-const tgRow = (person) => bandedRow(person, 'tgMgDl', 'tg', (v, b) =>
-  b.status === 'normal' ? `Triglycerides ${fmt(v)} mg/dL are under 150, the normal line.`
-    : `Triglycerides ${fmt(v)} mg/dL are ${b.category.toLowerCase()} (${b.category === 'Borderline high' ? '150–199' : b.category === 'High' ? '200–499' : '500 or more'}); they often rise with extra weight, sugar and alcohol.`);
+const tgRow = (person) => bandedRow(person, 'tgMgDl', 'tg', (v, b) => {
+  const tg = 'Your triglycerides (a blood fat)';
+  if (b.status === 'normal') return `${tg} are normal (${fmt(v)}; normal is under 150). Recheck them at your next check-up (ATP III).`;
+  if (b.status === 'borderline') return `${tg} are a little high (${fmt(v)}; normal is under 150). Cutting sugar, sweet drinks and alcohol brings them down (ATP III).`;
+  if (b.status === 'high') return `${tg} are high (${fmt(v)}; normal is under 150). Cutting sugar, sweet drinks and alcohol helps; ask your doctor about a recheck (ATP III).`;
+  return `${tg} are very high (${fmt(v)}; very high starts at 500). Show this result to your doctor soon (ATP III).`;
+});
 
 function hdlRow(person) {
   const v = num(person.labs?.hdlMgDl);
   if (v === null) return null;
   const female = person.profile?.sex === 'female';
   let status, category, explanation;
+  const hdl = "Your 'good' cholesterol (HDL)";
   if (v < 40) {
     status = 'low'; category = 'Low';
-    explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is under 40, which counts as a heart-risk factor.`;
+    explanation = `${hdl} is low (${fmt(v)}; low is under 40). Regular exercise and not smoking raise it (ATP III).`;
   } else if (female && v < 50) {
     // Too low for the women's line, so the arrow points down (Low ▼), not up.
     status = 'low'; category = "Under the women's line of 50";
-    explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is above 40 but under 50, the line Taiwan's metabolic-syndrome criteria use for women.`;
+    explanation = `${hdl} is a little low for a woman (${fmt(v)}; the line for women is 50). Regular exercise raises it (Taiwan HPA).`;
   } else if (v >= 60) {
     status = 'normal'; category = 'High (protective)';
-    explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is 60 or more, which counts in your favour.`;
+    explanation = `${hdl} is high, which helps protect your heart (${fmt(v)}; 60 or more counts as high). Keep up your activity (ATP III).`;
   } else {
     status = 'normal'; category = 'Normal';
-    const line = female ? '50 for women' : person.profile?.sex === 'male' ? '40 for men' : '40';
-    explanation = `HDL ("good") cholesterol ${fmt(v)} mg/dL is not under the low line (${line}).`;
+    const line = female ? 'low is under 50 for women' : person.profile?.sex === 'male' ? 'low is under 40 for men' : 'low is under 40';
+    explanation = `${hdl} is in the normal range (${fmt(v)}; ${line}). Regular exercise can raise it further (ATP III).`;
   }
   return row('hdlMgDl', LAB_STANDARDS.hdl, v, 'mg/dL', {
     standard: LAB_STANDARDS.hdl.text + printedNote(person, 'hdlMgDl'), status, category, explanation, source: LAB_STANDARDS.hdl.source
@@ -359,52 +393,69 @@ function rangeRow(person, key, stdKey, sentence) {
   const status = range.hi !== null && v > range.hi ? 'high' : range.lo !== null && v < range.lo ? 'low' : 'normal';
   const category = status === 'normal' ? 'Within range' : status === 'high' ? 'Above range' : 'Below range';
   const standard = (printed ? `lab's printed range ${printed.text}` : `common adult range ${range.text} (labs differ)`) + ` ${std.unit}`;
-  return row(key, std, v, std.unit, { standard, status, category, explanation: sentence(v, status, range), source });
+  const cite = printed ? "the lab's range" : 'a common adult range';
+  return row(key, std, v, std.unit, { standard, status, category, explanation: sentence(v, status, range, cite), source });
 }
 
-const creatinineRow = (person) => rangeRow(person, 'creatinineMgDl', 'creatinine', (v, s, r) =>
-  s === 'normal' ? `Creatinine ${fmt1(v)} mg/dL is within range (${r.text}); the eGFR line turns it into a filtering rate.`
-    : `Creatinine ${fmt1(v)} mg/dL is ${s === 'high' ? 'above' : 'below'} range (${r.text}); the eGFR line says what it means for the kidneys.`);
+const creatinineRow = (person) => rangeRow(person, 'creatinineMgDl', 'creatinine', (v, s, r, cite) =>
+  s === 'normal'
+    ? `Your creatinine, a waste product your kidneys clear, is within range (${fmt1(v)}; range ${r.text}). The kidney filtering rate (eGFR) is worked out from it (${cite}).`
+    : `Your creatinine, a waste product your kidneys clear, is ${s === 'high' ? 'above' : 'below'} the range (${fmt1(v)}; range ${r.text}). The kidney filtering rate (eGFR) shows what this means; ask your doctor about a recheck (${cite}).`);
 
-// Says how far above or below the range the value is; no guess at the cause.
-const liverRow = (key, stdKey, name) => (person) => rangeRow(person, key, stdKey, (v, s, r) => {
+// Says how far above or below the range the value is and what to do; no guess at the cause and no
+// reassurance, however large the rise.
+const liverRow = (key, stdKey, name) => (person) => rangeRow(person, key, stdKey, (v, s, r, cite) => {
+  const what = `Your ${name}, a liver enzyme,`;
   if (s === 'high') {
     const ratio = v / r.hi;
     // Under 1.5 times, a multiple such as "1 times" reads oddly; say "above" instead.
-    return `${name} ${fmt(v)} U/L is ${ratio < 1.5 ? 'above' : `${fmt(ratio)} times`} the upper limit (${fmt(r.hi)}).`;
+    if (ratio < 1.5) return `${what} is above the upper limit (${fmt(v)}; the limit is ${fmt(r.hi)}). Ask your doctor about a recheck (${cite}).`;
+    const times = `${fmt(ratio)} times the upper limit (${fmt(v)}; the limit is ${fmt(r.hi)})`;
+    return ratio >= 5
+      ? `${what} is ${times}. Show this result to a doctor within the next few days (${cite}).`
+      : `${what} is ${times}. Ask your doctor about a recheck soon (${cite}).`;
   }
-  if (s === 'low') return `${name} ${fmt(v)} U/L is below the range (${r.text}).`;
-  return `${name} ${fmt(v)} U/L is within range (${r.text}).`;
+  if (s === 'low') return `${what} is below the range (${fmt(v)}; range ${r.text}). Mention it at your next check-up (${cite}).`;
+  return `${what} is within range (${fmt(v)}; range ${r.text}). Nothing to do for now (${cite}).`;
 });
 
-const plateletsRow = (person) => rangeRow(person, 'plateletsK', 'platelets', (v, s, r) =>
-  s === 'normal' ? `Platelets ${fmt(v)} ×10³/µL are within range (${r.text}).`
-    : `Platelets ${fmt(v)} ×10³/µL are ${s === 'high' ? 'above' : 'below'} range (${r.text}).`);
+const plateletsRow = (person) => rangeRow(person, 'plateletsK', 'platelets', (v, s, r, cite) =>
+  s === 'normal'
+    ? `Your platelets, which help blood clot, are within range (${fmt(v)}; range ${r.text}). Nothing to do for now (${cite}).`
+    : `Your platelets, which help blood clot, are ${s === 'high' ? 'above' : 'below'} the range (${fmt(v)}; range ${r.text}). Ask your doctor about a recheck (${cite}).`);
 
 function egfrRow(person) {
   const v = num(person.labs?.egfrMlMin);
   if (v === null) return null;
   const std = LAB_STANDARDS.egfr;
   const st = std.stages.find((x) => v >= x.atLeast);
-  const [stage, words] = [st.category.split(',')[0], st.category.split(', ')[1]];
-  // Where the number falls on the KDIGO scale; never whether the person has or lacks a kidney disease.
-  const explanation = v >= 60
-    ? `eGFR ${fmt(v)} is in KDIGO stage ${stage} (${words}, ${st.range}); KDIGO reads the stage together with urine albumin (UACR).`
-    : `eGFR ${fmt(v)} is in KDIGO stage ${stage} (${words}, ${st.range}); KDIGO stages describe results that stay in a range for more than 3 months, so a repeat test shows whether this one does.`;
+  // How fast the kidneys filter, in everyday words; never whether the person has or lacks a kidney disease.
+  // KDIGO reads this together with urine albumin, and counts a result only once it lasts more than 3 months.
+  const pair = num(person.labs?.uacrMgG) !== null ? 'Read it together with your urine albumin result' : 'A urine albumin test adds the other half of the picture';
+  const explanation = v >= 90
+    ? `Your kidneys filter blood in the top band (${fmt(v)}; the top band is 90 or more). ${pair} (KDIGO).`
+    : v >= 60
+      ? `Your kidneys filter blood a little below the top band (${fmt(v)}; the top band is 90 or more). ${pair} (KDIGO).`
+      : v >= 45
+        ? `Your kidneys filter blood more slowly than the usual range (${fmt(v)}; usual is 60 or more). Repeat the test in about 3 months to see whether it stays there (KDIGO).`
+        : v >= 30
+          ? `Your kidneys filter blood clearly more slowly than usual (${fmt(v)}; usual is 60 or more). Show this result to your doctor and repeat the test in about 3 months (KDIGO).`
+          : v >= 15
+            ? `Your kidneys filter blood much more slowly than usual (${fmt(v)}; usual is 60 or more). Show this result to your doctor soon (KDIGO).`
+            : `Your kidneys filter blood very slowly (${fmt(v)}; the lowest band is under 15). Contact a doctor within the next few days (KDIGO).`;
   return row('egfrMlMin', std, v, std.unit, {
     standard: 'G1 90 or more · G2 60–89 · G3a 45–59 · G3b 30–44 · G4 15–29 · G5 under 15' + printedNote(person, 'egfrMlMin'),
     status: st.status, category: st.category, explanation, source: std.source
   });
 }
 
-// Where the number falls on the KDIGO albuminuria scale; no statement about the kidneys themselves.
-const uacrRow = (person) => bandedRow(person, 'uacrMgG', 'uacr', (v, b) => {
-  const [cat, words] = [b.category.split(',')[0], b.category.split(', ')[1]];
-  const range = cat === 'A1' ? 'under 30' : cat === 'A2' ? '30–300' : 'over 300';
-  return b.status === 'normal'
-    ? `Urine albumin ${fmt(v)} mg/g is in KDIGO category ${cat} (${words}, ${range}).`
-    : `Urine albumin ${fmt(v)} mg/g is in KDIGO category ${cat} (${words}, ${range}); KDIGO categories describe results that stay in a range for more than 3 months, so a repeat test shows whether this one does.`;
-});
+// What the urine sample shows; no statement about the kidneys themselves.
+const uacrRow = (person) => bandedRow(person, 'uacrMgG', 'uacr', (v, b) =>
+  b.status === 'normal'
+    ? `Your urine sample shows only a small amount of protein (${fmt(v)}; under 30 is the normal band). Recheck it with your next kidney tests (KDIGO).`
+    : b.status === 'high'
+      ? `Your urine sample shows more protein than normal (${fmt(v)}; normal is under 30). A repeat test in about 3 months shows whether it stays there (KDIGO).`
+      : `Your urine sample shows a lot of protein (${fmt(v)}; normal is under 30). Show this result to your doctor soon and repeat the test (KDIGO).`);
 
 const ITEMS = [bmiRow, waistRow, bpRow, glucoseRow, hba1cRow, totalCholRow, ldlRow, hdlRow, tgRow, creatinineRow, egfrRow, uacrRow,
   liverRow('astUL', 'ast', 'AST'), liverRow('altUL', 'alt', 'ALT'), plateletsRow];
@@ -454,12 +505,14 @@ export function metabolicSyndrome(person) {
   const count = items.filter((i) => i.met === true).length;
   const unknown = items.filter((i) => i.met === null).map((i) => i.label);
   const met = count >= 3 ? true : count + unknown.length >= 3 ? null : false;
-  const which = items.filter((i) => i.met === true).map((i) => i.label.toLowerCase()).join(', ') || 'none';
+  const word = (label) => (label.startsWith('HDL') ? label : label.toLowerCase());
+  const which = items.filter((i) => i.met === true).map((i) => word(i.label)).join(', ') || 'none';
+  const signs = `${count} of the 5 warning signs Taiwan uses for metabolic syndrome ${count === 1 ? 'is' : 'are'} present`;
+  const org = regionOf(person) !== 'TW' ? 'Taiwan HPA; US programs use a waist line above 102 cm for men and 88 cm for women' : 'Taiwan HPA';
   const explanation = met === true
-    ? `${count} of 5 items are met (${which}); 3 or more is Taiwan's definition of metabolic syndrome, and each item that improves takes the count down.`
+    ? `${signs} (${which}; 3 or more is the line). Improving any one of them brings the count down (${org}).`
     : met === null
-      ? `${count} of 5 items are met (${which}); ${unknown.join(', ').toLowerCase()} not measured, so it cannot be settled yet.`
-      : `${count} of 5 items are met (${which}); 3 or more is needed for Taiwan's definition of metabolic syndrome.`;
-  const note = regionOf(person) !== 'TW' ? ' Taiwan criteria; US programs use a waist line above 102 cm (men) and 88 cm (women).' : '';
-  return { count, of: 5, items, met, missing: unknown, explanation: explanation + note, source: SOURCES.hpaMets };
+      ? `${signs} (${which}); ${unknown.map(word).join(', ')} ${unknown.length === 1 ? 'was' : 'were'} not measured, so the count is not final (${org}).`
+      : `${signs} (${which}; 3 or more is the line). Keeping your numbers in range keeps the count low (${org}).`;
+  return { count, of: 5, items, met, missing: unknown, explanation, source: SOURCES.hpaMets };
 }
