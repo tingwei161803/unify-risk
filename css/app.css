@@ -63,7 +63,9 @@ h1, h2, h3, p { margin: 0; }
 .nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
 .nav a:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--text); border-radius: 6px; }   /* inside the link, so .nav cannot clip it */
 .session { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
-#ai { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* gives way to the page links */
+#ai { flex: 0 1 auto; min-width: 8.4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* gives way to the page links */
+/* Keep the provider selector usable: the box may give up the "Last answer" text, never the selector. */
+#ai select { max-width: 6.5em; text-overflow: ellipsis; }
 /* The AI provider note belongs to the page that calls a model (Lab report). On Results and Evidence,
    where every number comes from a published formula, it is hidden so it cannot be read as "AI data". */
 .top:has(.nav a.active[href="#/results"]) #ai, .top:has(.nav a.active[href="#/evidence"]) #ai { display: none; }
