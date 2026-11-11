@@ -45,10 +45,23 @@ export function read(person, field) {
   return ((person && person.profile) || {})[field];
 }
 
+// Free-text fields whose allowed values differ by formula (e.g. region), checked only for presence.
+const STRING_FIELDS = new Set();
+
+// Formula groups (js/engine/formulas/_group-*.js) register the fields they add, so the
+// "what is missing" list has labels and yes/no and choice fields are validated by type.
+export function registerFields({ labels = {}, booleans = [], choices = {}, strings = [] } = {}) {
+  Object.assign(FIELD_LABELS, labels);
+  booleans.forEach((f) => BOOLEAN_FIELDS.add(f));
+  Object.assign(CHOICES, choices);
+  strings.forEach((f) => STRING_FIELDS.add(f));
+}
+
 function isPresent(field, value) {
   if (value === undefined || value === null || value === '') return false;
   if (CHOICES[field]) return CHOICES[field].includes(value);
   if (BOOLEAN_FIELDS.has(field)) return typeof value === 'boolean';
+  if (STRING_FIELDS.has(field)) return typeof value === 'string';
   return Number.isFinite(Number(value));
 }
 
