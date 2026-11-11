@@ -6,7 +6,7 @@
 //
 // Coefficients, S0 and mean are from the Framingham Heart Study's official page for this
 // model ("Regression Coefficients and Hazard Ratios - Primary Model"), as recorded in the
-// research file. UNCONFIRMED: they were not compared cell by cell with the journal table, and the
+// literature notes. UNCONFIRMED: they were not compared cell by cell with the journal table, and the
 // paper's own worked example was not available, so no example from the paper is reproduced
 // (the checks use self-computed values). x = ln(age), ln(total cholesterol mg/dL),
 // ln(HDL mg/dL), ln(SBP) (treated and untreated have different beta), smoker, diabetes.

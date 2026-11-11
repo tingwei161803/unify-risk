@@ -9,13 +9,13 @@
 // not stated in the paper (UNCONFIRMED); here <50 low, 50 to <60 medium, 60 or more high.
 // Observed 5-year HCC in the training set: 0.8%, 4.2%, 19.9%.
 // DERIVED CANDIDATE, not published by the authors: the paper gives only the baseline survival
-// S0(5) = 0.984 (p.6), not the linear predictor it belongs to. The research team assumed
+// S0(5) = 0.984 (p.6), not the linear predictor it belongs to. The team assumed
 // LP = 0.06 age + 0.89 male + 0.48 ALBI - 0.01 platelets (no 7.4, not centred) and
 // risk5 = 1 - 0.984^exp(LP); it fits the three groups but the group-3 upper bound (100%) barely
 // constrains it, and using the Table 2 Cox coefficients instead changes the results by 14-40%.
 // It is shown in the notes only, and the value is the score.
 // Units converted here: bilirubin mg/dL x 17.1 -> umol/L; albumin g/dL x 10 -> g/L (conversion
-// factors from the research file); platelets x10^3/uL equal 10^3/mm3.
+// factors from our literature notes); platelets x10^3/uL equal 10^3/mm3.
 
 import { computed, gate, notApplicable, missingResult, round, formatPercent } from '../util.js';
 

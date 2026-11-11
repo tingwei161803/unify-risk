@@ -12,7 +12,7 @@
 // nothing) uses the LOW-risk region, and the notes say so. Taiwan is not in the paper's country
 // list, so the region has to be a choice.
 // Not used: the heart-failure multiplier (Supplementary Table 4), because the app has no field for it.
-// UNCONFIRMED: the upper age limit is not stated in the research file (it says age 70 and over),
+// UNCONFIRMED: the upper age limit is not stated in our literature notes (it says age 70 and over),
 // so there is none. The paper's own calibrated example uses an older scaling than Table 1;
 // this file uses Table 1 (see _group-cvd.js).
 

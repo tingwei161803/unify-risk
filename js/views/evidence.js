@@ -37,7 +37,7 @@ const CHECKED = new Set(['D', 'V', 'R', 'C', 'P']);
 
 let showAll = false;      // false: only the formulas this app computes
 let picked = null;        // { formulaId, populationId } of the cell whose details are open
-// Three switches, as on the research heat map: which disease, which groups of people, and
+// Three switches, as on our evidence heat map: which disease, which groups of people, and
 // whether the formula needs a lab report (the `lab` field of js/data/evidence.js).
 let onlyDisease = 'all';  // 'all' | 'stroke' | 'dementia' | 'diabetes'
 let onlyGroups = 'all';   // 'all' | 'place' (populations) | 'sexage' (sex and age rows)

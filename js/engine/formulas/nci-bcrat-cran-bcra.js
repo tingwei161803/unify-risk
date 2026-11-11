@@ -2,10 +2,10 @@
 // Gail MH, et al. J Natl Cancer Inst 1989;81:1879-1886 (relative-risk model and absolute-risk equation);
 // race-specific coefficients, rates and attributable-risk factors as published
 // with the CRAN BCRA 2.1.2 package (GPL). Written here from the formulas and tables recorded in the
-// research repo (js/data/coefficients.js COEFFICIENTS['nci-bcrat-cran-bcra']); no package code is copied.
+// our literature notes (js/data/coefficients.js COEFFICIENTS['nci-bcrat-cran-bcra']); no package code is copied.
 //
 // Rates (per person-year, 14 five-year age groups from 20-24 to 85-89): lambda1 = breast cancer incidence,
-// lambda2 = death from other causes. Copied from docs/research/disease-risk/coefficients/bcra-rates.csv
+// lambda2 = death from other causes. Copied from bcra-rates.csv
 // (extracted from CRAN BCRA 2.1.2 absolute.risk.R; White = R lines 6/52, Black = 15/61, Other = 21/67).
 // Note: the package uses the older SEER 1983-87 White rates; whether the NCI web tool uses the same
 // table today is unconfirmed.
@@ -14,7 +14,7 @@
 // are covered by AABCS, so both are "not applicable" here.
 // Unconfirmed: White/Black/Other absolute risks were not compared with any official NCI output (only the
 // Asian branch of the same code was reproduced, see aabcs). The age range 35-85 is the Gail model's design
-// range; the research files give 20-90 for the code.
+// range; our literature notes give 20-90 for the code.
 
 import { computed, formatPercent, round } from '../util.js';
 import { gateCancer, isNum, gailAbsoluteRisk } from './_cancer-util.js';
@@ -31,14 +31,14 @@ const RATES_BLACK = {
 };
 
 // Coefficients (relative.risk.R lines 2-10) for NB, AM, AF, NR, NB x (age 50+), AF x NR, and 1 - AR
-// below / from age 50 (absolute.risk.R lines 97-102), as recorded in the research file.
+// below / from age 50 (absolute.risk.R lines 97-102), as recorded in our literature notes.
 const MODELS = {
   white: { rates: RATES_WHITE, beta: [0.5292641686, 0.0940103059, 0.2186262218, 0.9583027845, -0.288042483, -0.1908113865], oneMinusAr: [0.5788413, 0.5788413] },
   other: { rates: RATES_WHITE, beta: [0.5292641686, 0.0940103059, 0.2186262218, 0.9583027845, -0.288042483, -0.1908113865], oneMinusAr: [0.5788413, 0.5788413] },
   black: { rates: RATES_BLACK, beta: [0.1822121131, 0.2672530336, 0, 0.4757242578, -0.1119411682, 0], oneMinusAr: [0.7294988, 0.74397137] }
 };
 
-// Category coding (recode.check.R lines 31-120 as recorded in the research file).
+// Category coding (recode.check.R lines 31-120 as recorded in our literature notes).
 // afl = age at first live birth (number) or 'none'.
 export function bcratCodes(race, { menarche, afl, relatives, biopsies, atypical }) {
   const black = race === 'black';
@@ -130,7 +130,7 @@ export const nciBcrat = {
       `Relative risk ${round(age < 50 ? rr.lt50 : rr.ge50, 2)} compared with a woman of the same age with the lowest category on every factor.`,
       `Risk over the next 10 years: ${formatPercent(bcratRisk(race, c, age, Math.min(90, age + 10)))}${age + 10 > 90 ? ' (to age 90)' : ''}.`,
       'Not asked: whether she has had breast cancer, DCIS or LCIS, or carries a BRCA mutation; the tool is not for those women.',
-      'The research record has not compared the White, Black and Other results with an official NCI output. The same code reproduced the published Asian American tables (see AABCS).'
+      'Our notes do not compare the White, Black and Other results with an official NCI output. The same code reproduced the published Asian American tables (see AABCS).'
     ];
     if (Number(p.breastBiopsyCount) > 0 && typeof p.atypicalHyperplasia !== 'boolean') {
       notes.push('Biopsy result for atypical hyperplasia not given: treated as unknown (factor 1.00).');

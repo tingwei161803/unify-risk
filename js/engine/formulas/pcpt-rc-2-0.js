@@ -2,7 +2,7 @@
 // low-grade cancer or high-grade cancer.
 // Ankerst DP, et al.
 // Urology 2014 (PCPT risk calculator 2.0). Coefficients: the authors' supplementary R file, which the
-// research repo records line by line (js/data/coefficients.js, COEFFICIENTS['pcpt-rc-2-0']). The R file
+// our literature notes records line by line (js/data/coefficients.js, COEFFICIENTS['pcpt-rc-2-0']). The R file
 // was read, never run. Only the main model is implemented (PSA, age, ethnicity, optional prior biopsy,
 // DRE and family history); the %free PSA, PCA3, detailed family history and SNP updates are not.
 // The paper prints no worked example; checks are self-computed.

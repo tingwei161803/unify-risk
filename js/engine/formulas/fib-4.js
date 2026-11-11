@@ -7,7 +7,7 @@
 // Cut-offs: the original paper used < 1.45 (rule out advanced fibrosis) and > 3.25 (rule in).
 // The MASLD guideline (Rinella 2023, AASLD) uses 1.3 and 2.67, and 2.0 as the lower cut-off for
 // people over 65. Both are given in the notes; the band shown follows the original paper.
-// Source of these numbers: research file risk-models-cancer-copd-liver.md section 8.1
+// Source of these numbers: literature notes risk-models-cancer-copd-liver.md section 8.1
 // (FIB-4 is not in js/data/coefficients.js because it has no coefficient table).
 
 import { computed, gate, notApplicable, round } from '../util.js';

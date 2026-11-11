@@ -9,7 +9,7 @@
 // non-lab: minimal < -0.412, low to 1.912, intermediate to 2.632, high above. 15-year risk of the groups:
 // minimal < 0.5%, low 0.5-4.9%, intermediate 5-9.9%, high 10% or more.
 // DERIVED, NOT AUTHOR-PUBLISHED: the authors give no baseline survival or intercept for a continuous
-// risk. The research team fitted risk15 = 1 - exp(-exp(LP - c)) to the three group cut-offs
+// risk. The team fitted risk15 = 1 - exp(-exp(LP - c)) to the three group cut-offs
 // (c = 5.036 lab, 4.883 non-lab). It fits to 0.003 on the cut-offs and is rougher elsewhere: for the
 // supplement's worked example (Fig. S16) it gives 7.5% where the paper's nomogram gives about 6%.
 // The risk groups are the published result; the percentage is only an approximation.
@@ -92,7 +92,7 @@ export const clivd = {
       ],
       notes: [
         `Version used: ${r.lab ? 'lab (GGT given)' : 'non-lab (no GGT)'}. LP = ${round(r.lp, 3)}. The risk group is the published result.`,
-        'DERIVED, not published by the authors: the percentage comes from a curve the research team fitted to the three published group cut-offs; the authors give no baseline risk. In the paper\'s worked example it gives 7.5% where the paper\'s nomogram gives about 6%. Prefer the group.',
+        'DERIVED, not published by the authors: the percentage comes from a curve the team fitted to the three published group cut-offs; the authors give no baseline risk. In the paper\'s worked example it gives 7.5% where the paper\'s nomogram gives about 6%. Prefer the group.',
         'Waist-hip ratio is waist divided by hip circumference. Alcohol is in drinks of 10 g of alcohol a week. Smoking counts only for current smokers.'
       ]
     });

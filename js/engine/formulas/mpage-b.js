@@ -8,7 +8,7 @@
 // Groups: 8 or less low, 9-12 intermediate, 13 or more high; observed 5-year HCC in the build group
 // 0.7%, 5.1%, 18.4% and in the test group 1.9%, 6.5%, 18.2%.
 // UNCONFIRMED: which side of a shared platelet/albumin end-point (200, 150, 100, 4.0, 3.5, 3.0) each
-// interval takes was lost from the paper's text layer. Assumed here, as the research file suggests:
+// interval takes was lost from the paper's text layer. Assumed here, as our literature notes suggests:
 // platelets >250 ->0, (200,250] ->2, (150,200] ->3, (100,150] ->4, <=100 ->5;
 // albumin >4.0 ->0, (3.5,4.0] ->1, [3.0,3.5] ->2, <3.0 ->3.
 

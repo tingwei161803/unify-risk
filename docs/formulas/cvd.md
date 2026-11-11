@@ -4,7 +4,7 @@ All are estimates from published formulas. Not a diagnosis. Not medical advice. 
 
 New person fields used here: `profile.ethnicity` (`white`, `black`, `hispanic`, `asian`, `other`), `profile.statin` (bool), `profile.region` (string), `profile.urban` (bool), `profile.familyAscvd` (bool), `labs.egfr` (mL/min/1.73 m²). `profile.region` means a risk region for SCORE2-OP (`low`, `moderate`, `high`, `very-high`) and `north` / `south` for China-PAR.
 
-SCORE2 (the 40–69 model) is not included: its coefficients are not in `js/data/coefficients.js` or the research files.
+SCORE2 (the 40–69 model) is not included: its coefficients are not in `js/data/coefficients.js` or the team's literature notes.
 
 ## Pooled Cohort Equations: `pooled-cohort-equations-pce`
 
@@ -21,14 +21,14 @@ SCORE2 (the 40–69 model) is not included: its coefficients are not in `js/data
 - Equation: risk = e^x / (1 + e^x), x = constant + Σ β·term. Cholesterol is converted to mmol/L (× 0.02586); non-HDL = total − HDL. Terms are centred (age 55, non-HDL 3.5, HDL 1.3, SBP 110 and 130, BMI 25 and 30, eGFR 60 and 90) and include age interactions and statin / blood-pressure-treatment terms. Base model only (no UACR, HbA1c, deprivation index).
 - Ages 30–79. Outcome: total CVD, ASCVD, or heart failure within 10 years. eGFR is read, not computed from creatinine.
 - Source: Khan 2024, Circulation 149:430–449, Supplemental Table S12A (10-year base). doi 10.1161/CIRCULATIONAHA.123.067626.
-- Unconfirmed: the term centring is not in the coefficient CSV; it comes from the team's earlier proof of concept and is confirmed only by the examples below.
+- Unconfirmed: the term centring is not in the coefficient CSV; it comes from the team's literature notes and is confirmed only by the examples below.
 - Reproduces: Table S25 (woman 50, TC 200, HDL 45, SBP 160 treated, diabetes, eGFR 90): log-odds −1.75961, total CVD 14.68%. Main-text example (woman 50, TC 240, HDL 55, SBP 160 treated, BMI 35, eGFR 90): total CVD / ASCVD / heart failure 5.4 / 3.6 / 2.5%, and 9.3 / 6.0 / 4.7% if she smokes (within 0.05 point). A man cross-check (16.3 / 10.2 / 10.6%) comes from the preventr package tests, not the paper.
 
 ## SCORE2-OP: `score2-op`
 
 - Inputs: age, sex, sbp, smoking, diabetes, labs.totalCholMgDl and labs.hdlMgDl (converted to mmol/L). Optional: profile.region (`low`, `moderate`, `high`, `very-high`); missing or unrecognised means the low-risk region, stated in the notes.
 - Equation: LP = Σ β·(x − centre), centres age 73, SBP 150, TC 6, HDL 1.4; raw = 1 − S0^exp(LP − meanLP); risk = 1 − exp(−exp(scale1 + scale2·ln(−ln(1 − raw)))) with the region's scale (Supplementary Methods Table 1). The heart-failure multiplier is not applied.
-- Ages 70 and over (no upper limit stated in the research file; unconfirmed). Outcome: fatal or non-fatal CVD within 10 years.
+- Ages 70 and over (no upper limit stated in the team's literature notes; unconfirmed). Outcome: fatal or non-fatal CVD within 10 years.
 - Source: de Vries 2021, Eur Heart J 42:2455–2467. doi 10.1093/eurheartj/ehab312.
 - Reproduces: Supplementary Table 3 example (age 75, smoker, no diabetes, SBP 140, TC 5.5, HDL 1.3): uncalibrated risk 24.42% (women) and 29.66% (men). The paper's calibrated example uses an older scaling than its own Table 1, so the low-region values here (15.2% / 18.6%) are self-computed.
 

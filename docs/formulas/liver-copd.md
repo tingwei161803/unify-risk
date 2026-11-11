@@ -1,7 +1,7 @@
 # Liver and COPD formulas (issue #69, group E)
 
 Code: `js/engine/formulas/<id>.js`, grouped in `_group-liver-copd.js` (`formulas`, `checks()`, `fieldLabels`).
-Numbers come from `js/data/coefficients.js` and the research files; FIB-4 has no coefficient table, so its formula and cut-offs come from the research file `risk-models-cancer-copd-liver.md` (section 8.1).
+Numbers come from `js/data/coefficients.js` and the team's literature notes; FIB-4 has no coefficient table, so its formula and cut-offs come from the team's literature notes `risk-models-cancer-copd-liver.md` (section 8.1).
 Units are converted inside each formula. Not a diagnosis. Not medical advice.
 
 New input fields: `profile.hbvCarrier`, `hbvTreated`, `hcv`, `cirrhosis`, `chronicLiverDisease` (booleans); `drinksPerWeek` (drinks of 10 g alcohol); `hipCm`; `packYears`; `regularDrinking` (bool); `exerciseMetHoursWeek`; `copdSymptomBreathless`, `copdSymptomPhlegm`, `copdActivityLimited` (option position 0–4, 0 = first printed option); `smoked100Cigarettes` (bool); `copdDiagnosed` (optional bool). Labs: `astUL`, `altUL`, `plateletsK` (10³/µL = 10⁹/L), `albuminGdL`, `bilirubinMgDl`, `ggtUL`, `hbvDnaIuMl`, `hbeagPositive` (bool), `afpNgMl`, `fastingGlucoseMgDl`.
@@ -58,7 +58,7 @@ New input fields: `profile.hbvCarrier`, `hbvTreated`, `hcv`, `cirrhosis`, `chron
 
 ## clivd — CLivD (kind risk, 15 years)
 - Inputs: age (40–70), sex, waist and hip (WHR), `drinksPerWeek`, diabetes, smoking (current); lab version when `labs.ggtUL` is given.
-- Equation: the published linear predictor (supplement p.19–20). Risk groups from LP cut-offs are the published result. The continuous risk 1 − exp(−exp(LP − c)) is derived by the research team, not author-published, and labelled so.
+- Equation: the published linear predictor (supplement p.19–20). Risk groups from LP cut-offs are the published result. The continuous risk 1 − exp(−exp(LP − c)) is derived by the team, not author-published, and labelled so.
 - Source: Åberg 2022, doi 10.1016/j.jhep.2022.02.021.
 - Checks: Fig. S16 example (lab LP 2.48236, group intermediate; derived 7.485% vs the paper's about 6%); same inputs without GGT (LP 2.5419).
 

@@ -5,7 +5,7 @@
 // Points: age 16-29: 0, 30-39: 2, 40-49: 4, 50-59: 6, 60-69: 8, 70+: 10; male 6 (female 0);
 // platelets (per mm3) >= 200,000: 0, 100,000-199,999: 6, < 100,000: 9. Total 0-25.
 // Groups (p.1, p.4): 9 or less low (5-year HCC 0% in the build group), 10-17 medium (3%), 18+ high (17%).
-// The 5-year risk by score (Fig. 2) was read off the figure's drawing coordinates by the research
+// The 5-year risk by score (Fig. 2) was read off the figure's drawing coordinates by the team
 // team, not printed in the paper (error about +-0.05 percentage points; the paper's table is in
 // Supplementary Table 3, which was not obtained). It is shown in the notes only.
 

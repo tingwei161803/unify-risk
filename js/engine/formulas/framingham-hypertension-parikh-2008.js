@@ -7,7 +7,7 @@
 //
 // UNCONFIRMED COEFFICIENT: Table 2 prints the age x DBP interaction as 0.00162 (3 significant figures). The
 // paper's own worked examples (Appendix) are only reproduced with 0.001624, which was solved back from those two
-// examples (research file coefficients/framingham.json, beta_backsolved). 0.001624 is NOT a value published in the
+// examples (literature notes coefficients/framingham.json, beta_backsolved). 0.001624 is NOT a value published in the
 // paper; it is used here so the printed examples match. With 0.00162 the 4-year risk is about 0.01 higher for the
 // examples. All other numbers are as printed.
 

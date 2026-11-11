@@ -1,10 +1,10 @@
 # Metabolic and kidney formulas (group B)
 
-Files: `js/engine/formulas/<id>.js`, collected in `js/engine/formulas/_group-metabolic.js` (`formulas`, `checks()`, `fieldLabels`). All numbers are copied from `js/data/coefficients.js` (research files in `docs/research/disease-risk/coefficients/`). Each formula lists what is missing, and returns "not applicable" outside its range or gates. Not a diagnosis. Not medical advice.
+Files: `js/engine/formulas/<id>.js`, collected in `js/engine/formulas/_group-metabolic.js` (`formulas`, `checks()`, `fieldLabels`). All numbers are copied from `js/data/coefficients.js` (tables the team compiled from published papers). Each formula lists what is missing, and returns "not applicable" outside its range or gates. Not a diagnosis. Not medical advice.
 
 New person fields used here (profile unless prefixed `labs.`): `ethnicity` ('white' | 'black' | 'hispanic' | 'asian' | 'other'), `statin` (bool), `strokeHistory` (bool), `ckdStage` (1–5), `heavyDrinking` (bool, drinks 6 or more days a week), `parentsHypertension` (0, 1 or 2 parents), `labs.hba1cPct`, `labs.egfr` (mL/min/1.73 m²), `labs.uacrMgG`, `labs.uricAcidMgDl`, `labs.wbcK` (10³/µL), `labs.postprandialGlucoseMgDl`, `labs.proteinuria` (bool, dipstick 100 mg/dL or more). `labs.creatinineMgDl`, `profile.hypertensionDiagnosed` are labelled but not used by any formula in this group.
 
-Skipped: **CKD-PC incident CKD** (Nelson 2019, id `ckd-pc-ckd`). Its equation is in eTable 8 of the supplement, which is not in `coefficients.js` or the research folder.
+Skipped: **CKD-PC incident CKD** (Nelson 2019, id `ckd-pc-ckd`). Its equation is in eTable 8 of the supplement, which is not in `coefficients.js` or the team's literature notes.
 
 ## Chin-Shan diabetes score (`chin-shan-diabetes-chien-2008`)
 
@@ -21,7 +21,7 @@ Skipped: **CKD-PC incident CKD** (Nelson 2019, id `ckd-pc-ckd`). Its equation is
 - Equation: risk = 1 − S0^exp(score); score = ethnicity + smoking + Σ β·(fractional-polynomial term − centre) + β·(Townsend − centre) + binary terms + age interactions; separate sets for women and men.
 - Gates: age 25–84; known diabetes is not applicable; BMI clamped to 20–40.
 - Assumptions (shown in notes): Townsend = 0 (no Taiwan equivalent; UK centres are 0.39 women, 0.52 men); ethnicity white → reference, black → BlackCaribbean, asian → Chinese, hispanic/other → Other; current smoker → moderate; family history = parent or sibling; antipsychotics, steroids, learning difficulty, severe mental illness, gestational diabetes, PCOS assumed absent.
-- Reproduces: eight self-computed examples from the research file (tolerance 1e-6) and the paper's statin hazard ratios for men in model B at ages 35/45/55/65 (2.41/1.66/1.30/1.15).
+- Reproduces: eight self-computed examples from the team's literature notes (tolerance 1e-6) and the paper's statin hazard ratios for men in model B at ages 35/45/55/65 (2.41/1.66/1.30/1.15).
 
 ## Framingham hypertension (`framingham-hypertension-parikh-2008`)
 
@@ -42,7 +42,7 @@ Skipped: **CKD-PC incident CKD** (Nelson 2019, id `ckd-pc-ckd`). Its equation is
 
 ## Chien 2010 NTUH CKD (`chien-2010-ckd`, `chien-2010-ckd-lab`)
 
-- Source: Chien KL, et al. Am J Med 2010;123:836–846 (no DOI recorded in the research file). Tables 3 and 4, PDF p.6. Shared helpers in `chien-2010-ckd-core.js`.
+- Source: Chien KL, et al. Am J Med 2010;123:836–846 (no DOI recorded in the team's literature notes). Tables 3 and 4, PDF p.6. Shared helpers in `chien-2010-ckd-core.js`.
 - Clinical inputs: age, height, weight, dbp, diabetes, `strokeHistory`. Lab version: age, dbp, `strokeHistory`, `labs.uricAcidMgDl`, `labs.postprandialGlucoseMgDl`, `labs.hba1cPct`, `labs.proteinuria`.
 - Equation: points per item; 4-year risk = value printed for the total (clinical 0–17, lab 0–23). S0(4) is not printed.
 - Gates: existing CKD (`ckdStage` given, or eGFR below 60) is not applicable. No age range in the paper. DBP 80 or more scores 2 in the clinical table and 1 in the lab table.

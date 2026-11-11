@@ -7,7 +7,7 @@
 // coefficients below (full precision from the authors' web calculator output, agreeing with the
 // table after rounding). NOT published: the mean and SD that R's scale() used to standardise the
 // covariates. The constants SD_*, MEAN_LOG_DNA, SD_LOG_DNA and SHIFT_K are back-calculated by the
-// research team from 11 outputs of the authors' calculator (max residual 0.005 percentage points),
+// team from 11 outputs of the authors' calculator (max residual 0.005 percentage points),
 // so they are derived, not published. They were only checked for age 30-60, ALT 15-60,
 // platelets 150-250 and HBV DNA 10^3 to 10^6 IU/mL, so the formula is limited to ages 30-60 here
 // and warns outside the other ranges. The genF survival function is a reconstruction of flexsurv's

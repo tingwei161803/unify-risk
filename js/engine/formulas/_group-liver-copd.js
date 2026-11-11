@@ -4,7 +4,7 @@
 //
 // checks() returns [{ formulaId, example, expected, actual, pass, source }]. `source` says where the
 // example comes from: "calculator output" (the authors' web calculator), "paper" (printed in the paper
-// or supplement), or "self-computed" (worked by the research team from the published formula, not
+// or supplement), or "self-computed" (worked by the team from the published formula, not
 // printed in the paper, so it checks the code against the formula but not the formula against the paper).
 
 import { fib4 } from './fib-4.js';
@@ -64,7 +64,7 @@ function chk(formulaId, example, expected, actual, tol, source) {
 
 export function checks() {
   const out = [];
-  const SELF = 'self-computed (research file), not printed in the paper';
+  const SELF = 'self-computed (literature notes), not printed in the paper';
 
   // FIB-4: no worked example in the paper; hand calculation 50 x 40 / (200 x sqrt(25)) = 2.
   out.push(chk('fib-4', 'age 50, AST 40, ALT 25, platelets 200', 2.0, fib4Value(50, 40, 25, 200), 1e-9, 'hand calculation from the Sterling 2006 formula'));
@@ -113,7 +113,7 @@ export function checks() {
   // Wen 2012: scores and chart values (self-computed scores; chart values are the supplement's).
   const exB = { male: true, age: 55, packYears: 12, drink: true, met: 2, dm: true, ast: 45, alt: 40, afp: 6, hbv: true, hcv: false };
   const exB2 = { male: false, age: 35, packYears: 0, drink: false, met: 8, dm: false, ast: 20, alt: 15, afp: 1.5, hbv: false, hcv: false };
-  const wsrc = 'research file expected value (score self-computed from Supp Table 1; percentages from Supp Figure 2 chart data)';
+  const wsrc = 'literature notes expected value (score self-computed from Supp Table 1; percentages from Supp Figure 2 chart data)';
   const s1 = wenScore('B_M5', exB);
   out.push(chk('wen-2012', 'B model 5, 55 y male, 12 pack-years, drinks, HBV+: score', 25, s1, 0, wsrc));
   out.push(chk('wen-2012', 'B model 5, same: 5-year %', 2.0835, wenRisk('B_M5', s1, 5), 1e-4, wsrc));
@@ -128,9 +128,9 @@ export function checks() {
   // CLivD: the supplement's Fig. S16 example.
   const fig = { age: 52, female: false, whr: 1.1, drinks: 14, diabetes: true, smoker: true };
   const lab = clivdLp({ ...fig, ggt: 65 });
-  out.push(chk('clivd', 'Fig. S16 (52 y male, diabetes, smoker, 14 drinks/week, WHR 1.1, GGT 65): lab LP', 2.48236, lab.lp, 1e-4, 'research file (LP self-computed from the supplement equation; the paper gives nomogram points 144, about 6%)'));
+  out.push(chk('clivd', 'Fig. S16 (52 y male, diabetes, smoker, 14 drinks/week, WHR 1.1, GGT 65): lab LP', 2.48236, lab.lp, 1e-4, 'literature notes (LP self-computed from the supplement equation; the paper gives nomogram points 144, about 6%)'));
   out.push(chk('clivd', 'Fig. S16: lab risk group', 'intermediate', lab.group, 0, 'paper (5-9.9% group)'));
-  out.push(chk('clivd', 'Fig. S16: derived 15-year % (paper nomogram says about 6)', 7.47, 100 * lab.risk15, 0.02, 'derived approximation, not author-published (research file 7.47%, code gives 7.485%: the research value was rounded); differs from the paper\'s about 6% by about 1.5 points'));
+  out.push(chk('clivd', 'Fig. S16: derived 15-year % (paper nomogram says about 6)', 7.47, 100 * lab.risk15, 0.02, 'derived approximation, not author-published (literature notes 7.47%, code gives 7.485%: the noted value was rounded); differs from the paper\'s about 6% by about 1.5 points'));
   const non = clivdLp(fig);
   out.push(chk('clivd', 'Fig. S16 inputs without GGT: non-lab LP', 2.5419, non.lp, 1e-3, SELF));
   out.push(chk('clivd', 'Fig. S16 inputs without GGT: risk group', 'intermediate', non.group, 0, SELF));
