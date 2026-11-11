@@ -402,7 +402,8 @@ button.cell.on:focus-visible { outline-color: var(--text); }
 .legend .cell { display: inline-grid; width: 26px; height: 22px; margin-right: 6px; vertical-align: middle; font-size: 11px; }
 /* the details of the selected cell stay in view at the bottom of the screen while the matrix scrolls */
 .ev-float { position: sticky; bottom: 12px; z-index: 5; margin-top: 14px; border-radius: var(--r-panel); box-shadow: var(--shadow); }
-.ev-float > .panel { border-color: var(--border-strong); background: var(--panel-2); }
+.ev-float > .panel { border-color: var(--border-strong); background: var(--panel-2);
+  max-height: calc(var(--vh) * .46); overflow-y: auto; }   /* never more than half the window, so the cells stay in view */
 
 /* ── Toast / empty / footer ── */
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--border-strong);
@@ -494,7 +495,7 @@ article.risk:hover { border-color: var(--border-strong); }
 .cmp-row .nm small { display: block; margin-top: 6px; font-weight: 400; font-size: 12px; color: var(--dim); }
 .cmp-mid { display: grid; gap: 8px; justify-items: start; padding-top: 4px; }
 .cmp-track { height: 14px; justify-self: stretch; background: var(--track); border-radius: 3px; overflow: hidden; }
-.cmp-track i { display: block; height: 100%; border-radius: 3px; background: var(--mark-1); }
+.cmp-track i { display: block; height: 100%; min-width: 3px; border-radius: 3px; background: var(--mark-1); }   /* under 1 in 100 still shows */
 .cmp-row .v { align-self: center; text-align: right; font-size: 34px; line-height: 1.1; letter-spacing: -.02em; font-weight: 700;
   font-variant-numeric: tabular-nums; color: var(--text); text-decoration-style: dotted; text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
 .cmp-row .v small { margin-left: 4px; font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
