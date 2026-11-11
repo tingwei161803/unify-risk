@@ -57,8 +57,8 @@ The page already draws two tables from the engine: every lab value with its stan
 2. `## Your health right now`: 4 short bullets in everyday words saying what is fine, what is a little high and what is too high, from the `labs` statuses and `metabolicSyndrome`. Put the meaning of anything too high in `!!…!!` and anything a little high in `^^…^^`, with the status words "High ▲" or "Borderline ▲" where they fit naturally. Call metabolic syndrome "a cluster of linked warning signs". If `previousReports` exist, one bullet says how the numbers have moved over the years.
 3. `## What this means for you`: start by answering the person's `worry`, for example "You asked about dementia: …". Then one bullet per computed result, in the order given, one line each: what could happen and within how many years, the result's `display` quoted exactly, and one plain phrase on where the formula was tested. Say once, in one plain sentence, that the risks are listed from the biggest estimate to the smallest and that their time frames differ, so the order is not about urgency; what needs attention soon comes from "Your health right now" and the lab values. Then one short line for results that are not applicable (with the reason) or missing (with what is missing).
 4. `## What you should do`: a numbered list of 3–4 concrete actions, most important first. Each one says what to do, why (tie it to the person's own numbers) and where or how (home blood-pressure readings, a clinic, a service). Mark urgent advice with `!!…!!`. If Section 7 gives an urgency level, the first action states it. Where a `whatIfs` entry matches an action, quote its `before` → `after` for that formula, copied exactly.
-   - Services: if `services` is present, name only those services, each with its `rule` and the person's own values from `matched`, copied exactly; do not use the Taiwan list in Section 6 then. If `services` is absent, name no programme and point to the Next steps page instead.
-   - Tests: if `followUpTests` is present, name those tests with their `reasons`, copied exactly.
+   - Services: if `services` is present, name only those services, each with its `rule` and the person's own values from `meets`, copied exactly. A service whose `status` is `may-apply` is described as one that may apply, never as one the person qualifies for, and is followed by what is still to confirm, copied from `confirm`; do not use the Taiwan list in Section 6 then. If `services` is absent, name no programme and point to the Next steps page instead.
+   - Tests: if `followUpTests` is present, name the first three of those tests, in the order given, with their `reasons`, copied exactly.
    - End the section with one line: the app's Next steps page has the details and the official sources.
 5. The disclaimer line again.
 
@@ -148,7 +148,7 @@ def _slim(packet: dict) -> dict:
         "evidence": {m: {pop: _pick(cell, ("status", "direction")) for pop, cell in (cells or {}).items()}
                      for m, cells in (packet.get("evidence") or {}).items()},
         "whatIfs": packet.get("whatIfs") or [],
-        "services": [_pick(x, ("name", "rule", "matched", "how")) for x in packet.get("services") or []],
+        "services": [_pick(x, ("name", "rule", "status", "meets", "confirm", "how")) for x in packet.get("services") or []],
         "followUpTests": [_pick(x, ("name", "reasons", "where")) for x in packet.get("followUpTests") or []],
     }
     return {k: v for k, v in slim.items() if v not in (None, [], {})}
