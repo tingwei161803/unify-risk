@@ -41,6 +41,35 @@ const STEP_KEY = 'unify-risk:inputs-step';
 const DISCLAIMER = 'Not a diagnosis. Not medical advice.';
 const YES_NO = [{ value: true, label: 'Yes' }, { value: false, label: 'No' }];
 
+// One lab value the engine reads under two names. The record, the sample people and the lab report
+// page keep eGFR as labs.egfrMlMin (the unit is part of the key name, docs/interfaces.md); the newer
+// formulas read labs.egfr. personFrom() hands the engine the same number under both names, so it is
+// asked once.
+const SAME_VALUE = { 'labs.egfr': 'labs.egfrMlMin' };
+// An input that another question answers. PLCOm2012 works the education level out from the years
+// of schooling, so "Education level" leads to that question.
+const ASKED_AS = { ...SAME_VALUE, educationLevel: 'educationYears' };
+/** The path the questionnaire asks for `path` under. */
+function askedAs(path) { return ASKED_AS[path] || path; }
+
+// Formulas that read an answer without listing it among their inputs: an optional answer, or one
+// that only some people need. Used to decide whether a question is shown and to say who reads it.
+const READ_OUTSIDE_INPUTS = {
+  sedentary: ['hisayama-dementia-equation'],
+  strokeHistory: ['fsrp', 'chin-shan-stroke', 'fukushima-is-2024'],
+  ethnicity: ['qdiabetes-2018', 'qdiabetes-2018-b', 'qdiabetes-2018-c', 'pooled-cohort-equations-pce'],
+  region: ['china-par'], urban: ['china-par'], familyAscvd: ['china-par'],
+  chronicLiverDisease: ['amap'], hcv: ['amap', 'wen-2012'], cirrhosis: ['amap', 'reach-b'],
+  copdDiagnosed: ['copd-ps'],
+  ckdStage: ['kfre', 'chien-2010-ckd', 'chien-2010-ckd-lab'],
+  'labs.apoe4Count': ['ukbdrs'], 'labs.ggtUL': ['clivd'], 'labs.afpNgMl': ['wen-2012'],
+  'labs.fastingGlucoseMgDl': ['nafld-fibrosis-score']
+};
+/** Whether formula `f` reads the answer the questionnaire asks under `path`. */
+function readsPath(f, path) {
+  return f.inputs.some((p) => askedAs(p) === path) || (READ_OUTSIDE_INPUTS[path] || []).includes(f.id);
+}
+
 // One entry per screen. A screen asks either for one choice (`path` + `options`) or for one or
 // two numbers that belong together (`fields`). Paths are the engine's field names: a bare key is
 // read from person.profile, 'labs.<key>' from person.labs.
@@ -131,6 +160,77 @@ export const QUESTIONS = [
     fields: [{ path: 'labs.plateletsK', label: 'Platelets', unit: '10³/µL', min: 20, max: 700 }] }
 ];
 
+// Screens for answers that only some formulas read. A screen is shown when a formula on screen
+// reads its answer. The engine cannot say how to ask for these: a fixed choice whose options it
+// does not list, a yes/no it does not mark as one, an answer coded as 0 to 4, or an age that may
+// also be "none". `after` puts a screen behind an earlier one; the rest follow the lab values.
+const NONE_ONE_MORE = [{ value: 0, label: 'None' }, { value: 1, label: 'One' }, { value: 2, label: 'Two or more' }];
+const MORE_SCREENS = [
+  { id: 'ethnicity', after: 'region', section: 'About you', title: 'Which of these groups describes you best?',
+    help: 'Several formulas were fitted separately for these groups.',
+    path: 'ethnicity', label: 'Ethnicity',
+    options: [{ value: 'asian', label: 'Asian' }, { value: 'black', label: 'Black' }, { value: 'hispanic', label: 'Hispanic' },
+      { value: 'white', label: 'White' }, { value: 'other', label: 'Other' }] },
+  { id: 'sedentary', after: 'active', section: 'Habits', title: 'Do you spend most of the day sitting or lying down?',
+    help: 'You can skip this if you are active for at least 30 minutes on most days: that already counts as no.',
+    path: 'sedentary', label: 'Mostly sitting or lying down during the day', options: YES_NO },
+  { id: 'familyAscvd', after: 'famStroke', section: 'Family', title: 'Has a parent, brother or sister had a heart attack or a stroke?',
+    help: 'The China-PAR formula counts this for men.',
+    path: 'familyAscvd', label: 'Parent or sibling had a heart attack or stroke', options: YES_NO },
+  { id: 'parentsHypertension', after: 'famDiabetes', section: 'Family', title: 'Have your parents had high blood pressure?',
+    path: 'parentsHypertension', label: 'Parents with high blood pressure',
+    options: [{ value: 0, label: 'Neither' }, { value: 1, label: 'One of them' }, { value: 2, label: 'Both' }] },
+
+  { id: 'chinaRegion', section: 'Where you live', title: 'Do you live in northern or southern China?',
+    help: 'Only the China-PAR formula reads this. Skip it if you do not live in mainland China.',
+    path: 'region', label: 'Region of China',
+    options: [{ value: 'north', label: 'Northern China' }, { value: 'south', label: 'Southern China' }] },
+  { id: 'urban', section: 'Where you live', title: 'Do you live in a city?',
+    help: 'Choose No if you live in the countryside. The China-PAR formula counts this for men.',
+    path: 'urban', label: 'Lives in a city (not rural)', options: YES_NO },
+
+  { id: 'selfRatedHealth', section: 'Daily life', title: 'In general, how would you rate your health?',
+    path: 'selfRatedHealth', label: 'Self-rated health',
+    options: [{ value: 'excellent', label: 'Excellent' }, { value: 'verygood', label: 'Very good' }, { value: 'good', label: 'Good' },
+      { value: 'fair', label: 'Fair' }, { value: 'poor', label: 'Poor' }] },
+  { id: 'iadlHelp', section: 'Daily life', title: 'Do you need help managing money or medicines?',
+    path: 'iadlHelp', label: 'Needs help managing money or medicines', options: YES_NO },
+  { id: 'depressiveSymptoms', section: 'Daily life',
+    title: 'Do you take an antidepressant, or did everything feel like an effort on 3 or more days last week?',
+    path: 'depressiveSymptoms', label: 'Depressive symptoms', options: YES_NO },
+
+  { id: 'copdDiagnosed', section: 'Breathing', title: 'Has a doctor ever told you that you have COPD?',
+    help: 'Chronic obstructive pulmonary disease. The COPD-PS form is for people who have not been told so.',
+    path: 'copdDiagnosed', label: 'Told they have COPD', options: YES_NO },
+  { id: 'copdBreathless', section: 'Breathing', title: 'In the past 4 weeks, how much of the time did you feel short of breath?',
+    path: 'copdSymptomBreathless', label: 'Short of breath in the past 4 weeks',
+    options: [{ value: 0, label: 'None of the time' }, { value: 1, label: 'A little of the time' }, { value: 2, label: 'Some of the time' },
+      { value: 3, label: 'Most of the time' }, { value: 4, label: 'All of the time' }] },
+  { id: 'copdPhlegm', section: 'Breathing', title: 'Do you cough up phlegm?',
+    path: 'copdSymptomPhlegm', label: 'Coughs up phlegm',
+    options: [{ value: 0, label: 'Never' }, { value: 1, label: 'Only with a cold' }, { value: 2, label: 'A few days a month' },
+      { value: 3, label: 'Most days of the week' }, { value: 4, label: 'Every day' }] },
+  { id: 'copdLimited', section: 'Breathing', title: 'Do you do less than you used to because of your breathing?',
+    help: 'Think of the past 12 months, and choose how far you agree.',
+    path: 'copdActivityLimited', label: 'Does less than before because of breathing',
+    options: [{ value: 0, label: 'Strongly disagree' }, { value: 1, label: 'Disagree' }, { value: 2, label: 'Unsure' },
+      { value: 3, label: 'Agree' }, { value: 4, label: 'Strongly agree' }] },
+
+  { id: 'menarche', section: 'Breast cancer formulas', title: 'How old were you when you had your first period?',
+    fields: [{ path: 'ageAtMenarche', label: 'Age at first period', unit: 'years', min: 7, max: 20 }] },
+  { id: 'firstBirth', section: 'Breast cancer formulas', title: 'How old were you when your first child was born?',
+    fields: [{ path: 'ageAtFirstLiveBirth', label: 'Age at first live birth', unit: 'years', min: 10, max: 60,
+      none: { value: 'none', label: 'I have not given birth', short: 'No live birth' } }] },
+  { id: 'familyBreastCancer', section: 'Breast cancer formulas', title: 'How many of your mother, sisters and daughters have had breast cancer?',
+    path: 'familyBreastCancerCount', label: 'Mother, sisters or daughters with breast cancer', options: NONE_ONE_MORE },
+  { id: 'breastBiopsies', section: 'Breast cancer formulas', title: 'How many breast biopsies have you had?',
+    path: 'breastBiopsyCount', label: 'Breast biopsies', options: NONE_ONE_MORE }
+];
+MORE_SCREENS.filter((q) => pathsOf(q).some((path) => formulaList.some((f) => readsPath(f, path)))).forEach((q) => {
+  const at = q.after ? QUESTIONS.findIndex((x) => x.id === q.after) : -1;
+  if (at >= 0) QUESTIONS.splice(at + 1, 0, q); else QUESTIONS.push(q);
+});
+
 // A field the engine lists (js/engine/run.js QUESTIONS) that has no screen above, for example the
 // input of a newly added formula, is asked plainly at the end, so no formula is left unanswerable.
 QUESTIONS.push(...engineQuestions.map((x) => {
@@ -148,8 +248,9 @@ QUESTIONS.push(...engineQuestions.map((x) => {
 // An input of a formula that still has no screen is asked plainly too: the engine can gain formulas
 // faster than this file gains questions. The engine's own input check says what kind of answer the
 // field takes, a number or a yes/no. A fixed choice or free text gets no screen here, because the
-// engine does not list its options. A wrong guess cannot change an estimate: the engine would
-// report the answer as missing.
+// engine does not list its options (MORE_SCREENS above asks for the ones known today). The check
+// takes a yes/no for a number unless the engine has registered the field as yes/no, so such a field
+// needs a screen in MORE_SCREENS as well.
 function answerKind(path) {
   if (!engineUtil || typeof engineUtil.missingFields !== 'function') return null;
   const person = (v) => (path.startsWith('labs.') ? { profile: {}, labs: { [path.slice(5)]: v } } : { profile: { [path]: v }, labs: {} });
@@ -163,8 +264,8 @@ function unitOf(path) {
   const hit = UNIT_BY_SUFFIX.find(([re]) => re.test(path));
   return hit ? hit[1] : '';
 }
-formulaList.forEach((f) => f.inputs.forEach((path) => {
-  if (typeof path !== 'string' || QUESTIONS.some((q) => pathsOf(q).includes(path))) return;
+function plainScreen(path) {
+  if (typeof path !== 'string' || ASKED_AS[path] || QUESTIONS.some((q) => pathsOf(q).includes(path))) return;
   const kind = answerKind(path);
   if (!kind) return;
   const label = (engineUtil.FIELD_LABELS && engineUtil.FIELD_LABELS[path]) || fieldLabel(path);
@@ -172,7 +273,11 @@ formulaList.forEach((f) => f.inputs.forEach((path) => {
     ? { id: 'x-' + path, section: 'More answers', title: label, help: 'Enter a number, or skip it if you do not know.',
       fields: [{ path, label, unit: unitOf(path), min: -Infinity, max: Infinity }] }
     : { id: 'x-' + path, section: 'More answers', title: label, help: 'Choose Yes if this is true for you.', path, label, options: YES_NO });
-}));
+}
+formulaList.forEach((f) => f.inputs.forEach(plainScreen));
+// In "all formulas" mode, ask as well for the answers a formula reads outside its input list (an
+// optional lab value, a yes/no that only some people need). The engine has a label for each.
+if (ALL_FORMULAS_MODE && engineUtil && engineUtil.FIELD_LABELS) Object.keys(engineUtil.FIELD_LABELS).forEach(plainScreen);
 
 /* ---------------- shared with the results view ---------------- */
 
@@ -213,7 +318,15 @@ function pathsOf(q) { return q.fields ? q.fields.map((f) => f.path) : [q.path]; 
 
 /** The person in the shape the engine reads: { profile, labs } (docs/interfaces.md). */
 export function personFrom(state) {
-  return { profile: (state && state.profile) || {}, labs: (state && state.labs) || {} };
+  const labs = { ...((state && state.labs) || {}) };
+  // One lab value under two names (SAME_VALUE): the engine gets the same number under both. The
+  // name the questionnaire asks under wins; a number saved earlier under the other name fills in.
+  Object.entries(SAME_VALUE).forEach(([other, path]) => {
+    const a = other.slice(5), k = path.slice(5);
+    const v = has(labs[k]) ? labs[k] : labs[a];
+    if (has(v)) { labs[k] = v; labs[a] = v; }
+  });
+  return { profile: (state && state.profile) || {}, labs };
 }
 
 // Ids of the formulas that get a card on the results page. The engine keeps score-only formulas
@@ -233,7 +346,7 @@ function usedBy(q) {
   pathsOf(q).forEach((path) => {
     const meta = engineQuestions.find((x) => x.key === path);
     (meta && Array.isArray(meta.usedBy) ? meta.usedBy : []).forEach((id) => ids.add(id));
-    formulaList.forEach((f) => { if (f.inputs.includes(path)) ids.add(f.id); });
+    formulaList.forEach((f) => { if (readsPath(f, path)) ids.add(f.id); });
   });
   const nameOf = (id) => {
     const f = formulaList.find((x) => x.id === id);
@@ -259,25 +372,43 @@ export function readAnswer(state, path) {
 
 /** 'labs.tc' -> 'Total cholesterol'. Unknown paths are turned into readable words. */
 export function fieldLabel(path) {
+  const asked = askedAs(path);
   for (const q of QUESTIONS) {
-    if (q.path === path) return q.label;
-    const f = q.fields && q.fields.find((x) => x.path === path);
+    if (q.path === asked) return q.label;
+    const f = q.fields && q.fields.find((x) => x.path === asked);
     if (f) return f.short || f.label;
   }
   const words = String(path).split('.').pop().replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').toLowerCase();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+/**
+ * The questionnaire's own name for an answer it asks in its own words (MORE_SCREENS), else `fallback`.
+ * The engine's name for such an answer can carry the codes it stores ("0 none, 1 a little, ..."),
+ * which the person never types.
+ */
+export function askedLabel(path, fallback) {
+  const asked = askedAs(path);
+  for (const q of MORE_SCREENS) {
+    if (q.path === asked) return q.label;
+    const f = q.fields && q.fields.find((x) => x.path === asked);
+    if (f) return f.short || f.label;
+  }
+  return fallback;
+}
+
 /** A stored answer as the person saw it: 'current' -> 'Currently', true -> 'Yes', 148 -> '148 mmHg'. */
 export function answerText(path, value) {
   if (value === null || value === undefined || value === '') return '(blank)';
+  const asked = askedAs(path);
   for (const q of QUESTIONS) {
-    if (q.path === path) {
+    if (q.path === asked) {
       const option = q.options.find((o) => o.value === value);
       if (option) return option.label;
     }
-    const f = q.fields && q.fields.find((x) => x.path === path);
-    if (f) return value + ' ' + f.unit;
+    const f = q.fields && q.fields.find((x) => x.path === asked);
+    if (f && f.none && value === f.none.value) return f.none.short || f.none.label;
+    if (f) return value + (f.unit ? ' ' + f.unit : '');
   }
   if (value === true) return 'Yes';
   if (value === false) return 'No';
@@ -286,12 +417,12 @@ export function answerText(path, value) {
 
 /** Whether the questionnaire has a question that asks for `path`. */
 export function hasQuestionFor(path) {
-  return QUESTIONS.some((q) => pathsOf(q).includes(path));
+  return QUESTIONS.some((q) => pathsOf(q).includes(askedAs(path)));
 }
 
 /** Make the questionnaire open at the question that asks for `path`. Returns false if none does. */
 export function openQuestionFor(path) {
-  const i = QUESTIONS.findIndex((q) => pathsOf(q).includes(path));
+  const i = QUESTIONS.findIndex((q) => pathsOf(q).includes(askedAs(path)));
   if (i < 0) return false;
   step = i;
   owner = null;   // keep this step even if the next render is for another account
@@ -341,8 +472,12 @@ function isAnswered(q, state) { return pathsOf(q).every((p) => has(readAnswer(st
 // A bare path is a profile field; 'labs.<key>' is a lab value. undefined clears the answer.
 function save(path, value) {
   const store = host.ctx.store;
-  if (path.startsWith('labs.')) store.setLabs({ [path.slice(5)]: value });
-  else if (path === 'record.region') store.set({ region: value });   // kept on the record, not in the profile
+  if (path.startsWith('labs.')) {
+    const patch = { [path.slice(5)]: value };
+    // a number saved earlier under the engine's other name for this value must not outlive this one
+    Object.keys(SAME_VALUE).forEach((other) => { if (SAME_VALUE[other] === path) patch[other.slice(5)] = undefined; });
+    store.setLabs(patch);
+  } else if (path === 'record.region') store.set({ region: value });   // kept on the record, not in the profile
   else store.setProfile({ [path]: value });
 }
 function go(hash) {
@@ -370,15 +505,29 @@ function numberFields(q, state) {
   return h('div.qz-fields', { role: 'group', 'aria-labelledby': 'qz-count qz-title' }, q.fields.map((f) => {
     const id = 'qz-' + f.path.replace(/\./g, '-');
     const stored = readAnswer(state, f.path);
-    const text = drafts[f.path] !== undefined ? drafts[f.path] : has(stored) ? String(stored) : '';
+    // some answers are a number or "none" (f.none): a toggle under the field stores the word
+    const isNone = Boolean(f.none) && stored === f.none.value;
+    const text = drafts[f.path] !== undefined ? drafts[f.path] : has(stored) && !isNone ? String(stored) : '';
+    const noneBtn = f.none ? h('button.qz-none', { type: 'button', 'aria-pressed': String(isNone), 'data-none': f.path,
+      onclick: () => {
+        const on = noneBtn.getAttribute('aria-pressed') !== 'true';
+        delete drafts[f.path];
+        save(f.path, on ? f.none.value : undefined);
+        draw();
+        const again = host.root.querySelector('.qz-none[data-none="' + f.path + '"]');
+        if (again) again.focus({ preventScroll: true });
+      } }, f.none.label) : null;
     const input = h('input', { id, type: 'text', inputmode: 'decimal', autocomplete: 'off', spellcheck: 'false', value: text,
       'data-path': f.path, 'aria-describedby': id + '-unit ' + (q.help ? 'qz-help ' : '') + 'qz-err',
       oninput: () => {
         drafts[f.path] = input.value;
         input.removeAttribute('aria-invalid');
         setError('');
+        const wasNone = noneBtn && noneBtn.getAttribute('aria-pressed') === 'true';
         if (input.value.trim() === '') save(f.path, undefined);
         else if (!rangeError(f, input.value)) save(f.path, parseNumber(input.value));
+        else if (wasNone) save(f.path, undefined);   // typing takes the place of "none", even before the number is complete
+        if (noneBtn) noneBtn.setAttribute('aria-pressed', 'false');
         refreshNav();
       },
       onblur: () => {
@@ -387,7 +536,7 @@ function numberFields(q, state) {
         if (message) input.setAttribute('aria-invalid', 'true');
       },
       onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) next(); } } });   // a held key answers once
-    return h('div.qz-field', h('label', { for: id }, f.label), h('div.qz-num', input, h('span.unit', { id: id + '-unit' }, f.unit)));
+    return h('div.qz-field', h('label', { for: id }, f.label), h('div.qz-num', input, h('span.unit', { id: id + '-unit' }, f.unit)), noneBtn);
   }));
 }
 
@@ -508,7 +657,7 @@ function draw() {
             confirmClear ? 'Clear all ' + done + ' answers?' : 'Start blank') : null,
           h('button.btn.sm.ghost', { type: 'button', onclick: () => go('#/results') }, 'See results'))),
       // one dot per question: progress at a glance, and a way to jump to any question
-      h('div.qz-dots', { role: 'group', 'aria-label': 'All questions' }, QUESTIONS.map((x, i) =>
+      h('div.qz-dots', { role: 'group', 'aria-label': 'All questions', style: { '--n': String(QUESTIONS.length) } }, QUESTIONS.map((x, i) =>
         h('button.qz-dot' + (isAnswered(x, state) ? '.done' : '') + (i === step ? '.on' : ''),
           { type: 'button', title: (i + 1) + '. ' + x.title, 'aria-label': 'Question ' + (i + 1) + ': ' + x.title + (isAnswered(x, state) ? ' (answered)' : ''),
             'aria-current': i === step ? 'step' : null, onclick: () => { clearTimeout(advanceTimer); step = i; draw(); } }))),
