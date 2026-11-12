@@ -450,6 +450,8 @@ details.more > div { padding-top: 12px; }
 .qz-num input:hover { border-color: var(--muted); }
 .qz-num input:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-field); }
 .qz-num .unit { font-size: 15px; color: var(--muted); }
+/* which units the lab values on this screen are typed in: a row of its own under the fields */
+.qz-units { flex: 1 0 100%; display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--muted); }
 /* "none" in place of a number: a toggle under the field */
 .qz-none { justify-self: start; min-height: 40px; padding: 6px 14px; background: var(--bg2); color: var(--text);
   border: 1px solid var(--border-strong); border-radius: 10px; font-size: 15px; font-weight: 550; cursor: pointer; }
