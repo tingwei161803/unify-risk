@@ -169,7 +169,7 @@ h3 { font-size: 16px; line-height: 1.4; font-weight: 650; }
 .input:hover { border-color: var(--border-strong); }
 .input:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-field); }
 .input.w-num { width: 104px; text-align: right; font-variant-numeric: tabular-nums; }
-.seg { display: inline-flex; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-ctl); padding: 2px; gap: 2px; }
+.seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-ctl); padding: 2px; gap: 2px; }
 .seg button { background: none; border: none; color: var(--muted); height: 32px; padding: 0 12px; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .seg button:hover { color: var(--text); }
 .seg button.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--border-strong); }
@@ -267,6 +267,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px;
 .risk.locked { border-style: dashed; background: none; }
 .risk.locked h3 { color: var(--muted); }
 .need-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.need-list .pill { white-space: normal; text-align: left; border-radius: 12px; }   /* a long answer name wraps instead of leaving the card */
 button.need { cursor: pointer; font-family: var(--sans); }
 button.need:hover { color: var(--text); border-color: var(--border-strong); }
 button.need:focus-visible { outline: none; box-shadow: var(--focus); }
@@ -320,7 +321,9 @@ dialog.drawer { margin: 0 0 0 auto; height: var(--vh); max-height: var(--vh); wi
 .tbl tr:last-child td { border-bottom: none; }
 .tbl tr.total td { border-top: 1px solid var(--border-strong); font-weight: 600; background: color-mix(in srgb, var(--text) 4%, transparent); }
 .drawer-body .tbl td { vertical-align: middle; }   /* the contribution bars sit on the row's midline */
-.tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-panel); }
+/* position: relative keeps the screen-reader-only text in a wide table inside this scrolling box;
+   without it that text counted toward the page's own width and a phone scrolled sideways */
+.tbl-wrap { position: relative; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-panel); }
 .tbl-wrap .tbl th:first-child, .tbl-wrap .tbl td:first-child { padding-left: 14px; }
 .cbar { position: relative; width: 84px; height: 10px; }
 .cbar::before { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border-strong); }
@@ -435,6 +438,7 @@ details.more > div { padding-top: 12px; }
 .qz-help { font-size: 15px; color: var(--muted); max-width: 58ch; }
 .qz-used { flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); }
 .qz-fields + .qz-used > span:first-child { flex-basis: 100%; }
+.qz-used .pill { white-space: normal; text-align: left; border-radius: 12px; }   /* a long formula name wraps instead of leaving the card */
 .qz-body { flex: 1; display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: 14px 40px; }
 .qz + .disclaimer { max-width: 760px; margin: 14px auto 0; padding-top: 0; border-top: none; text-align: center; }
 .qz-fields { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-end; }
@@ -447,6 +451,12 @@ details.more > div { padding-top: 12px; }
 .qz-num input:hover { border-color: var(--muted); }
 .qz-num input:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-field); }
 .qz-num .unit { font-size: 15px; color: var(--muted); }
+/* "none" in place of a number: a toggle under the field */
+.qz-none { justify-self: start; min-height: 40px; padding: 6px 14px; background: var(--bg2); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 10px; font-size: 15px; font-weight: 550; cursor: pointer; }
+.qz-none:hover { border-color: var(--accent); }
+.qz-none:focus-visible { outline: none; box-shadow: var(--focus); }
+.qz-none[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); }
 .qz-opts { display: grid; gap: 10px; flex: 1 0 100%; }
 .qz-opts.inline { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .qz-opt { display: flex; align-items: center; gap: 12px; text-align: left; min-height: 50px; padding: 8px 18px;
@@ -466,7 +476,9 @@ details.more > div { padding-top: 12px; }
 .qz-nav .btn:not(.secondary):not(.ghost) { box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 45%, var(--bg)); }
 .qz-nav .btn:not(.secondary):not(.ghost):active { transform: translateY(3px); box-shadow: none; }
 .qz-nav .btn:focus-visible { box-shadow: var(--focus); }
-.qz-dots { display: flex; gap: 4px; align-items: center; height: 12px; }
+.qz > * { min-width: 0; }   /* nothing inside may push the column wider than the screen */
+/* --n is the number of questions: with a hundred of them on a phone the gaps shrink, so the row still fits */
+.qz-dots { display: flex; gap: min(4px, calc(100% / var(--n, 26) / 3)); align-items: center; height: 12px; }
 .qz-dot { position: relative; flex: 1; height: 6px; padding: 0; border: 0; border-radius: 3px; background: var(--border-strong); cursor: pointer; }
 .qz-dot::before { content: ""; position: absolute; inset: -9px 0; }   /* a 24px-tall target around a 6px mark */
 .qz-dot.done { background: var(--mark-neutral); }
@@ -541,7 +553,17 @@ html { scroll-padding-top: 70px; }
 @media (max-width: 680px) {
   html, body { font-size: 16px; }
   .page { padding: 20px 16px 48px; }
-  .top { padding: 0 12px; gap: 8px; }
+  /* Two rows on a phone: the name and the account on top, the page links below at full width.
+     In one row the links were left with a strip a few letters wide. */
+  .top { padding: 0 12px; gap: 0 8px; flex-wrap: wrap; height: auto; min-height: 54px; }
+  .brand { margin-right: auto; min-height: 48px; }
+  .session { line-height: 36px; }
+  #ai { flex: 1 1 0; text-align: right; }   /* takes what the name and the account leave, then shortens */
+  .nav { order: 9; flex: 1 0 100%; height: 40px; margin: 0 -12px; padding: 0 6px; border-top: 1px solid var(--border);
+    /* the links scroll sideways; the fading edge says there are more */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+  .nav::after { content: ""; flex: none; width: 24px; }   /* so the last link can be scrolled clear of the fading edge */
   .only-narrow { display: flex !important; }
   .grid2 { grid-template-columns: minmax(0, 1fr); }
   h1 { font-size: 28px; }
