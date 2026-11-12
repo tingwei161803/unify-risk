@@ -438,6 +438,7 @@ details.more > div { padding-top: 12px; }
 .qz-help { font-size: 15px; color: var(--muted); max-width: 58ch; }
 .qz-used { flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); }
 .qz-fields + .qz-used > span:first-child { flex-basis: 100%; }
+.qz-used .pill { white-space: normal; text-align: left; border-radius: 12px; }   /* a long formula name wraps instead of leaving the card */
 .qz-body { flex: 1; display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: 14px 40px; }
 .qz + .disclaimer { max-width: 760px; margin: 14px auto 0; padding-top: 0; border-top: none; text-align: center; }
 .qz-fields { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-end; }
