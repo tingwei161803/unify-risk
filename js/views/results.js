@@ -8,7 +8,7 @@
 //
 // #/results?open=fsrp opens the "show the math" drawer for that formula.
 
-import { h, mount, fieldLabel, answerText, readAnswer, personFrom, regionOf, openQuestionFor, hasQuestionFor, ALL_FORMULAS_MODE, setAllFormulasMode, disclaimer, focusHeading } from './inputs.js';
+import { h, mount, fieldLabel, askedLabel, answerText, readAnswer, personFrom, regionOf, openQuestionFor, hasQuestionFor, ALL_FORMULAS_MODE, setAllFormulasMode, disclaimer, focusHeading } from './inputs.js';
 import { EVIDENCE, POPULATIONS, STATUS as EVIDENCE_STATUS } from '../data/evidence.js';
 import { PERSONAS } from '../data/personas.js';
 import { whatIfSection } from './results-whatif.js';
@@ -159,7 +159,8 @@ function normalise(raw) {
       notes: Array.isArray(r.notes) ? r.notes : [],
       missing: (Array.isArray(r.missing) ? r.missing : []).map((m, i) => {
         const field = String(typeof m === 'string' ? m : m.field).replace(/^profile\./, '');
-        return { field, label: (typeof m === 'object' && m.label) || labels[i] || fieldLabel(field) };
+        // an answer the questionnaire asks in its own words is named the way the question names it
+        return { field, label: askedLabel(field, (typeof m === 'object' && m.label) || labels[i] || fieldLabel(field)) };
       }),
       reason: r.reason ? String(r.reason).replace(/[.\s]*$/, '.') : '',
       population: r.population || '',

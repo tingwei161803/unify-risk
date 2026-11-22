@@ -447,6 +447,12 @@ details.more > div { padding-top: 12px; }
 .qz-num input:hover { border-color: var(--muted); }
 .qz-num input:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-field); }
 .qz-num .unit { font-size: 15px; color: var(--muted); }
+/* "none" in place of a number: a toggle under the field */
+.qz-none { justify-self: start; min-height: 40px; padding: 6px 14px; background: var(--bg2); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 10px; font-size: 15px; font-weight: 550; cursor: pointer; }
+.qz-none:hover { border-color: var(--accent); }
+.qz-none:focus-visible { outline: none; box-shadow: var(--focus); }
+.qz-none[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--bg2)); }
 .qz-opts { display: grid; gap: 10px; flex: 1 0 100%; }
 .qz-opts.inline { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .qz-opt { display: flex; align-items: center; gap: 12px; text-align: left; min-height: 50px; padding: 8px 18px;
@@ -466,7 +472,9 @@ details.more > div { padding-top: 12px; }
 .qz-nav .btn:not(.secondary):not(.ghost) { box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 45%, var(--bg)); }
 .qz-nav .btn:not(.secondary):not(.ghost):active { transform: translateY(3px); box-shadow: none; }
 .qz-nav .btn:focus-visible { box-shadow: var(--focus); }
-.qz-dots { display: flex; gap: 4px; align-items: center; height: 12px; }
+.qz > * { min-width: 0; }   /* nothing inside may push the column wider than the screen */
+/* --n is the number of questions: with a hundred of them on a phone the gaps shrink, so the row still fits */
+.qz-dots { display: flex; gap: min(4px, calc(100% / var(--n, 26) / 3)); align-items: center; height: 12px; }
 .qz-dot { position: relative; flex: 1; height: 6px; padding: 0; border: 0; border-radius: 3px; background: var(--border-strong); cursor: pointer; }
 .qz-dot::before { content: ""; position: absolute; inset: -9px 0; }   /* a 24px-tall target around a 6px mark */
 .qz-dot.done { background: var(--mark-neutral); }
