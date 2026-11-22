@@ -258,7 +258,7 @@ function answerKind(path) {
   return accepts(7) ? 'number' : accepts(true) ? 'yesno' : null;
 }
 // Field names carry their unit (docs/interfaces.md): 'labs.psaNgMl' is in ng/mL.
-const UNIT_BY_SUFFIX = [[/MgDl$/, 'mg/dL'], [/GdL$/, 'g/dL'], [/NgMl$/, 'ng/mL'], [/IuMl$/, 'IU/mL'], [/MgG$/, 'mg/g'],
+const UNIT_BY_SUFFIX = [[/MgDl(12m)?$/, 'mg/dL'], [/GdL$/, 'g/dL'], [/NgMl$/, 'ng/mL'], [/IuMl$/, 'IU/mL'], [/MgG$/, 'mg/g'],
   [/UL$/, 'U/L'], [/MlMin$/, 'mL/min/1.73 m²'], [/Pct$/, '%'], [/Cm$/, 'cm'], [/Kg$/, 'kg'], [/K$/, '10³/µL']];
 function unitOf(path) {
   const hit = UNIT_BY_SUFFIX.find(([re]) => re.test(path));
@@ -408,7 +408,7 @@ export function answerText(path, value) {
     }
     const f = q.fields && q.fields.find((x) => x.path === asked);
     if (f && f.none && value === f.none.value) return f.none.short || f.none.label;
-    if (f) return value + (f.unit ? ' ' + f.unit : '');
+    if (f) return shownNumber(f.path, value) + (unitShown(f) ? ' ' + unitShown(f) : '');   // in the unit the questionnaire is set to
   }
   if (value === true) return 'Yes';
   if (value === false) return 'No';
@@ -492,13 +492,79 @@ function parseNumber(text) {
   if (t === '' || !/^-?\d*\.?\d+$/.test(t)) return NaN;
   return Number(t);
 }
+
+// Lab values in SI units. The record keeps every lab value in the unit its key names (mg/dL, %,
+// g/dL): that is what the formulas and the lab readings read, and it does not change. Where reports
+// print SI units, a person can switch the questionnaire to them: a typed number is converted before
+// it is saved and converted back when it is shown.
+//   per     stored value x per = SI value (HbA1c has an equation of its own: `to` and `from`)
+//   digits  decimals shown in SI units
+//   keep    decimals kept in the stored unit, enough to give the typed SI number back unchanged
+// Cholesterol, glucose and HbA1c use the same factors as the engine's own conversions.
+const SI_UNITS = {
+  'labs.totalCholMgDl': { unit: 'mmol/L', per: 0.02586, digits: 2, keep: 1 },
+  'labs.hdlMgDl': { unit: 'mmol/L', per: 0.02586, digits: 2, keep: 1 },
+  'labs.ldlMgDl': { unit: 'mmol/L', per: 0.02586, digits: 2, keep: 1 },
+  'labs.tgMgDl': { unit: 'mmol/L', per: 0.01129, digits: 2, keep: 1 },
+  'labs.fastingGlucoseMgDl': { unit: 'mmol/L', per: 0.0555, digits: 1, keep: 1 },
+  'labs.postprandialGlucoseMgDl': { unit: 'mmol/L', per: 0.0555, digits: 1, keep: 1 },
+  'labs.glucoseChangeMgDl12m': { unit: 'mmol/L', per: 0.0555, digits: 1, keep: 1 },
+  'labs.hba1cPct': { unit: 'mmol/mol', to: (pct) => (pct - 2.15) * 10.929, from: (v) => v / 10.929 + 2.15, digits: 0, keep: 2 },
+  'labs.creatinineMgDl': { unit: 'µmol/L', per: 88.42, digits: 0, keep: 2 },
+  'labs.uricAcidMgDl': { unit: 'µmol/L', per: 59.48, digits: 0, keep: 2 },
+  'labs.bilirubinMgDl': { unit: 'µmol/L', per: 17.1, digits: 0, keep: 2 },
+  'labs.albuminGdL': { unit: 'g/L', per: 10, digits: 0, keep: 1 },
+  'labs.uacrMgG': { unit: 'mg/mmol', per: 0.113, digits: 1, keep: 1 }
+};
+const UNITS_KEY = 'unify-risk:lab-units';   // 'si', or absent for the units the record keeps
+let siUnits = (() => { try { return localStorage.getItem(UNITS_KEY) === 'si'; } catch (e) { return false; } })();
+/** The SI entry for a field while SI units are switched on, else null. */
+function siFor(path) { return siUnits && SI_UNITS[path] ? SI_UNITS[path] : null; }
+const trim = (x, digits) => String(Number(x.toFixed(digits)));   // 5.20 -> '5.2'
+/** A stored number as text in the unit on screen. */
+function shownNumber(path, value) {
+  const si = siFor(path);
+  if (!si || typeof value !== 'number' || !Number.isFinite(value)) return String(value);
+  return trim(si.to ? si.to(value) : value * si.per, si.digits);
+}
+/** A number typed in the unit on screen, as the number to store. */
+function storedNumber(path, typed) {
+  const si = siFor(path);
+  if (!si) return typed;
+  return Number((si.from ? si.from(typed) : typed / si.per).toFixed(si.keep));
+}
+/** The unit on screen for a number field. */
+function unitShown(f) { const si = siFor(f.path); return si ? si.unit : f.unit; }
+
 function rangeError(f, text) {
   if (String(text).trim() === '') return '';
-  const v = parseNumber(text);
+  const typed = parseNumber(text);
   const name = f.short || f.label;
-  if (Number.isNaN(v)) return name + ' must be a number. Leave it empty to skip.';
-  if (v < f.min || v > f.max) return name + ' must be between ' + f.min + ' and ' + f.max + ' ' + f.unit + '. Leave it empty to skip.';
+  if (Number.isNaN(typed)) return name + ' must be a number. Leave it empty to skip.';
+  const v = storedNumber(f.path, typed);
+  if (v < f.min || v > f.max) {
+    return name + ' must be between ' + shownNumber(f.path, f.min) + ' and ' + shownNumber(f.path, f.max) + ' ' + unitShown(f) + '. Leave it empty to skip.';
+  }
   return '';
+}
+
+// "mg/dL | mmol/L" under the number fields of a screen that has a value with an SI unit.
+function unitSwitch(q) {
+  const fields = q.fields.filter((f) => SI_UNITS[f.path]);
+  if (!fields.length) return null;
+  const names = (si) => [...new Set(fields.map((f) => (si ? SI_UNITS[f.path].unit : f.unit)))].join(', ');
+  const pick = (si) => {
+    if (si === siUnits) return;
+    siUnits = si;
+    try { if (si) localStorage.setItem(UNITS_KEY, 'si'); else localStorage.removeItem(UNITS_KEY); } catch (e) { /* private mode */ }
+    q.fields.forEach((f) => { delete drafts[f.path]; });   // half-typed text was in the other unit
+    draw();
+    const again = host.root.querySelector('.qz-units button[aria-pressed="true"]');
+    if (again) again.focus({ preventScroll: true });
+  };
+  return h('div.qz-units', h('span', 'Units'), h('div.seg', { role: 'group', 'aria-label': 'Units for these values' },
+    h('button' + (siUnits ? '' : '.on'), { type: 'button', 'aria-pressed': String(!siUnits), onclick: () => pick(false) }, names(false)),
+    h('button' + (siUnits ? '.on' : ''), { type: 'button', 'aria-pressed': String(siUnits), onclick: () => pick(true) }, names(true))));
 }
 
 function numberFields(q, state) {
@@ -507,7 +573,7 @@ function numberFields(q, state) {
     const stored = readAnswer(state, f.path);
     // some answers are a number or "none" (f.none): a toggle under the field stores the word
     const isNone = Boolean(f.none) && stored === f.none.value;
-    const text = drafts[f.path] !== undefined ? drafts[f.path] : has(stored) && !isNone ? String(stored) : '';
+    const text = drafts[f.path] !== undefined ? drafts[f.path] : has(stored) && !isNone ? shownNumber(f.path, stored) : '';
     const noneBtn = f.none ? h('button.qz-none', { type: 'button', 'aria-pressed': String(isNone), 'data-none': f.path,
       onclick: () => {
         const on = noneBtn.getAttribute('aria-pressed') !== 'true';
@@ -525,7 +591,7 @@ function numberFields(q, state) {
         setError('');
         const wasNone = noneBtn && noneBtn.getAttribute('aria-pressed') === 'true';
         if (input.value.trim() === '') save(f.path, undefined);
-        else if (!rangeError(f, input.value)) save(f.path, parseNumber(input.value));
+        else if (!rangeError(f, input.value)) save(f.path, storedNumber(f.path, parseNumber(input.value)));
         else if (wasNone) save(f.path, undefined);   // typing takes the place of "none", even before the number is complete
         if (noneBtn) noneBtn.setAttribute('aria-pressed', 'false');
         refreshNav();
@@ -536,8 +602,8 @@ function numberFields(q, state) {
         if (message) input.setAttribute('aria-invalid', 'true');
       },
       onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) next(); } } });   // a held key answers once
-    return h('div.qz-field', h('label', { for: id }, f.label), h('div.qz-num', input, h('span.unit', { id: id + '-unit' }, f.unit)), noneBtn);
-  }));
+    return h('div.qz-field', h('label', { for: id }, f.label), h('div.qz-num', input, h('span.unit', { id: id + '-unit' }, unitShown(f))), noneBtn);
+  }), unitSwitch(q));
 }
 
 /* ---------------- choices ---------------- */
